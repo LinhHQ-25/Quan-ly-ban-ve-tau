@@ -63,9 +63,9 @@ public class MainFrame extends JFrame {
     public MainFrame() {
         setTitle("Quản lý bán vé tàu");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setSize(1200, 760);
+        setSize(1200, 700);
         setLocationRelativeTo(null);
-        setMinimumSize(new Dimension(1100, 680));
+        setMinimumSize(new Dimension(1000, 600));
         try { UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName()); }
         catch (Exception ignored) {}
 
@@ -142,7 +142,7 @@ public class MainFrame extends JFrame {
 
         sb.add(mkBtn("dat-ve",   "Đặt vé tàu", "/images/book.png",       false));
         sb.add(mkBtn("doi-tra",  "Đổi/Trả vé", "/images/exchange.png",   false));
-        sb.add(mkBtn("thong-ke", "Thống kê",   "/images/statistics.png", false));
+        sb.add(mkBtn("thong-ke", "Báo cáo ca làm",   "/images/statistics.png", false));
         sb.add(mkBtn("ho-tro",   "Hỗ trợ",     "/images/help.png",       false));
 
         sb.add(Box.createVerticalGlue());

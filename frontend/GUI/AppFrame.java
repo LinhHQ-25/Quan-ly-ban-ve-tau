@@ -35,9 +35,9 @@ public class AppFrame extends JFrame {
     public AppFrame() {
         setTitle("Hệ thống bán vé tàu");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setSize(1200, 760);
+        setSize(1200, 700);
         setLocationRelativeTo(null);
-        setMinimumSize(new Dimension(1100, 680));
+        setMinimumSize(new Dimension(1000, 600));
 
         try {
             UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
@@ -102,7 +102,7 @@ public class AppFrame extends JFrame {
 
         sb.add(mkBtn("dat-ve", "Đặt vé tàu", "/images/book.png", false));
         sb.add(mkBtn("doi-tra", "Đổi/Trả vé", "/images/exchange.png", false));
-        sb.add(mkBtn("thong-ke", "Thống kê", "/images/statistics.png", false));
+        sb.add(mkBtn("thong-ke", "Báo cáo ca làm", "/images/statistics.png", false));
         sb.add(mkBtn("ho-tro", "Hỗ trợ", "/images/help.png", false));
 
         sb.add(Box.createVerticalGlue());
@@ -157,7 +157,7 @@ public class AppFrame extends JFrame {
                 headerTitle.setText("ĐỔI/TRẢ VÉ");
                 break;
             case "thong-ke":
-                headerTitle.setText("THỐNG KÊ");
+                headerTitle.setText("BÁO CÁO CA LÀM");
                 break;
             case "ho-tro":
                 headerTitle.setText("HỖ TRỢ");
@@ -235,7 +235,7 @@ public class AppFrame extends JFrame {
         contentCards.add(new TraCuu_GUI(), "tra-cuu-khach");
         contentCards.add(new DatVe_GUI(), "dat-ve");
         contentCards.add(new DoiTraVe_GUI(), "doi-tra");
-        contentCards.add(new ThongKe_GUI(), "thong-ke");
+        contentCards.add(new BaoCaoCaLam_GUI(), "thong-ke");
         contentCards.add(new HoTro_GUI(), "ho-tro");
     }
 }

@@ -1,7 +1,7 @@
 package GUI;
 
-final class ThongKe_GUI extends PlaceholderPanel {
-    ThongKe_GUI() {
-        super("TRANG THỐNG KÊ", "Dùng để xem báo cáo ca làm, doanh thu và số lượng vé.");
+final class BaoCaoCaLam_GUI extends PlaceholderPanel {
+    BaoCaoCaLam_GUI() {
+        super("TRANG BÁO CÁO CA LÀM", "Dùng để xem báo cáo ca làm, doanh thu và số lượng vé.");
     }
 }
