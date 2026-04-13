@@ -33,7 +33,7 @@ public class AppFrame extends JFrame {
     private String activeCard = "home";
 
     public AppFrame() {
-        setTitle("Quản lý bán vé tàu");
+        setTitle("Hệ thống bán vé tàu");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(1200, 760);
         setLocationRelativeTo(null);
