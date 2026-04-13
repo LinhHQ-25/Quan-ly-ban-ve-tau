@@ -228,14 +228,14 @@ public class AppFrame extends JFrame {
 
     private void registerCards() {
         contentCards.setBackground(GuiTheme.LIGHT_BG);
-        contentCards.add(new homeGui(), "home");
-        contentCards.add(new tracuuGui(), "tra-cuu-chuyen");
-        contentCards.add(new tracuuGui(), "tra-cuu-tau");
-        contentCards.add(new tracuuGui(), "tra-cuu-ve");
-        contentCards.add(new tracuuGui(), "tra-cuu-khach");
-        contentCards.add(new datVeGui(), "dat-ve");
-        contentCards.add(new doiTraGui(), "doi-tra");
-        contentCards.add(new thongKeGui(), "thong-ke");
-        contentCards.add(new hoTroGui(), "ho-tro");
+        contentCards.add(new HoSo_GUI(), "home");
+        contentCards.add(new TraCuu_GUI(), "tra-cuu-chuyen");
+        contentCards.add(new TraCuu_GUI(), "tra-cuu-tau");
+        contentCards.add(new TraCuu_GUI(), "tra-cuu-ve");
+        contentCards.add(new TraCuu_GUI(), "tra-cuu-khach");
+        contentCards.add(new DatVe_GUI(), "dat-ve");
+        contentCards.add(new DoiTraVe_GUI(), "doi-tra");
+        contentCards.add(new ThongKe_GUI(), "thong-ke");
+        contentCards.add(new HoTro_GUI(), "ho-tro");
     }
 }
