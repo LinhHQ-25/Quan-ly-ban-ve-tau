@@ -1,1 +1,20 @@
-/bin/
+# Java
+*.class
+
+# Eclipse (QUAN TRỌNG)
+.metadata/
+.project
+.classpath
+.settings/
+
+# Build
+bin/
+out/
+target/
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db

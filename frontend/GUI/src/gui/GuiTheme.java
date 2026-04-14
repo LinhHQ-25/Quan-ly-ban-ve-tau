@@ -1,4 +1,4 @@
-package GUI;
+package gui;
 
 import java.awt.Color;
 import java.awt.Font;
@@ -16,9 +16,15 @@ final class GuiTheme {
     static final Color SUBMENU_HOVER = new Color(216, 218, 223);
     static final Color SUBMENU_SELECTED = new Color(200, 203, 210);
 
-    static final int SIDEBAR_W = 200;
+    static final int SIDEBAR_W = 260;
     static final int LEFT_PAD = 14;
     static final int SUBMENU_LEFT_PAD = 28;
+    static final int PAGE_PAD_TOP = 28;
+    static final int PAGE_PAD_LEFT = 30;
+    static final int PAGE_PAD_BOTTOM = 30;
+    static final int PAGE_TITLE_SIZE = 24;
+    static final int PAGE_SUBTITLE_SIZE = 16;
+    static final int PAGE_CARD_BORDER_RADIUS = 1;
 
     private GuiTheme() {}
 

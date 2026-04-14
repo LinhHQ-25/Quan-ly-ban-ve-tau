@@ -1,8 +1,9 @@
-package GUI;
+package gui;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
+import java.awt.Font;
 
 import javax.swing.Box;
 import javax.swing.BoxLayout;
@@ -12,13 +13,13 @@ import javax.swing.JTextField;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
 
-class DashboardPanel extends JPanel {
-    DashboardPanel() {
+final class HomeGUI extends JPanel {
+    HomeGUI() {
         setBackground(GuiTheme.LIGHT_BG);
         setLayout(new BorderLayout(0, 14));
 
         JLabel welcome = new JLabel("Xin chào, Nhân viên!");
-        welcome.setFont(GuiTheme.font("Segoe UI", java.awt.Font.PLAIN, 20));
+        welcome.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 20));
         welcome.setForeground(GuiTheme.TEXT);
 
         JPanel topInfo = new JPanel(new BorderLayout());
@@ -105,7 +106,7 @@ class DashboardPanel extends JPanel {
         p.setBorder(new EmptyBorder(10, 18, 10, 18));
         p.setMaximumSize(new Dimension(Integer.MAX_VALUE, 46));
         JLabel l = new JLabel(text);
-        l.setFont(GuiTheme.font("Segoe UI", java.awt.Font.PLAIN, 18));
+        l.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 18));
         l.setForeground(GuiTheme.TEXT);
         p.add(l, BorderLayout.WEST);
         return p;
@@ -114,7 +115,7 @@ class DashboardPanel extends JPanel {
     private void addLabel(JPanel p, java.awt.GridBagConstraints g, int x, int y, String t) {
         g.gridx = x; g.gridy = y; g.weightx = 0;
         JLabel l = new JLabel(t);
-        l.setFont(GuiTheme.font("Segoe UI", java.awt.Font.PLAIN, 15));
+        l.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 15));
         l.setForeground(GuiTheme.TEXT);
         p.add(l, g);
     }
@@ -122,7 +123,7 @@ class DashboardPanel extends JPanel {
     private void addField(JPanel p, java.awt.GridBagConstraints g, int x, int y, String t) {
         g.gridx = x; g.gridy = y; g.weightx = (x == 1 || x == 3) ? 1.0 : 0.0;
         JTextField f = new JTextField(t);
-        f.setFont(GuiTheme.font("Segoe UI", java.awt.Font.PLAIN, 14));
+        f.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
         f.setBorder(new LineBorder(new Color(210, 215, 224), 1, true));
         f.setBackground(Color.WHITE);
         f.setPreferredSize(new Dimension(180, 30));
@@ -133,11 +134,11 @@ class DashboardPanel extends JPanel {
         JPanel row = new JPanel(new BorderLayout());
         row.setOpaque(false);
         JLabel label = new JLabel(labelText);
-        label.setFont(GuiTheme.font("Segoe UI", java.awt.Font.PLAIN, 15));
+        label.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 15));
         label.setForeground(GuiTheme.TEXT);
         label.setPreferredSize(new Dimension(130, 24));
         JLabel value = new JLabel(valueText);
-        value.setFont(GuiTheme.font("Segoe UI", java.awt.Font.PLAIN, 15));
+        value.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 15));
         value.setForeground(GuiTheme.TEXT);
         row.add(label, BorderLayout.WEST);
         row.add(value, BorderLayout.CENTER);

@@ -1,4 +1,4 @@
-package GUI;
+package gui;
 
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
@@ -33,11 +33,11 @@ public class AppFrame extends JFrame {
     private String activeCard = "home";
 
     public AppFrame() {
-        setTitle("Hệ thống bán vé tàu");
+        setTitle("Quản lý bán vé tàu");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setSize(1200, 700);
+        setSize(1200, 760);
         setLocationRelativeTo(null);
-        setMinimumSize(new Dimension(1000, 600));
+        setMinimumSize(new Dimension(1100, 680));
 
         try {
             UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
@@ -102,7 +102,7 @@ public class AppFrame extends JFrame {
 
         sb.add(mkBtn("dat-ve", "Đặt vé tàu", "/images/book.png", false));
         sb.add(mkBtn("doi-tra", "Đổi/Trả vé", "/images/exchange.png", false));
-        sb.add(mkBtn("thong-ke", "Báo cáo ca làm", "/images/statistics.png", false));
+        sb.add(mkBtn("thong-ke", "Thống kê", "/images/statistics.png", false));
         sb.add(mkBtn("ho-tro", "Hỗ trợ", "/images/help.png", false));
 
         sb.add(Box.createVerticalGlue());
@@ -150,6 +150,18 @@ public class AppFrame extends JFrame {
             case "home":
                 headerTitle.setText("THÔNG TIN CÁ NHÂN");
                 break;
+            case "tra-cuu-chuyen":
+                headerTitle.setText("DANH SÁCH CHUYẾN ĐI");
+                break;
+            case "tra-cuu-tau":
+                headerTitle.setText("TRA CỨU TÀU");
+                break;
+            case "tra-cuu-ve":
+                headerTitle.setText("TRA CỨU VÉ");
+                break;
+            case "tra-cuu-khach":
+                headerTitle.setText("TRA CỨU KHÁCH HÀNG");
+                break;
             case "dat-ve":
                 headerTitle.setText("ĐẶT VÉ TÀU");
                 break;
@@ -157,7 +169,7 @@ public class AppFrame extends JFrame {
                 headerTitle.setText("ĐỔI/TRẢ VÉ");
                 break;
             case "thong-ke":
-                headerTitle.setText("BÁO CÁO CA LÀM");
+                headerTitle.setText("THỐNG KÊ");
                 break;
             case "ho-tro":
                 headerTitle.setText("HỖ TRỢ");
@@ -166,7 +178,6 @@ public class AppFrame extends JFrame {
                 headerTitle.setText(isSearchCard(card) ? "TRA CỨU" : "THÔNG TIN CÁ NHÂN");
         }
     }
-
     private void updateSidebarState(String card) {
         searchExpanded = isSearchCard(card);
         searchSubmenuPanel.setVisible(searchExpanded);
@@ -228,14 +239,14 @@ public class AppFrame extends JFrame {
 
     private void registerCards() {
         contentCards.setBackground(GuiTheme.LIGHT_BG);
-        contentCards.add(new HoSo_GUI(), "home");
-        contentCards.add(new TraCuu_GUI(), "tra-cuu-chuyen");
-        contentCards.add(new TraCuu_GUI(), "tra-cuu-tau");
-        contentCards.add(new TraCuu_GUI(), "tra-cuu-ve");
-        contentCards.add(new TraCuu_GUI(), "tra-cuu-khach");
-        contentCards.add(new DatVe_GUI(), "dat-ve");
-        contentCards.add(new DoiTraVe_GUI(), "doi-tra");
-        contentCards.add(new BaoCaoCaLam_GUI(), "thong-ke");
-        contentCards.add(new HoTro_GUI(), "ho-tro");
+        contentCards.add(new HomeGUI(), "home");
+        contentCards.add(new DanhSachChuyenDiGUI(), "tra-cuu-chuyen");
+        contentCards.add(new TauGUI(), "tra-cuu-tau");
+        contentCards.add(new VeGUI(), "tra-cuu-ve");
+        contentCards.add(new KhachHangGUI(), "tra-cuu-khach");
+        contentCards.add(new DatVeGUI(), "dat-ve");
+        contentCards.add(new DoiTraGUI(), "doi-tra");
+        contentCards.add(new ThongKeGUI(), "thong-ke");
+        contentCards.add(new HoTroGUI(), "ho-tro");
     }
 }
