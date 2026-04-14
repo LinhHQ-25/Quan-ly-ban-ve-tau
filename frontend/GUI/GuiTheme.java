@@ -16,7 +16,7 @@ final class GuiTheme {
     static final Color SUBMENU_HOVER = new Color(216, 218, 223);
     static final Color SUBMENU_SELECTED = new Color(200, 203, 210);
 
-    static final int SIDEBAR_W = 260;
+    static final int SIDEBAR_W = 261;
     static final int LEFT_PAD = 14;
     static final int SUBMENU_LEFT_PAD = 28;
     static final int PAGE_PAD_TOP = 28;
