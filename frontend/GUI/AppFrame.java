@@ -3,19 +3,20 @@ package GUI;
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
 import java.awt.Color;
+import java.awt.Component;
+import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.Font;
-import java.awt.Image;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.Icon;
-import javax.swing.ImageIcon;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JSeparator;
 import javax.swing.SwingConstants;
 import javax.swing.UIManager;
 import javax.swing.border.EmptyBorder;
@@ -35,9 +36,9 @@ public class AppFrame extends JFrame {
     public AppFrame() {
         setTitle("Quản lý bán vé tàu");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setSize(1200, 760);
+        setSize(1100, 700);
         setLocationRelativeTo(null);
-        setMinimumSize(new Dimension(1100, 680));
+        setMinimumSize(new Dimension(1000, 600));
 
         try {
             UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
@@ -51,7 +52,7 @@ public class AppFrame extends JFrame {
         root.add(buildMainArea(), BorderLayout.CENTER);
 
         registerCards();
-        showCard("home");
+        showCard("home"); // mặc định mở trang hồ sơ
     }
 
     private JPanel buildSidebar() {
@@ -64,21 +65,34 @@ public class AppFrame extends JFrame {
         sb.setBorder(new EmptyBorder(0, 0, 18, 0));
 
         JPanel logoArea = new JPanel();
-        logoArea.setBackground(GuiTheme.NAVY_DARK);
-        logoArea.setLayout(new BoxLayout(logoArea, BoxLayout.X_AXIS));
-        logoArea.setAlignmentX(LEFT_ALIGNMENT);
-        logoArea.setPreferredSize(new Dimension(GuiTheme.SIDEBAR_W, 90));
-        logoArea.setMinimumSize(new Dimension(GuiTheme.SIDEBAR_W, 90));
-        logoArea.setMaximumSize(new Dimension(GuiTheme.SIDEBAR_W, 90));
-        logoArea.setBorder(new EmptyBorder(0, GuiTheme.LEFT_PAD, 0, 8));
+        logoArea.setBackground(GuiTheme.NAVY);
+        logoArea.setLayout(new BoxLayout(logoArea, BoxLayout.Y_AXIS));
+        logoArea.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        Icon logoIcon = GuiIcons.loadIcon(AppFrame.class, "/Image/train.jpg", 38, 38);
-        logoArea.add(new JLabel(logoIcon));
+        int logoHeight = 82; 
+        logoArea.setMaximumSize(new Dimension(GuiTheme.SIDEBAR_W, logoHeight));
+        logoArea.setPreferredSize(new Dimension(GuiTheme.SIDEBAR_W, logoHeight));
+        logoArea.setBorder(new EmptyBorder(0, 0, 0, 0)); 
+
+        // Tạo Label Logo
+        JLabel labelLogo = new JLabel(GuiIcons.loadIcon(AppFrame.class, "/Images/logoTrain.png", 80, 80));
+
+        labelLogo.setAlignmentX(Component.LEFT_ALIGNMENT); 
+
+  
+        labelLogo.setBorder(new EmptyBorder(0, 20, 0, 0)); 
+
+        logoArea.add(labelLogo);
         sb.add(logoArea);
-        sb.add(Box.createVerticalStrut(10));
+     JSeparator sep = new JSeparator();
+     sep.setMaximumSize(new Dimension(Integer.MAX_VALUE, 1));
+     sep.setForeground(new Color(200, 200, 200));
 
-        sb.add(mkBtn("home", "Trang chủ", "/Image/train.jpg", false));
-        searchMainButton = mkBtn("tra-cuu", "Tra cứu", "/Image/iconTraCuu.png", true);
+     sb.add(sep);
+
+
+        searchMainButton = mkBtn("tra-cuu", "Tra cứu", "/Images/traCuu.png", true);
+        // TODO: thay "/Image/iconTraCuu.png" bằng icon tra cứu thực tế
         searchMainButton.addActionListener(e -> toggleSearch());
         sb.add(searchMainButton);
 
@@ -94,21 +108,30 @@ public class AppFrame extends JFrame {
         searchSubmenuPanel.setMinimumSize(new Dimension(GuiTheme.SIDEBAR_W, subH));
         searchSubmenuPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, subH));
 
-        mkSub("tra-cuu-chuyen", "Danh sách chuyến đi", "/images/list.png");
-        mkSub("tra-cuu-tau", "Tàu", "/images/train-small.png");
-        mkSub("tra-cuu-ve", "Vé", "/images/ticket.png");
-        mkSub("tra-cuu-khach", "Khách hàng", "/images/customer.png");
+        mkSub("tra-cuu-chuyen", "Danh sách chuyến đi", "/Images/DanhSach.png");
+        // TODO: thay "/Image/iconDanhSach.png" bằng icon thực tế
+        mkSub("tra-cuu-tau", "Tàu", "/Images/Tau.png");
+        // TODO: thay "/Image/iconTau.png" bằng icon thực tế
+        mkSub("tra-cuu-ve", "Vé", "/Images/Ve.png");
+        // TODO: thay "/Image/iconVe.png" bằng icon thực tế
+        mkSub("tra-cuu-khach", "Khách hàng", "/Images/KhachHang.png");
+        // TODO: thay "/Image/iconKhach.png" bằng icon thực tế
         sb.add(searchSubmenuPanel);
 
-        sb.add(mkBtn("dat-ve", "Đặt vé tàu", "/images/book.png", false));
-        sb.add(mkBtn("doi-tra", "Đổi/Trả vé", "/images/exchange.png", false));
-        sb.add(mkBtn("thong-ke", "Thống kê", "/images/statistics.png", false));
-        sb.add(mkBtn("ho-tro", "Hỗ trợ", "/images/help.png", false));
+        sb.add(mkBtn("dat-ve", "Đặt vé tàu", "/Images/trainTicket.png", false));
+        // TODO: thay "/Image/iconDatVe.png" bằng icon thực tế
+        sb.add(mkBtn("doi-tra", "Đổi/Trả vé", "/Images/change.png", false));
+        // TODO: thay "/Image/iconDoiTra.png" bằng icon thực tế
+        sb.add(mkBtn("thong-ke", "Thống kê ca làm", "/Images/ThongKe.png", false));
+        // TODO: thay "/Image/iconThongKe.png" bằng icon thực tế
+        sb.add(mkBtn("ho-tro", "Hỗ trợ", "/Images/HoTro.png", false));
+        // TODO: thay "/Image/iconHoTro.png" bằng icon thực tế
 
         sb.add(Box.createVerticalGlue());
         sb.add(Box.createVerticalStrut(16));
 
-        SidebarButton logout = new SidebarButton("Đăng xuất", false);
+        // TODO: thay "/Image/iconDangXuat.png" bằng icon đăng xuất thực tế
+        SidebarButton logout = new SidebarButton("Đăng xuất", false, "/Images/DangXuat.png");
         logout.addActionListener(e -> showCard("home"));
         sb.add(logout);
         return sb;
@@ -169,21 +192,38 @@ public class AppFrame extends JFrame {
                 headerTitle.setText("ĐỔI/TRẢ VÉ");
                 break;
             case "thong-ke":
-                headerTitle.setText("THỐNG KÊ");
+                headerTitle.setText("THỐNG KÊ CA LÀM"
+                		+ "");
                 break;
             case "ho-tro":
                 headerTitle.setText("HỖ TRỢ");
                 break;
             default:
-                headerTitle.setText(isSearchCard(card) ? "TRA CỨU" : "THÔNG TIN CÁ NHÂN");
+                headerTitle.setText("THÔNG TIN CÁ NHÂN");
         }
     }
+
     private void updateSidebarState(String card) {
         searchExpanded = isSearchCard(card);
         searchSubmenuPanel.setVisible(searchExpanded);
-        routeButtons.forEach((r, b) -> b.setActive(r.equals(card) || ("tra-cuu".equals(r) && isSearchCard(card))));
-        searchSubButtons.forEach((r, b) -> b.setActive(r.equals(card)));
-        searchMainButton.setActive(searchExpanded || isSearchCard(card));
+
+        // Tắt tất cả trước
+        routeButtons.forEach((r, b) -> b.setActive(false));
+        searchSubButtons.forEach((r, b) -> b.setActive(false));
+        searchMainButton.setActive(false);
+
+        if ("home".equals(card)) {
+            return;
+        }
+
+        if (isSearchCard(card)) {
+            searchMainButton.setActive(true);
+            SidebarButton sub = searchSubButtons.get(card);
+            if (sub != null) sub.setActive(true);
+        } else {
+            SidebarButton btn = routeButtons.get(card);
+            if (btn != null) btn.setActive(true);
+        }
     }
 
     private boolean isSearchCard(String c) {
@@ -207,8 +247,10 @@ public class AppFrame extends JFrame {
     private JPanel buildTopHeader() {
         JPanel h = new JPanel(new BorderLayout());
         h.setBackground(Color.WHITE);
-        h.setBorder(javax.swing.BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(210, 215, 224)));
         h.setPreferredSize(new Dimension(0, 82));
+
+        JPanel topRow = new JPanel(new BorderLayout());
+        topRow.setOpaque(false);
 
         headerTitle.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 28));
         headerTitle.setForeground(GuiTheme.TEXT);
@@ -217,7 +259,10 @@ public class AppFrame extends JFrame {
         JPanel profile = new JPanel(new BorderLayout(10, 0));
         profile.setOpaque(false);
         profile.setBorder(new EmptyBorder(10, 0, 10, 22));
-        profile.add(new ProfileIcon(), BorderLayout.WEST);
+        profile.setCursor(new Cursor(Cursor.HAND_CURSOR)); 
+
+        ProfileIcon profileIcon = new ProfileIcon();
+        profile.add(profileIcon, BorderLayout.WEST);
 
         JPanel pt = new JPanel();
         pt.setOpaque(false);
@@ -232,8 +277,24 @@ public class AppFrame extends JFrame {
         pt.add(name);
         profile.add(pt, BorderLayout.CENTER);
 
-        h.add(headerTitle, BorderLayout.WEST);
-        h.add(profile, BorderLayout.EAST);
+ 
+        profile.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseClicked(java.awt.event.MouseEvent e) {
+                showCard("home");
+            }
+        });
+
+        topRow.add(headerTitle, BorderLayout.WEST);
+        topRow.add(profile, BorderLayout.EAST);
+
+        // Đường kẻ ngang dưới header
+        JSeparator sep = new JSeparator(SwingConstants.HORIZONTAL);
+        sep.setForeground(new Color(210, 215, 224));
+        sep.setBackground(Color.WHITE);
+
+        h.add(topRow, BorderLayout.CENTER);
+        h.add(sep, BorderLayout.SOUTH);
         return h;
     }
 
