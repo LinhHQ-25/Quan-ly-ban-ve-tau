@@ -71,7 +71,7 @@ public class AppFrame extends JFrame {
 		logoArea.setLayout(new BoxLayout(logoArea, BoxLayout.Y_AXIS));
 		logoArea.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-		int logoHeight = 82;
+		int logoHeight = 70;
 		logoArea.setMaximumSize(new Dimension(GuiTheme.SIDEBAR_W, logoHeight));
 		logoArea.setPreferredSize(new Dimension(GuiTheme.SIDEBAR_W, logoHeight));
 		logoArea.setBorder(new EmptyBorder(0, 0, 0, 0));
@@ -163,6 +163,7 @@ public class AppFrame extends JFrame {
 	private void toggleSearch() {
 		searchExpanded = !searchExpanded;
 		searchSubmenuPanel.setVisible(searchExpanded);
+		routeButtons.forEach((r, b) -> b.setActive(false));
 		searchMainButton.setActive(searchExpanded || isSearchCard(activeCard));
 		revalidate();
 		repaint();
@@ -247,6 +248,7 @@ public class AppFrame extends JFrame {
 
 		if (isSearchCard(card)) {
 			searchMainButton.setActive(true);
+			searchSubmenuPanel.setVisible(true);
 			SidebarButton sub = searchSubButtons.get(card);
 			if (sub != null)
 				sub.setActive(true);
@@ -278,7 +280,7 @@ public class AppFrame extends JFrame {
 	private JPanel buildTopHeader() {
 		JPanel h = new JPanel(new BorderLayout());
 		h.setBackground(Color.WHITE);
-		h.setPreferredSize(new Dimension(0, 82));
+		h.setPreferredSize(new Dimension(0, 72));
 		h.setBorder(BorderFactory.createMatteBorder(2, 0, 0, 0, new Color(180, 185, 195)));
 		JPanel topRow = new JPanel(new BorderLayout());
 		topRow.setOpaque(false);
@@ -343,6 +345,6 @@ public class AppFrame extends JFrame {
 	}
 
 	public void onLoginSuccess() {
-		showCard("home"); // Chuyển sang lá bài Trang chủ mượt mà
+		showCard("home");
 	}
 }
