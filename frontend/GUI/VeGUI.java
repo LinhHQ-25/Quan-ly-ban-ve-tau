@@ -8,27 +8,27 @@ import java.awt.Font;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Locale;
 
 import javax.swing.Box;
 import javax.swing.BoxLayout;
-import javax.swing.ButtonGroup;
 import javax.swing.JButton;
-import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
-import javax.swing.JRadioButton;
 import javax.swing.JScrollPane;
-import javax.swing.JSpinner;
 import javax.swing.JTable;
 import javax.swing.JTextField;
-import javax.swing.SpinnerNumberModel;
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
+
+import de.wannawork.jcalendar.JCalendarComboBox;
 
 final class VeGUI extends JPanel {
     private static final Color BORDER = new Color(210, 215, 224);
@@ -49,7 +49,10 @@ final class VeGUI extends JPanel {
             GuiTheme.PAGE_PAD_LEFT
         ));
 
-        pnlPage.add(buildHeader("TRA CỨU VÉ", "Dùng để tra cứu vé theo mã vé, mã đơn hoặc hành khách."));
+        pnlPage.add(buildHeader(
+            "TRA CỨU VÉ",
+            "Dùng để xem danh sách vé theo khách hàng, mã vé hoặc trạng thái vé."
+        ));
         pnlPage.add(Box.createVerticalStrut(12));
         pnlPage.add(buildFilterPanel());
         pnlPage.add(Box.createVerticalStrut(12));
@@ -75,6 +78,7 @@ final class VeGUI extends JPanel {
     private JPanel buildFilterPanel() {
         JPanel pnlOuter = new JPanel(new BorderLayout());
         pnlOuter.setOpaque(false);
+
         JPanel pnlGrid = new JPanel(new GridBagLayout());
         pnlGrid.setOpaque(false);
 
@@ -84,16 +88,22 @@ final class VeGUI extends JPanel {
         gbc.gridy = 0;
         gbc.weightx = 1.0;
 
-                gbc.gridx = 0; pnlGrid.add(buildField("Mã vé:", buildCombo("VE001", "VE002", "VE003")), gbc);
-        gbc.gridx = 1; pnlGrid.add(buildField("Mã đơn:", buildCombo("DH001", "DH002", "DH003")), gbc);
-        gbc.gridx = 2; pnlGrid.add(buildField("Hành khách:", buildCombo("Nguyễn Văn A", "Trần Thị B", "Lê Văn C")), gbc);
-        gbc.gridx = 3; pnlGrid.add(buildField("Ngày đặt:", buildDateField()), gbc);
+        gbc.gridx = 0; pnlGrid.add(buildField("Mã vé:", buildTextField()), gbc);
+        gbc.gridx = 1; pnlGrid.add(buildField("Họ tên:", buildTextField()), gbc);
+        gbc.gridx = 2; pnlGrid.add(buildField("Ngày sinh:", buildDateField()), gbc);
+        gbc.gridx = 3; pnlGrid.add(buildField("Số điện thoại:", buildTextField()), gbc);
 
         gbc.gridy = 1;
-        gbc.gridx = 0; pnlGrid.add(buildField("Số ghế", buildSeatField()), gbc);
-        gbc.gridx = 1; pnlGrid.add(buildTypeBlock(), gbc);
-        gbc.gridx = 2; pnlGrid.add(buildUtilBlock(), gbc);
-        gbc.gridx = 3; pnlGrid.add(buildActionBlock(), gbc);
+        gbc.gridx = 0; pnlGrid.add(buildField("CCCD:", buildTextField()), gbc);
+        gbc.gridx = 1; pnlGrid.add(buildField("Email:", buildTextField()), gbc);
+        gbc.gridx = 2; pnlGrid.add(buildField("Loại khách hàng:", buildCombo("", "Thường", "Thành viên", "VIP")), gbc);
+        gbc.gridx = 3; pnlGrid.add(buildField("Trạng thái vé:", buildCombo("", "Đã thanh toán", "Chờ thanh toán", "Đã hủy")), gbc);
+
+        gbc.gridy = 2;
+        gbc.gridx = 0;
+        gbc.gridwidth = 4;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        pnlGrid.add(buildActionBlock(), gbc);
 
         pnlOuter.add(pnlGrid, BorderLayout.CENTER);
         return pnlOuter;
@@ -110,6 +120,15 @@ final class VeGUI extends JPanel {
         return pnlField;
     }
 
+    private JTextField buildTextField() {
+        JTextField txtField = new JTextField();
+        txtField.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
+        txtField.setBackground(FIELD_BG);
+        txtField.setBorder(new LineBorder(new Color(188, 197, 208), 1, true));
+        txtField.setPreferredSize(new Dimension(160, 28));
+        return txtField;
+    }
+
     private JComboBox<String> buildCombo(String... values) {
         JComboBox<String> cboField = new JComboBox<>(values);
         cboField.setEditable(true);
@@ -117,75 +136,20 @@ final class VeGUI extends JPanel {
         cboField.setBackground(FIELD_BG);
         cboField.setPreferredSize(new Dimension(160, 28));
         cboField.setBorder(new LineBorder(new Color(188, 197, 208), 1, true));
+        if (cboField.getItemCount() > 0) {
+            cboField.setSelectedIndex(0);
+        }
         return cboField;
     }
 
     private JPanel buildDateField() {
-        JPanel pnlWrap = new JPanel(new BorderLayout());
-        pnlWrap.setOpaque(false);
-        JTextField txtDate = new JTextField();
-        txtDate.setPreferredSize(new Dimension(145, 28));
-        txtDate.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
-        txtDate.setBackground(FIELD_BG);
-        txtDate.setBorder(new LineBorder(new Color(188, 197, 208), 1, true));
-        pnlWrap.add(txtDate, BorderLayout.CENTER);
-        JButton btnDate = new JButton("▣");
-        btnDate.setPreferredSize(new Dimension(28, 28));
-        btnDate.setFocusable(false);
-        btnDate.setBorder(new LineBorder(new Color(188, 197, 208), 1, true));
-        btnDate.setBackground(new Color(230, 233, 238));
-        pnlWrap.add(btnDate, BorderLayout.EAST);
-        return pnlWrap;
-    }
-
-    private JPanel buildSeatField() {
-        JSpinner spnSeat = new JSpinner(new SpinnerNumberModel(0, 0, 99, 1));
-        spnSeat.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
-        spnSeat.setPreferredSize(new Dimension(95, 28));
-        spnSeat.setBorder(new LineBorder(new Color(188, 197, 208), 1, true));
-        JPanel pnlWrap = new JPanel(new BorderLayout());
-        pnlWrap.setOpaque(false);
-        pnlWrap.add(spnSeat, BorderLayout.CENTER);
-        return pnlWrap;
-    }
-
-    private JPanel buildTypeBlock() {
-        JPanel pnlBlock = new JPanel(new BorderLayout(0, 4));
-        pnlBlock.setOpaque(false);
-        JLabel lbBlock = new JLabel("Loại vé");
-        lbBlock.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
-        lbBlock.setForeground(GuiTheme.TEXT);
-        JPanel pnlOptions = new JPanel();
-        pnlOptions.setOpaque(false);
-        pnlOptions.setLayout(new BoxLayout(pnlOptions, BoxLayout.Y_AXIS));
-        ButtonGroup grp = new ButtonGroup();
-        JRadioButton rdoA = buildRadio("Một chiều");
-        JRadioButton rdoB = buildRadio("Khứ hồi");
-        grp.add(rdoA);
-        grp.add(rdoB);
-        rdoA.setSelected(true);
-        pnlOptions.add(rdoA);
-        pnlOptions.add(rdoB);
-        pnlBlock.add(lbBlock, BorderLayout.NORTH);
-        pnlBlock.add(pnlOptions, BorderLayout.CENTER);
-        return pnlBlock;
-    }
-
-    private JPanel buildUtilBlock() {
-        JPanel pnlBlock = new JPanel(new BorderLayout(0, 4));
-        pnlBlock.setOpaque(false);
-        JLabel lbBlock = new JLabel("Trạng thái");
-        lbBlock.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
-        lbBlock.setForeground(GuiTheme.TEXT);
-        JPanel pnlOptions = new JPanel();
-        pnlOptions.setOpaque(false);
-        pnlOptions.setLayout(new BoxLayout(pnlOptions, BoxLayout.Y_AXIS));
-        pnlOptions.add(buildCheck("Đã thanh toán", true));
-        pnlOptions.add(buildCheck("Chờ xử lý", true));
-        pnlOptions.add(buildCheck("Đã hủy", false));
-        pnlBlock.add(lbBlock, BorderLayout.NORTH);
-        pnlBlock.add(pnlOptions, BorderLayout.CENTER);
-        return pnlBlock;
+        JCalendarComboBox chooser = new JCalendarComboBox(Calendar.getInstance(), new Locale("vi", "VN"), new SimpleDateFormat("dd/MM/yyyy"));
+        chooser.setPreferredSize(new Dimension(160, 28));
+        chooser.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
+        chooser.setBorder(new LineBorder(new Color(188, 197, 208), 1, true));
+        chooser.setDateFormat(new SimpleDateFormat("dd/MM/yyyy"));
+        chooser.setBackground(FIELD_BG);
+        return chooser;
     }
 
     private JPanel buildActionBlock() {
@@ -193,32 +157,17 @@ final class VeGUI extends JPanel {
         pnlBlock.setOpaque(false);
         JPanel pnlButtons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 12, 4));
         pnlButtons.setOpaque(false);
+
         JButton btnReset = new JButton("Xóa bộ lọc");
         styleButton(btnReset, new Color(244, 246, 250), new Color(72, 72, 190), new Color(145, 145, 145));
+
         JButton btnSearch = new JButton("Tra cứu");
         styleButton(btnSearch, PRIMARY, Color.WHITE, PRIMARY);
+
         pnlButtons.add(btnReset);
         pnlButtons.add(btnSearch);
         pnlBlock.add(pnlButtons, BorderLayout.CENTER);
         return pnlBlock;
-    }
-
-    private static JRadioButton buildRadio(String text) {
-        JRadioButton rdo = new JRadioButton(text);
-        rdo.setOpaque(false);
-        rdo.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
-        rdo.setForeground(GuiTheme.TEXT);
-        rdo.setFocusPainted(false);
-        return rdo;
-    }
-
-    private static JCheckBox buildCheck(String text, boolean selected) {
-        JCheckBox chk = new JCheckBox(text, selected);
-        chk.setOpaque(false);
-        chk.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
-        chk.setForeground(GuiTheme.TEXT);
-        chk.setFocusPainted(false);
-        return chk;
     }
 
     private static void styleButton(JButton btn, Color bg, Color fg, Color border) {
@@ -232,12 +181,17 @@ final class VeGUI extends JPanel {
     }
 
     private JPanel buildTablePanel() {
+        JPanel pnlOuter = new JPanel(new BorderLayout(0, 8));
+        pnlOuter.setOpaque(false);
+        pnlOuter.add(buildSectionTitle("Danh sách vé tàu"), BorderLayout.NORTH);
+
         DefaultTableModel tblModel = new DefaultTableModel(
-            new Object[] { "STT", "Mã vé", "Mã đơn", "Hành khách", "Ngày đặt", "Số ghế", "Trạng thái" },
+            new Object[] { "STT", "Mã vé", "Tên khách hàng", "CCCD", "Thời gian khởi hành", "Vị trí toa - ghế", "Trạng thái" },
             0
         ) {
             @Override public boolean isCellEditable(int row, int column) { return false; }
         };
+
         JTable tblData = new JTable(tblModel);
         tblData.setRowHeight(28);
         tblData.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 13));
@@ -250,27 +204,43 @@ final class VeGUI extends JPanel {
         tblData.getTableHeader().setBackground(Color.WHITE);
         tblData.getTableHeader().setForeground(GuiTheme.TEXT);
         tblData.getTableHeader().setBorder(new LineBorder(BORDER, 1, true));
+
         DefaultTableCellRenderer center = new DefaultTableCellRenderer();
         center.setHorizontalAlignment(SwingConstants.CENTER);
         tblData.getColumnModel().getColumn(0).setCellRenderer(center);
+        tblData.getColumnModel().getColumn(1).setCellRenderer(center);
+        tblData.getColumnModel().getColumn(4).setCellRenderer(center);
+        tblData.getColumnModel().getColumn(5).setCellRenderer(center);
+        tblData.getColumnModel().getColumn(6).setCellRenderer(center);
+
         JScrollPane spnScroll = new JScrollPane(tblData);
         spnScroll.setBorder(new LineBorder(BORDER, 1, true));
         spnScroll.getViewport().setBackground(Color.WHITE);
         spnScroll.setPreferredSize(new Dimension(10000, 300));
+
         SwingUtilities.invokeLater(() -> {
             if (tblData.getColumnModel().getColumnCount() >= 7) {
                 tblData.getColumnModel().getColumn(0).setPreferredWidth(50);
-                tblData.getColumnModel().getColumn(1).setPreferredWidth(120);
-                tblData.getColumnModel().getColumn(2).setPreferredWidth(120);
-                tblData.getColumnModel().getColumn(3).setPreferredWidth(100);
-                tblData.getColumnModel().getColumn(4).setPreferredWidth(100);
-                tblData.getColumnModel().getColumn(5).setPreferredWidth(150);
-                tblData.getColumnModel().getColumn(6).setPreferredWidth(100);
+                tblData.getColumnModel().getColumn(1).setPreferredWidth(110);
+                tblData.getColumnModel().getColumn(2).setPreferredWidth(170);
+                tblData.getColumnModel().getColumn(3).setPreferredWidth(130);
+                tblData.getColumnModel().getColumn(4).setPreferredWidth(170);
+                tblData.getColumnModel().getColumn(5).setPreferredWidth(140);
+                tblData.getColumnModel().getColumn(6).setPreferredWidth(110);
             }
         });
-        JPanel pnlWrap = new JPanel(new BorderLayout());
-        pnlWrap.setOpaque(false);
-        pnlWrap.add(spnScroll, BorderLayout.CENTER);
-        return pnlWrap;
+
+        pnlOuter.add(spnScroll, BorderLayout.CENTER);
+        return pnlOuter;
+    }
+
+    private JPanel buildSectionTitle(String title) {
+        JPanel pnl = new JPanel(new BorderLayout());
+        pnl.setOpaque(false);
+        JLabel lb = new JLabel(title);
+        lb.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 16));
+        lb.setForeground(GuiTheme.TEXT);
+        pnl.add(lb, BorderLayout.WEST);
+        return pnl;
     }
 }

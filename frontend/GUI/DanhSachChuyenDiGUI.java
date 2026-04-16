@@ -8,6 +8,9 @@ import java.awt.Font;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Locale;
 
 import javax.swing.Box;
 import javax.swing.BoxLayout;
@@ -21,7 +24,6 @@ import javax.swing.JRadioButton;
 import javax.swing.JScrollPane;
 import javax.swing.JSpinner;
 import javax.swing.JTable;
-import javax.swing.JTextField;
 import javax.swing.SpinnerNumberModel;
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
@@ -29,6 +31,8 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
+
+import de.wannawork.jcalendar.JCalendarComboBox;
 
 final class DanhSachChuyenDiGUI extends JPanel {
     private static final Color BORDER = new Color(210, 215, 224);
@@ -84,7 +88,7 @@ final class DanhSachChuyenDiGUI extends JPanel {
         gbc.gridy = 0;
         gbc.weightx = 1.0;
 
-                gbc.gridx = 0; pnlGrid.add(buildField("Ga đi:", buildCombo("Từ Sơn", "Hà Nội", "Đà Nẵng", "Phú Thọ")), gbc);
+        gbc.gridx = 0; pnlGrid.add(buildField("Ga đi:", buildCombo("Từ Sơn", "Hà Nội", "Đà Nẵng", "Phú Thọ")), gbc);
         gbc.gridx = 1; pnlGrid.add(buildField("Ga đến:", buildCombo("Phú Thọ", "Hải Phòng", "Nha Trang", "TP.HCM")), gbc);
         gbc.gridx = 2; pnlGrid.add(buildField("Ngày đi:", buildDateField()), gbc);
         gbc.gridx = 3; pnlGrid.add(buildField("Mã /Tên tàu", buildCombo("Train 011", "Train 012", "Train 013")), gbc);
@@ -121,21 +125,13 @@ final class DanhSachChuyenDiGUI extends JPanel {
     }
 
     private JPanel buildDateField() {
-        JPanel pnlWrap = new JPanel(new BorderLayout());
-        pnlWrap.setOpaque(false);
-        JTextField txtDate = new JTextField();
-        txtDate.setPreferredSize(new Dimension(145, 28));
-        txtDate.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
-        txtDate.setBackground(FIELD_BG);
-        txtDate.setBorder(new LineBorder(new Color(188, 197, 208), 1, true));
-        pnlWrap.add(txtDate, BorderLayout.CENTER);
-        JButton btnDate = new JButton("▣");
-        btnDate.setPreferredSize(new Dimension(28, 28));
-        btnDate.setFocusable(false);
-        btnDate.setBorder(new LineBorder(new Color(188, 197, 208), 1, true));
-        btnDate.setBackground(new Color(230, 233, 238));
-        pnlWrap.add(btnDate, BorderLayout.EAST);
-        return pnlWrap;
+        JCalendarComboBox chooser = new JCalendarComboBox(Calendar.getInstance(), new Locale("vi", "VN"), new SimpleDateFormat("dd/MM/yyyy"));
+        chooser.setPreferredSize(new Dimension(160, 28));
+        chooser.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
+        chooser.setBorder(new LineBorder(new Color(188, 197, 208), 1, true));
+        chooser.setDateFormat(new SimpleDateFormat("dd/MM/yyyy"));
+        chooser.setBackground(FIELD_BG);
+        return chooser;
     }
 
     private JPanel buildSeatField() {
@@ -232,6 +228,10 @@ final class DanhSachChuyenDiGUI extends JPanel {
     }
 
     private JPanel buildTablePanel() {
+        JPanel pnlOuter = new JPanel(new BorderLayout(0, 8));
+        pnlOuter.setOpaque(false);
+        pnlOuter.add(buildSectionTitle("Danh sách chuyến đi"), BorderLayout.NORTH);
+
         DefaultTableModel tblModel = new DefaultTableModel(
             new Object[] { "STT", "Ga đi", "Ga đến", "Ngày đi", "Ngày đến", "Giờ đi - Giờ đến", "Tàu" },
             0
@@ -272,5 +272,15 @@ final class DanhSachChuyenDiGUI extends JPanel {
         pnlWrap.setOpaque(false);
         pnlWrap.add(spnScroll, BorderLayout.CENTER);
         return pnlWrap;
+    }
+
+    private JPanel buildSectionTitle(String title) {
+        JPanel pnl = new JPanel(new BorderLayout());
+        pnl.setOpaque(false);
+        JLabel lb = new JLabel(title);
+        lb.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 16));
+        lb.setForeground(GuiTheme.TEXT);
+        pnl.add(lb, BorderLayout.WEST);
+        return pnl;
     }
 }
