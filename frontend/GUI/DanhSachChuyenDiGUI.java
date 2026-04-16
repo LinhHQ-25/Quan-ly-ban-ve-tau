@@ -24,6 +24,7 @@ import javax.swing.JRadioButton;
 import javax.swing.JScrollPane;
 import javax.swing.JSpinner;
 import javax.swing.JTable;
+import javax.swing.JTextField;
 import javax.swing.SpinnerNumberModel;
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
@@ -108,30 +109,46 @@ final class DanhSachChuyenDiGUI extends JPanel {
         pnlField.setOpaque(false);
         JLabel lbField = new JLabel(label);
         lbField.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
-        lbField.setForeground(GuiTheme.TEXT);
+       
+//        lbField.setOpaque(true);
+
         pnlField.add(lbField, BorderLayout.NORTH);
         pnlField.add(comp, BorderLayout.CENTER);
         return pnlField;
     }
 
-    private JComboBox<String> buildCombo(String... values) {
-        JComboBox<String> cboField = new JComboBox<>(values);
-        cboField.setEditable(true);
-        cboField.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
-        cboField.setBackground(FIELD_BG);
-        cboField.setPreferredSize(new Dimension(160, 28));
-        cboField.setBorder(new LineBorder(new Color(188, 197, 208), 1, true));
-        return cboField;
+    private JTextField buildCombo(String... values) {
+        JTextField txtField = new JTextField(values.length > 0 ? values[0] : "");
+        txtField.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
+        txtField.setBackground(GuiTheme.SEARCH_FIELD_BG);
+        txtField.setForeground(GuiTheme.SEARCH_FIELD_TEXT);
+        txtField.setBorder(new LineBorder(GuiTheme.SEARCH_FIELD_BORDER, 1, true));
+        txtField.setPreferredSize(new Dimension(160, 28));
+        return txtField;
     }
 
     private JPanel buildDateField() {
         JCalendarComboBox chooser = new JCalendarComboBox(Calendar.getInstance(), new Locale("vi", "VN"), new SimpleDateFormat("dd/MM/yyyy"));
         chooser.setPreferredSize(new Dimension(160, 28));
         chooser.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
-        chooser.setBorder(new LineBorder(new Color(188, 197, 208), 1, true));
+        chooser.setBorder(new LineBorder(GuiTheme.SEARCH_FIELD_BORDER, 1, true));
         chooser.setDateFormat(new SimpleDateFormat("dd/MM/yyyy"));
-        chooser.setBackground(FIELD_BG);
+        chooser.setBackground(GuiTheme.SEARCH_FIELD_BG);
+        styleCalendarChooser(chooser);
         return chooser;
+    }
+
+    private void styleCalendarChooser(java.awt.Container container) {
+        container.setBackground(GuiTheme.SEARCH_FIELD_BG);
+        if (container instanceof javax.swing.JComponent) {
+            ((javax.swing.JComponent) container).setOpaque(true);
+        }
+        for (java.awt.Component child : container.getComponents()) {
+            child.setBackground(GuiTheme.SEARCH_FIELD_BG);
+            if (child instanceof java.awt.Container) {
+                styleCalendarChooser((java.awt.Container) child);
+            }
+        }
     }
 
     private JPanel buildSeatField() {

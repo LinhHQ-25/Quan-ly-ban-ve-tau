@@ -110,14 +110,14 @@ final class KhachHangGUI extends JPanel {
         return pnlField;
     }
 
-    private JComboBox<String> buildCombo(String... values) {
-        JComboBox<String> cboField = new JComboBox<>(values);
-        cboField.setEditable(true);
-        cboField.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
-        cboField.setBackground(FIELD_BG);
-        cboField.setPreferredSize(new Dimension(160, 28));
-        cboField.setBorder(new LineBorder(new Color(188, 197, 208), 1, true));
-        return cboField;
+    private JTextField buildCombo(String... values) {
+        JTextField txtField = new JTextField(values.length > 0 ? values[0] : "");
+        txtField.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
+        txtField.setBackground(GuiTheme.SEARCH_FIELD_BG);
+        txtField.setForeground(GuiTheme.SEARCH_FIELD_TEXT);
+        txtField.setBorder(new LineBorder(GuiTheme.SEARCH_FIELD_BORDER, 1, true));
+        txtField.setPreferredSize(new Dimension(160, 28));
+        return txtField;
     }
 
     private JPanel buildDateField() {
@@ -126,14 +126,14 @@ final class KhachHangGUI extends JPanel {
         JTextField txtDate = new JTextField();
         txtDate.setPreferredSize(new Dimension(145, 28));
         txtDate.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
-        txtDate.setBackground(FIELD_BG);
-        txtDate.setBorder(new LineBorder(new Color(188, 197, 208), 1, true));
+        txtDate.setBackground(GuiTheme.SEARCH_FIELD_BG);
+        txtDate.setBorder(new LineBorder(GuiTheme.SEARCH_FIELD_BORDER, 1, true));
         pnlWrap.add(txtDate, BorderLayout.CENTER);
         JButton btnDate = new JButton("▣");
         btnDate.setPreferredSize(new Dimension(28, 28));
         btnDate.setFocusable(false);
-        btnDate.setBorder(new LineBorder(new Color(188, 197, 208), 1, true));
-        btnDate.setBackground(new Color(230, 233, 238));
+        btnDate.setBorder(new LineBorder(GuiTheme.SEARCH_FIELD_BORDER, 1, true));
+        btnDate.setBackground(GuiTheme.SEARCH_FIELD_BG);
         pnlWrap.add(btnDate, BorderLayout.EAST);
         return pnlWrap;
     }

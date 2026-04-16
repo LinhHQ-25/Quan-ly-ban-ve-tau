@@ -12,11 +12,14 @@ final class GuiTheme {
     static final Color TEXT = new Color(58, 58, 58);
     static final Color SUB_TEXT = new Color(110, 110, 110);
     static final Color ACCENT = new Color(96, 145, 214);
-    static final Color SUBMENU_BG = new Color(226, 228, 232);
-    static final Color SUBMENU_HOVER = new Color(216, 218, 223);
-    static final Color SUBMENU_SELECTED = new Color(200, 203, 210);
+    static final Color SEARCH_FIELD_BG = new Color(220, 235, 248);
+    static final Color SEARCH_FIELD_BORDER = new Color(186, 209, 231);
+    static final Color SEARCH_FIELD_TEXT = new Color(50, 50, 50);
+    static final Color SUBMENU_BG = SEARCH_FIELD_BG;
+    static final Color SUBMENU_HOVER = new Color(210, 228, 245);
+    static final Color SUBMENU_SELECTED = new Color(198, 221, 243);
 
-    static final int SIDEBAR_W = 261;
+    static final int SIDEBAR_W = 200;
     static final int LEFT_PAD = 14;
     static final int SUBMENU_LEFT_PAD = 28;
     static final int PAGE_PAD_TOP = 28;
