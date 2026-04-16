@@ -92,7 +92,7 @@ final class DanhSachChuyenDiGUI extends JPanel {
         gbc.gridx = 0; pnlGrid.add(buildField("Ga đi:", buildCombo("Từ Sơn", "Hà Nội", "Đà Nẵng", "Phú Thọ")), gbc);
         gbc.gridx = 1; pnlGrid.add(buildField("Ga đến:", buildCombo("Phú Thọ", "Hải Phòng", "Nha Trang", "TP.HCM")), gbc);
         gbc.gridx = 2; pnlGrid.add(buildField("Ngày đi:", buildDateField()), gbc);
-        gbc.gridx = 3; pnlGrid.add(buildField("Mã /Tên tàu", buildCombo("Train 011", "Train 012", "Train 013")), gbc);
+        gbc.gridx = 3; pnlGrid.add(buildField("Mã /Tên tàu:", buildCombo("Train 011", "Train 012", "Train 013")), gbc);
 
         gbc.gridy = 1;
         gbc.gridx = 0; pnlGrid.add(buildField("Ghế trống", buildSeatField()), gbc);
