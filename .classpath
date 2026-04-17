@@ -8,8 +8,8 @@
 	<classpathentry kind="src" path="frontend"/>
 	<classpathentry kind="src" path="database"/>
 	<classpathentry kind="src" path="backend"/>
-	<classpathentry kind="lib" path="libs/DateChooser.jar"/>
-	<classpathentry kind="lib" path="libs/jcalendar-0.8.1.jar"/>
-	<classpathentry kind="lib" path="libs/jcalendar-1.4 (1).jar"/>
+	<classpathentry kind="lib" path="F:/PTUD/ThucThi/quanLyBanVeTau/libs/DateChooser.jar"/>
+	<classpathentry kind="lib" path="F:/PTUD/ThucThi/quanLyBanVeTau/libs/jcalendar-0.8.1.jar"/>
+	<classpathentry kind="lib" path="F:/PTUD/ThucThi/quanLyBanVeTau/libs/jcalendar-1.4 (1).jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
