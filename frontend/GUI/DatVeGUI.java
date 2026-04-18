@@ -4,7 +4,10 @@ import com.toedter.calendar.JDateChooser;
 
 import java.awt.*;
 import java.awt.event.*;
+import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeListener;
 import java.util.*;
+import java.util.Arrays;
 import java.util.List;
 import java.util.function.Consumer;
 import javax.swing.*;
@@ -12,30 +15,33 @@ import javax.swing.border.EmptyBorder;
 
 public class DatVeGUI extends JPanel {
 
-    private static final Object[][] GA_DATA = {
-        {"Ngọc Hồi",   0.460, 0.165},
-        {"Phủ Lý",     0.510, 0.205},
-        {"Nam Định",   0.540, 0.230},
-        {"Ninh Bình",  0.515, 0.245},
-        {"Thanh Hóa",  0.490, 0.285},
-        {"Vinh",       0.460, 0.355},
-        {"Hà Tĩnh",    0.480, 0.385},
-        {"Vũng Áng",   0.510, 0.415},
-        {"Đồng Hới",   0.550, 0.455},
-        {"Đông Hà",    0.600, 0.495},
-        {"Huế",        0.640, 0.525},
-        {"Đà Nẵng",    0.690, 0.565},
-        {"Tam Kỳ",     0.710, 0.595},
-        {"Quảng Ngãi", 0.730, 0.625},
-        {"Bồng Sơn",   0.725, 0.675},
-        {"Diêu Trì",   0.720, 0.725},   // ← GA ĐI MẶC ĐỊNH
-        {"Tuy Hòa",    0.740, 0.775},
-        {"Khánh Hòa",  0.750, 0.815},
-        {"Tháp Chàm",  0.720, 0.855},
-        {"Phan Rí",    0.680, 0.875},
-        {"Long Thành", 0.600, 0.905},
-        {"Thủ Thiêm",  0.490, 0.905},
-    };
+	// Tọa độ đo theo ảnh BanDo.png kích thước 428×561
+	// x/428, y/561 → xPct, yPct
+	private static final Object[][] GA_DATA = {
+	    {"Ngọc Hồi",   0.425, 0.168},  // x≈182, y≈94
+	    {"Phủ Lý",     0.442, 0.193},  // x≈189, y≈108
+	    {"Nam Định",   0.465, 0.205},  // x≈199, y≈119
+	    {"Ninh Bình",  0.456, 0.223},  // x≈195, y≈125
+	    {"Thanh Hóa",  0.439, 0.253},  // x≈188, y≈142
+	    {"Vinh",       0.425, 0.319},  // x≈182, y≈179
+	    {"Hà Tĩnh",    0.456, 0.344},  // x≈195, y≈193
+	    {"Vũng Áng",   0.491, 0.367},  // x≈210, y≈206
+	    {"Đồng Hới",   0.512, 0.406},  // x≈219, y≈228
+	    {"Đông Hà",    0.551, 0.442},  // x≈236, y≈248
+	    {"Huế",        0.589, 0.469},  // x≈252, y≈263
+	    {"Đà Nẵng",    0.638, 0.496},  // x≈273, y≈278
+	    {"Tam Kỳ",     0.668, 0.531},  // x≈286, y≈298
+	    {"Quảng Ngãi", 0.701, 0.565},  // x≈300, y≈317
+	    {"Bồng Sơn",   0.715, 0.601},  // x≈306, y≈337
+	    {"Diêu Trì",   0.724, 0.642},  // x≈310, y≈360  ← GA ĐI
+	    {"Tuy Hòa",    0.734, 0.697},  // x≈314, y≈391
+	    {"Khánh Hòa",  0.724, 0.743},  // x≈310, y≈417
+	    {"Tháp Chàm",  0.720, 0.788},  // x≈308, y≈442
+	    {"Phan Rí",    0.687, 0.822},  // x≈294, y≈461
+	    {"Long Thành", 0.568, 0.848},  // x≈243, y≈476
+	    {"Thủ Thiêm",  0.521, 0.857},  // x≈223, y≈481
+	};
+
 
     private static final String GA_DI_MAC_DINH   = "Diêu Trì";
     private static final Color  CLR_ROUTE_NORMAL = new Color(30,  100, 190, 210);
@@ -44,13 +50,13 @@ public class DatVeGUI extends JPanel {
     private static final Color  CLR_DOT_DEN      = new Color( 30, 115, 205);
 
     // Form fields
-    private JTextField       txtGaDi;
-    private JComboBox<String> cbGaDen;
-    private JRadioButton     rbMotChieu, rbKhuHoi;
-    private JDateChooser     dcNgayDi, dcNgayVe;
-    private final int[]      soLuong = {1};
-    private JLabel           lblSoLuong;
-    private MapPanel         mapPanel;
+    private JTextField        txtGaDi;
+    private JTextField        txtGaDen;    
+    private JComboBox<String> cbGaDen;      
+    private JRadioButton      rbMotChieu, rbKhuHoi;
+    private JDateChooser      dcNgayDi, dcNgayVe;
+    private JTextField        txtSoLuong;   
+    private MapPanel          mapPanel;
 
     public DatVeGUI() {
         setLayout(new GridLayout(1, 2, 0, 0));
@@ -60,19 +66,21 @@ public class DatVeGUI extends JPanel {
     }
 
     // =====================================================
-    // PANEL TRÁI: bản đồ click-able
+    // PANEL TRÁI
     // =====================================================
     private JPanel buildLeftPanel() {
         mapPanel = new MapPanel();
         mapPanel.setOnGaSelected(gaName -> {
-            if (!gaName.equals(GA_DI_MAC_DINH) && cbGaDen != null)
+            if (!gaName.equals(GA_DI_MAC_DINH) && cbGaDen != null) {
                 cbGaDen.setSelectedItem(gaName);
+                if (txtGaDen != null) txtGaDen.setText(gaName);
+            }
         });
         return mapPanel;
     }
 
     // =====================================================
-    // PANEL PHẢI: form đặt vé
+    // PANEL PHẢI
     // =====================================================
     private JPanel buildRightPanel() {
         JPanel outer = new JPanel(new BorderLayout());
@@ -84,34 +92,128 @@ public class DatVeGUI extends JPanel {
 
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.fill = GridBagConstraints.HORIZONTAL;
-        gbc.anchor = GridBagConstraints.WEST;
+        gbc.anchor = GridBagConstraints.CENTER;
 
-        // Tiêu đề
-        JLabel title = new JLabel("Vui lòng điền/chọn thông tin vào đây");
-        title.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 15));
-        title.setForeground(new Color(50, 50, 50));
+        // ── Tiêu đề: căn GIỮA, font 17 ──
+        JLabel title = new JLabel("Vui lòng điền/chọn thông tin vào đây", SwingConstants.CENTER);
+        title.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 17));
+        title.setForeground(new Color(45, 45, 45));
         gbc.gridx = 0; gbc.gridy = 0; gbc.gridwidth = 2; gbc.weightx = 1;
-        gbc.insets = new Insets(0, 0, 22, 0);
+        gbc.insets = new Insets(0, 0, 26, 0);
         form.add(title, gbc);
         gbc.gridwidth = 1;
+        gbc.anchor = GridBagConstraints.WEST;
 
-        // GA ĐI (disabled)
+        // ── GA ĐI (disabled, style giống ga đến) ──
         txtGaDi = new JTextField(GA_DI_MAC_DINH);
-        txtGaDi.setEditable(false); txtGaDi.setEnabled(false);
+        txtGaDi.setEditable(false);
+        txtGaDi.setEnabled(false);
         txtGaDi.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
         addRow(form, gbc, 1, "Ga đi:", wrapField(txtGaDi, true), 14);
 
-        // GA ĐẾN
-        cbGaDen = new JComboBox<>(buildGaDenList());
-        cbGaDen.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
-        cbGaDen.setBackground(Color.WHITE); cbGaDen.setBorder(null);
-        cbGaDen.addActionListener(e -> {
-            if (mapPanel != null)
-                mapPanel.setSelectedGaDen((String) cbGaDen.getSelectedItem());
-        });
-        addRow(form, gbc, 2, "Ga đến:", wrapCombo(cbGaDen), 14);
+        // ── GA ĐẾN: JTextField + nút mũi tên + JPopupMenu — giống hệt style ga đi ──
+        String[] gaDenList = buildGaDenList();
+        // cbGaDen ẩn, chỉ dùng để lưu selectedIndex + danh sách
+        cbGaDen = new JComboBox<>(gaDenList);
+        cbGaDen.setVisible(false);
 
-        // LOẠI VÉ
+        txtGaDen = new JTextField(gaDenList.length > 0 ? gaDenList[0] : "");
+        txtGaDen.setEditable(false);
+        txtGaDen.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
+
+        // Nút mũi tên ▼ tự vẽ
+        JButton btnArrow = new JButton() {
+            @Override protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(getParent() != null ? getParent().getBackground() : Color.WHITE);
+                g2.fillRect(0, 0, getWidth(), getHeight());
+                // Vẽ mũi tên nhỏ
+                int cx = getWidth() / 2, cy = getHeight() / 2;
+                int[] xs = {cx - 5, cx + 5, cx};
+                int[] ys = {cy - 3, cy - 3, cy + 3};
+                g2.setColor(new Color(100, 130, 165));
+                g2.fillPolygon(xs, ys, 3);
+                g2.dispose();
+            }
+        };
+        btnArrow.setPreferredSize(new Dimension(28, 28));
+        btnArrow.setContentAreaFilled(false);
+        btnArrow.setBorderPainted(false);
+        btnArrow.setFocusPainted(false);
+        btnArrow.setCursor(new Cursor(Cursor.HAND_CURSOR));
+
+        // Bọc txtGaDen + btnArrow vào panel vẽ khung giống ga đi
+        JPanel gaDenWrap = new JPanel(new BorderLayout()) {
+            @Override protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(Color.WHITE);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 12, 12);
+                g2.setColor(new Color(180, 205, 230));
+                g2.drawRoundRect(0, 0, getWidth()-1, getHeight()-1, 12, 12);
+                g2.dispose();
+            }
+        };
+        gaDenWrap.setOpaque(false);
+        gaDenWrap.setBorder(new EmptyBorder(6, 12, 6, 6));
+        txtGaDen.setOpaque(false);
+        txtGaDen.setBorder(null);
+        txtGaDen.setForeground(new Color(50, 50, 50));
+        gaDenWrap.add(txtGaDen, BorderLayout.CENTER);
+        gaDenWrap.add(btnArrow, BorderLayout.EAST);
+
+        // ── Dropdown gọn: JList bọc trong JScrollPane, hiện qua JPopupMenu ──
+        JList<String> listGa = new JList<>(gaDenList);
+        listGa.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 13));
+        listGa.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        listGa.setSelectedIndex(0);
+        listGa.setFixedCellHeight(28);
+        listGa.setBorder(new EmptyBorder(2, 8, 2, 8));
+        listGa.setBackground(Color.WHITE);
+        listGa.setSelectionBackground(new Color(210, 228, 248));
+        listGa.setSelectionForeground(new Color(30, 70, 140));
+
+        JScrollPane scrollGa = new JScrollPane(listGa);
+        scrollGa.setBorder(null);
+        scrollGa.getVerticalScrollBar().setUnitIncrement(16);
+
+        JPopupMenu popup = new JPopupMenu();
+        popup.setLayout(new BorderLayout());
+        popup.setBorder(BorderFactory.createLineBorder(new Color(180, 205, 230), 1));
+        popup.add(scrollGa, BorderLayout.CENTER);
+
+        // Chọn item bằng click chuột
+        listGa.addMouseListener(new MouseAdapter() {
+            @Override public void mouseClicked(MouseEvent e) {
+                String sel = listGa.getSelectedValue();
+                if (sel != null) {
+                    txtGaDen.setText(sel);
+                    cbGaDen.setSelectedItem(sel);
+                    if (mapPanel != null) mapPanel.setSelectedGaDen(sel);
+                    popup.setVisible(false);
+                }
+            }
+        });
+
+        // Mở popup rộng bằng đúng ô ga đến, cao tối đa 200px
+        Runnable openDropdown = () -> {
+            popup.setPopupSize(gaDenWrap.getWidth(), 200);
+            int idx = Arrays.asList(gaDenList).indexOf(txtGaDen.getText());
+            if (idx >= 0) listGa.setSelectedIndex(idx);
+            listGa.ensureIndexIsVisible(Math.max(0, idx));
+            popup.show(gaDenWrap, 0, gaDenWrap.getHeight());
+        };
+
+        txtGaDen.addMouseListener(new MouseAdapter() {
+            @Override public void mouseClicked(MouseEvent e) { openDropdown.run(); }
+        });
+        txtGaDen.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btnArrow.addActionListener(e -> openDropdown.run());
+
+        addRow(form, gbc, 2, "Ga đến:", gaDenWrap, 14);
+
+        // ── LOẠI VÉ ──
         rbMotChieu = new JRadioButton("Một chiều", true);
         rbKhuHoi   = new JRadioButton("Khứ hồi");
         styleRadio(rbMotChieu); styleRadio(rbKhuHoi);
@@ -122,26 +224,30 @@ public class DatVeGUI extends JPanel {
         radioPanel.add(rbMotChieu);
         radioPanel.add(Box.createHorizontalStrut(20));
         radioPanel.add(rbKhuHoi);
-        rbMotChieu.addActionListener(e -> setNgayVeEnabled(false));
+        rbMotChieu.addActionListener(e -> syncNgayVe());
         rbKhuHoi  .addActionListener(e -> setNgayVeEnabled(true));
         addRow(form, gbc, 3, "Loại vé:", radioPanel, 14);
 
-        // NGÀY ĐI
+        // ── NGÀY ĐI ──
         dcNgayDi = buildDateChooser(true);
+        // Khi ngày đi thay đổi → nếu đang 1 chiều thì sync ngày về
+        dcNgayDi.addPropertyChangeListener("date", evt -> {
+            if (rbMotChieu != null && rbMotChieu.isSelected()) syncNgayVe();
+        });
         addRow(form, gbc, 4, "Ngày đi:", wrapDC(dcNgayDi), 14);
 
-        // NGÀY VỀ (disabled ban đầu)
+        // ── NGÀY VỀ (disabled ban đầu, sync với ngày đi khi 1 chiều) ──
         dcNgayVe = buildDateChooser(false);
         addRow(form, gbc, 5, "Ngày về:", wrapDC(dcNgayVe), 14);
 
-        // SỐ LƯỢNG
+        // ── SỐ LƯỢNG: JTextField nhập được + nút ±  ──
         addRow(form, gbc, 6, "Số lượng:", buildSoLuongPanel(), 10);
 
-        // NÚT TÌM CHUYẾN
+        // ── NÚT TÌM CHUYẾN: căn GIỮA ──
         gbc.gridx = 0; gbc.gridy = 7; gbc.gridwidth = 2;
-        gbc.anchor = GridBagConstraints.EAST;
-        gbc.insets = new Insets(18, 0, 0, 0);
-        JPanel btnWrap = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
+        gbc.anchor = GridBagConstraints.CENTER;
+        gbc.insets = new Insets(20, 0, 0, 0);
+        JPanel btnWrap = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 0));
         btnWrap.setOpaque(false);
         btnWrap.add(buildTimButton());
         form.add(btnWrap, gbc);
@@ -150,8 +256,15 @@ public class DatVeGUI extends JPanel {
         return outer;
     }
 
+    // ── Sync ngày về = ngày đi (khi chọn 1 chiều) ──
+    private void syncNgayVe() {
+        setNgayVeEnabled(false);
+        if (dcNgayDi != null && dcNgayVe != null)
+            dcNgayVe.setDate(dcNgayDi.getDate());
+    }
+
     // =====================================================
-    // JDateChooser (thư viện JCalendar/jcalendar)
+    // JDateChooser
     // =====================================================
     private JDateChooser buildDateChooser(boolean enabled) {
         JDateChooser dc = new JDateChooser();
@@ -161,13 +274,11 @@ public class DatVeGUI extends JPanel {
         dc.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
         dc.setBackground(enabled ? Color.WHITE : new Color(225, 235, 245));
         dc.setBorder(null);
-        // Xóa border của text editor bên trong
         Component editor = dc.getDateEditor().getUiComponent();
         if (editor instanceof JComponent) ((JComponent) editor).setBorder(null);
         return dc;
     }
 
-    /** Bọc JDateChooser trong khung bo góc tự vẽ */
     private JPanel wrapDC(JDateChooser dc) {
         JPanel p = new JPanel(new BorderLayout()) {
             @Override protected void paintComponent(Graphics g) {
@@ -231,25 +342,6 @@ public class DatVeGUI extends JPanel {
         return p;
     }
 
-    private JPanel wrapCombo(JComboBox<String> cb) {
-        JPanel p = new JPanel(new BorderLayout()) {
-            @Override protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(Color.WHITE);
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 12, 12);
-                g2.setColor(new Color(180, 205, 230));
-                g2.drawRoundRect(0, 0, getWidth()-1, getHeight()-1, 12, 12);
-                g2.dispose();
-            }
-        };
-        p.setOpaque(false);
-        p.setBorder(new EmptyBorder(4, 8, 4, 4));
-        cb.setOpaque(false); cb.setBorder(null);
-        p.add(cb, BorderLayout.CENTER);
-        return p;
-    }
-
     private void styleRadio(JRadioButton rb) {
         rb.setOpaque(false);
         rb.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
@@ -265,10 +357,11 @@ public class DatVeGUI extends JPanel {
     }
 
     // =====================================================
-    // SỐ LƯỢNG
+    // SỐ LƯỢNG — JTextField nhập trực tiếp + nút − / +
     // =====================================================
     private JPanel buildSoLuongPanel() {
-        JPanel wrapper = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0)) {
+        // Panel ngoài bo góc
+        JPanel wrapper = new JPanel(new BorderLayout()) {
             @Override protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
@@ -282,23 +375,56 @@ public class DatVeGUI extends JPanel {
         wrapper.setOpaque(false);
         wrapper.setBorder(new EmptyBorder(2, 6, 2, 6));
 
-        lblSoLuong = new JLabel("  1  ", SwingConstants.CENTER);
-        lblSoLuong.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
-        lblSoLuong.setPreferredSize(new Dimension(34, 30));
+        // Nút −
         JButton btnMinus = buildCountBtn("−");
-        JButton btnPlus  = buildCountBtn("+");
+        // TextField nhập số
+        txtSoLuong = new JTextField("1", 3);
+        txtSoLuong.setHorizontalAlignment(SwingConstants.CENTER);
+        txtSoLuong.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
+        txtSoLuong.setOpaque(false);
+        txtSoLuong.setBorder(null);
+        txtSoLuong.setPreferredSize(new Dimension(38, 30));
+        // Chỉ cho nhập số
+        txtSoLuong.addKeyListener(new KeyAdapter() {
+            @Override public void keyTyped(KeyEvent e) {
+                char c = e.getKeyChar();
+                if (!Character.isDigit(c)) e.consume();
+            }
+        });
+        txtSoLuong.addFocusListener(new FocusAdapter() {
+            @Override public void focusLost(FocusEvent e) { clampSoLuong(); }
+        });
+        // Nút +
+        JButton btnPlus = buildCountBtn("+");
 
         btnMinus.addActionListener(e -> {
-            if (soLuong[0] > 1) { soLuong[0]--; lblSoLuong.setText("  " + soLuong[0] + "  "); }
+            int v = getSoLuong();
+            if (v > 1) txtSoLuong.setText(String.valueOf(v - 1));
         });
         btnPlus.addActionListener(e -> {
-            if (soLuong[0] < 99) { soLuong[0]++; lblSoLuong.setText("  " + soLuong[0] + "  "); }
+            int v = getSoLuong();
+            if (v < 99) txtSoLuong.setText(String.valueOf(v + 1));
         });
-        wrapper.add(btnMinus); wrapper.add(lblSoLuong); wrapper.add(btnPlus);
 
-        JPanel p = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
-        p.setOpaque(false); p.add(wrapper);
-        return p;
+        wrapper.add(btnMinus,    BorderLayout.WEST);
+        wrapper.add(txtSoLuong,  BorderLayout.CENTER);
+        wrapper.add(btnPlus,     BorderLayout.EAST);
+
+        // Bọc lại để FlowLayout trái
+        JPanel outer = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        outer.setOpaque(false);
+        wrapper.setPreferredSize(new Dimension(110, 34));
+        outer.add(wrapper);
+        return outer;
+    }
+
+    private int getSoLuong() {
+        try { return Math.max(1, Math.min(99, Integer.parseInt(txtSoLuong.getText().trim()))); }
+        catch (NumberFormatException e) { return 1; }
+    }
+
+    private void clampSoLuong() {
+        txtSoLuong.setText(String.valueOf(getSoLuong()));
     }
 
     private JButton buildCountBtn(String label) {
@@ -340,14 +466,14 @@ public class DatVeGUI extends JPanel {
                 g2.dispose();
             }
         };
-        btn.setPreferredSize(new Dimension(120, 36));
+        btn.setPreferredSize(new Dimension(130, 38));
         btn.setContentAreaFilled(false); btn.setBorderPainted(false); btn.setFocusPainted(false);
         btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
         return btn;
     }
 
     // =====================================================
-    // INNER CLASS: MapPanel — bản đồ có thể click
+    // INNER CLASS: MapPanel
     // =====================================================
     private class MapPanel extends JPanel {
 
@@ -366,9 +492,8 @@ public class DatVeGUI extends JPanel {
                     if (!Objects.equals(hit, hoveredGa)) {
                         hoveredGa = hit;
                         boolean canClick = hit != null && !hit.equals(GA_DI_MAC_DINH);
-                        setCursor(canClick
-                            ? new Cursor(Cursor.HAND_CURSOR)
-                            : new Cursor(Cursor.DEFAULT_CURSOR));
+                        setCursor(canClick ? new Cursor(Cursor.HAND_CURSOR)
+                                           : new Cursor(Cursor.DEFAULT_CURSOR));
                         repaint();
                     }
                 }
@@ -397,23 +522,11 @@ public class DatVeGUI extends JPanel {
             }
         }
 
-        /**
-         * Ảnh bản đồ được vẽ giữ tỉ lệ gốc (387:398), căn giữa trong panel.
-         * Phương thức này trả về Rectangle mà ảnh thực sự chiếm.
-         */
-        private Rectangle getDrawRect() {
-            // Trả về toàn bộ kích thước của Panel hiện tại
-            return new Rectangle(0, 0, getWidth(), getHeight());
-        }
-
-        /** % tọa độ → pixel thực trên panel */
+        // Toàn bộ panel = vùng vẽ (ảnh tràn viền)
         private Point toScreen(double xPct, double yPct) {
-            Rectangle r = getDrawRect();
-            return new Point(r.x + (int)(xPct * r.width),
-                             r.y + (int)(yPct * r.height));
+            return new Point((int)(xPct * getWidth()), (int)(yPct * getHeight()));
         }
 
-        /** Kiểm tra pixel chuột có trúng ga nào không (vùng hit 10px) */
         private String hitTest(int mx, int my) {
             for (Object[] ga : GA_DATA) {
                 Point p = toScreen((double)ga[1], (double)ga[2]);
@@ -426,23 +539,22 @@ public class DatVeGUI extends JPanel {
         protected void paintComponent(Graphics g) {
             super.paintComponent(g);
             Graphics2D g2 = (Graphics2D) g.create();
-            // Bật khử răng cưa để ảnh bị kéo giãn nhìn vẫn mịn
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,      RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
             g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION,     RenderingHints.VALUE_INTERPOLATION_BILINEAR);
 
-            Rectangle r = getDrawRect();
-
-            // Ảnh bản đồ - Vẽ tràn khung
+            // Vẽ ảnh bản đồ tràn viền
             if (mapImage != null) {
                 g2.drawImage(mapImage, 0, 0, getWidth(), getHeight(), this);
             } else {
                 g2.setColor(new Color(140, 185, 150));
                 g2.fillRect(0, 0, getWidth(), getHeight());
                 g2.setColor(Color.DARK_GRAY);
-                g2.drawString("Không tìm thấy ảnh!", 20, 20);
+                g2.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+                g2.drawString("Đặt ảnh vào /Images/BanDo.png", 12, 22);
             }
 
-            // ── Xác định vùng đường nối highlight ──
+            // Xác định vùng highlight
             int idxDi = -1, idxDen = -1;
             for (int i = 0; i < GA_DATA.length; i++) {
                 if (GA_DATA[i][0].equals(GA_DI_MAC_DINH))  idxDi  = i;
@@ -454,7 +566,7 @@ public class DatVeGUI extends JPanel {
                 hlTo   = Math.max(idxDi, idxDen);
             }
 
-            // ── Vẽ đường ray ──
+            // Vẽ đường ray
             g2.setStroke(new BasicStroke(2.6f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
             for (int i = 0; i < GA_DATA.length - 1; i++) {
                 Point p1 = toScreen((double)GA_DATA[i][1],   (double)GA_DATA[i][2]);
@@ -464,59 +576,62 @@ public class DatVeGUI extends JPanel {
                 g2.drawLine(p1.x, p1.y, p2.x, p2.y);
             }
 
-            // ── Vẽ điểm ga + label ──
+            // Vẽ điểm ga + chữ (không có nền label)
             Font fNormal = new Font("Segoe UI", Font.PLAIN, 10);
             Font fBold   = new Font("Segoe UI", Font.BOLD,  10);
-            g2.setFont(fNormal);
-            FontMetrics fm = g2.getFontMetrics(fNormal);
 
             for (Object[] ga : GA_DATA) {
                 String name = (String) ga[0];
-                Point  pt   = toScreen((double) ga[1], (double) ga[2]);
+                Point  pt   = toScreen((double)ga[1], (double)ga[2]);
 
-                boolean isDi       = name.equals(GA_DI_MAC_DINH);
-                boolean isDen      = name.equals(selectedGaDen);
-                boolean isHovered  = name.equals(hoveredGa);
+                boolean isDi      = name.equals(GA_DI_MAC_DINH);
+                boolean isDen     = name.equals(selectedGaDen);
+                boolean isHovered = name.equals(hoveredGa);
 
-                // Kích thước và màu điểm
-                int    dotR;
-                Color  dotFill, dotBorder;
+                int   dotR;
+                Color dotFill, dotBorder;
                 if (isDi) {
-                    dotR = 7; dotFill = CLR_DOT_DI; dotBorder = new Color(150, 25, 10);
+                    dotR = 7; dotFill = CLR_DOT_DI;  dotBorder = new Color(150, 25, 10);
                 } else if (isDen) {
                     dotR = 7; dotFill = CLR_DOT_DEN; dotBorder = new Color(10, 55, 135);
                 } else if (isHovered) {
                     dotR = 5; dotFill = new Color(110, 175, 235); dotBorder = new Color(40, 90, 160);
                 } else {
-                    dotR = 4; dotFill = Color.WHITE; dotBorder = new Color(40, 90, 160, 170);
+                    dotR = 4; dotFill = Color.WHITE;  dotBorder = new Color(40, 90, 160, 170);
                 }
 
-                // Vòng ngoài border
+                // Border điểm
                 g2.setColor(dotBorder);
                 g2.fillOval(pt.x - dotR - 2, pt.y - dotR - 2, (dotR+2)*2, (dotR+2)*2);
                 // Chấm trong
                 g2.setColor(dotFill);
                 g2.fillOval(pt.x - dotR, pt.y - dotR, dotR*2, dotR*2);
 
-                // Label
-                Font   useFont = (isDi || isDen) ? fBold : fNormal;
+                // Chữ — bên phải điểm, không có nền
+                Font useFont = (isDi || isDen) ? fBold : fNormal;
                 g2.setFont(useFont);
                 FontMetrics fmu = g2.getFontMetrics(useFont);
                 int tw = fmu.stringWidth(name);
-                int tx = pt.x + dotR + 4;
+                int tx = pt.x + dotR + 3;
                 int ty = pt.y + fmu.getAscent()/2 - 1;
-                if (tx + tw > r.x + r.width - 4) tx = pt.x - tw - dotR - 3;
+                // Nếu sát mép phải → lật sang trái điểm
+                if (tx + tw > getWidth() - 4) tx = pt.x - tw - dotR - 2;
 
-                // Nền label mờ
-                g2.setColor(new Color(255, 255, 255, 175));
-                g2.fillRoundRect(tx-2, ty-fmu.getAscent()+1, tw+4, fmu.getHeight()-1, 3, 3);
-                // Chữ
-                g2.setColor(isDi ? new Color(165, 25, 8)
-                    : isDen ? new Color(15, 65, 155)
-                    : new Color(20, 50, 90));
+                // Viền chữ mỏng để dễ đọc trên bản đồ
+                g2.setColor(new Color(255, 255, 255, 160));
+                g2.setFont(useFont.deriveFont(Collections.singletonMap(
+                    java.awt.font.TextAttribute.WEIGHT,
+                    java.awt.font.TextAttribute.WEIGHT_ULTRABOLD)));
+                for (int dx = -1; dx <= 1; dx++)
+                    for (int dy = -1; dy <= 1; dy++)
+                        if (dx != 0 || dy != 0)
+                            g2.drawString(name, tx + dx, ty + dy);
+
+                g2.setFont(useFont);
+                g2.setColor(isDi  ? new Color(165, 25, 8)
+                           : isDen ? new Color(15, 65, 155)
+                           :         new Color(20, 50, 90));
                 g2.drawString(name, tx, ty);
-
-                g2.setFont(fNormal); // reset
             }
 
             g2.dispose();
