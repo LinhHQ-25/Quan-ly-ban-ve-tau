@@ -11,5 +11,8 @@
 	<classpathentry kind="lib" path="F:/PTUD/ThucThi/quanLyBanVeTau/libs/DateChooser.jar"/>
 	<classpathentry kind="lib" path="F:/PTUD/ThucThi/quanLyBanVeTau/libs/jcalendar-0.8.1.jar"/>
 	<classpathentry kind="lib" path="F:/PTUD/ThucThi/quanLyBanVeTau/libs/jcalendar-1.4 (1).jar"/>
+	<classpathentry kind="lib" path="C:/Users/DELL/Downloads/pdfbox-2.0.31.jar"/>
+	<classpathentry kind="lib" path="C:/Users/DELL/Downloads/fontbox-2.0.31.jar"/>
+	<classpathentry kind="lib" path="C:/Users/DELL/Downloads/commons-logging-1.2.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
