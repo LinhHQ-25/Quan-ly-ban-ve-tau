@@ -1,24 +1,50 @@
 package GUI;
 
 import java.awt.*;
-import java.text.SimpleDateFormat;
-import java.util.Calendar;
-import java.util.Locale;
-
+import java.util.LinkedHashMap;
+import java.util.Map;
 import javax.swing.*;
 import javax.swing.border.*;
+import javax.swing.event.ListSelectionEvent;
 import javax.swing.table.*;
 
-import de.wannawork.jcalendar.JCalendarComboBox;
-
 final class DoiTraGUI extends JPanel {
-	private static final Font FONT_LABEL = GuiTheme.font("Segoe UI", Font.PLAIN, 15);
-	private static final Font FONT_INPUT = GuiTheme.font("Segoe UI", Font.PLAIN, 16);
-	private static final Font FONT_BUTTON = GuiTheme.font("Segoe UI", Font.BOLD, 15);
-	private static final int FIELD_HEIGHT = 36;
-	private static final int BUTTON_HEIGHT = 40;
+
 	private static final Color BORDER = new Color(210, 215, 224);
 	private static final Color PRIMARY = new Color(71, 71, 156);
+
+	// ── DỮ LIỆU GIẢ ────────────────────────────────────────────────────────
+	// maVe → { chuyenTau, gaDi, gaDen, loaiVe, ngayKH, soLuong, ghe, giaTien }
+	private static final Map<String, String[]> FAKE_DATA = new LinkedHashMap<>();
+	static {
+		FAKE_DATA.put("27CT30",
+				new String[] { "SE5", "Diêu Trì", "Sài Gòn", "Vé nhóm", "29/08/2026", "01", "B05", "450.000" });
+		FAKE_DATA.put("13HN05",
+				new String[] { "SE1", "Hà Nội", "Đà Nẵng", "Vé thường", "15/09/2026", "02", "A12", "320.000" });
+		FAKE_DATA.put("08DN12",
+				new String[] { "SE3", "Đà Nẵng", "Nha Trang", "Vé VIP", "02/10/2026", "01", "C03", "610.000" });
+		FAKE_DATA.put("21NT07",
+				new String[] { "TN2", "Nha Trang", "TP.HCM", "Vé thường", "10/10/2026", "03", "D08", "275.000" });
+		FAKE_DATA.put("30HCM9",
+				new String[] { "SE19", "TP.HCM", "Hà Nội", "Vé VIP", "20/11/2026", "01", "A01", "850.000" });
+	}
+
+	// ── STATE ───────────────────────────────────────────────────────────────
+	private DefaultTableModel tableModel;
+	private JTable table;
+	private JTextField txtSearch;
+
+	// Form đổi
+	private JComboBox<String> cbChuyen;
+	private JComboBox<String> cbGhe;
+	private JTextField tfNgayDoi, tfGiaCu, tfGiaMoi, tfChenhLech;
+
+	// Form trả
+	private JComboBox<String> cbLyDo;
+	private JTextField tfPhiTra, tfHoanLai;
+
+	// Panel chứa form (để repaint khi switch)
+	private JPanel pnlDoi, pnlTra;
 
 	public DoiTraGUI() {
 		setLayout(new BorderLayout());
@@ -27,109 +53,142 @@ final class DoiTraGUI extends JPanel {
 		JPanel pnlPage = new JPanel();
 		pnlPage.setLayout(new BoxLayout(pnlPage, BoxLayout.Y_AXIS));
 		pnlPage.setOpaque(false);
-		pnlPage.setBorder(new EmptyBorder(20, 20, 20, 20));
+		pnlPage.setBorder(new EmptyBorder(GuiTheme.PAGE_PAD_TOP, GuiTheme.PAGE_PAD_LEFT, GuiTheme.PAGE_PAD_BOTTOM,
+				GuiTheme.PAGE_PAD_LEFT));
 
-		pnlPage.add(buildHeader());
-		pnlPage.add(Box.createVerticalStrut(10));
+		pnlPage.add(buildHeader("ĐỔI / TRẢ VÉ", "Dùng để đổi hoặc trả vé đã đặt."));
+		pnlPage.add(Box.createVerticalStrut(12));
 		pnlPage.add(buildSearchBar());
-		pnlPage.add(Box.createVerticalStrut(10));
+		pnlPage.add(Box.createVerticalStrut(12));
 		pnlPage.add(buildTicketTable());
-		pnlPage.add(Box.createVerticalStrut(10));
+		pnlPage.add(Box.createVerticalStrut(12));
 		pnlPage.add(buildActionPanel());
 
 		add(pnlPage, BorderLayout.NORTH);
+
+		// Nạp toàn bộ dữ liệu ban đầu
+		reloadTable("");
 	}
 
-	// HEADER
-	private JPanel buildHeader() {
-		JPanel pnl = new JPanel(new BorderLayout());
+	// ── HEADER ──────────────────────────────────────────────────────────────
+	private JPanel buildHeader(String title, String subtitle) {
+		JPanel pnl = new JPanel(new BorderLayout(0, 6));
 		pnl.setOpaque(false);
-		JLabel title = new JLabel("ĐỔI / TRẢ VÉ");
-		title.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 22));
-		pnl.add(title, BorderLayout.WEST);
+		JLabel lbTitle = new JLabel(title);
+		lbTitle.setFont(GuiTheme.font("Segoe UI", Font.BOLD, GuiTheme.PAGE_TITLE_SIZE));
+		lbTitle.setForeground(GuiTheme.TEXT);
+		JLabel lbSub = new JLabel(subtitle);
+		lbSub.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, GuiTheme.PAGE_SUBTITLE_SIZE));
+		lbSub.setForeground(GuiTheme.SUB_TEXT);
+		pnl.add(lbTitle, BorderLayout.NORTH);
+		pnl.add(lbSub, BorderLayout.SOUTH);
 		return pnl;
 	}
 
-	// THANH TIM KIEM
+	// ── SEARCH BAR ──────────────────────────────────────────────────────────
 	private JPanel buildSearchBar() {
-		JPanel pnl = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 5));
+		JPanel pnl = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 0));
 		pnl.setOpaque(false);
 
-		JLabel timkiem = new JLabel("Nhập mã vé cần đổi/trả:");
-		timkiem.setFont(FONT_LABEL);
+		JLabel lbLabel = new JLabel("Nhập mã vé cần đổi/trả:");
+		lbLabel.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
+		lbLabel.setForeground(GuiTheme.TEXT);
 
-		JTextField txt = new JTextField("27CT30");
-		txt.setFont(FONT_INPUT);
-		txt.setPreferredSize(new Dimension(350, FIELD_HEIGHT));
+		txtSearch = new JTextField();
+		txtSearch.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
+		txtSearch.setOpaque(false);
+		txtSearch.setBorder(null);
+		txtSearch.setPreferredSize(new Dimension(200, 24));
 
-		JButton btn = new JButton("Tìm kiếm");
-		styleButton(btn);
+		JButton btn = buildActionButton("Tìm kiếm");
+		btn.addActionListener(e -> reloadTable(txtSearch.getText().trim()));
 
-		pnl.add(timkiem);
-		pnl.add(txt);
+		// Tìm ngay khi gõ
+		txtSearch.addActionListener(e -> reloadTable(txtSearch.getText().trim()));
+
+		pnl.add(lbLabel);
+		pnl.add(wrapField(txtSearch));
 		pnl.add(btn);
-
 		return pnl;
 	}
 
-	// ================= TABLE =================
+	// ── TABLE ───────────────────────────────────────────────────────────────
 	private JPanel buildTicketTable() {
-		DefaultTableModel model = new DefaultTableModel(
+		JPanel pnlOuter = new JPanel(new BorderLayout(0, 8));
+		pnlOuter.setOpaque(false);
+		pnlOuter.add(buildSectionTitle("Danh sách vé"), BorderLayout.NORTH);
+
+		tableModel = new DefaultTableModel(
 				new Object[] { "Mã vé", "Chuyến tàu", "Ga đi", "Ga đến", "Loại vé", "Ngày KH", "SL" }, 0) {
 			public boolean isCellEditable(int r, int c) {
 				return false;
 			}
 		};
 
-		model.addRow(new Object[] { "27CT30", "SE5", "Diêu Trì", "Sài Gòn", "Vé nhóm", "29/08/2026", "01" });
+		table = new JTable(tableModel);
+		table.setRowHeight(28);
+		table.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 13));
+		table.setForeground(GuiTheme.TEXT);
+		table.setGridColor(new Color(230, 233, 238));
+		table.setSelectionBackground(new Color(207, 209, 214));
+		table.setSelectionForeground(GuiTheme.TEXT);
+		table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+		table.getTableHeader().setReorderingAllowed(false);
+		table.getTableHeader().setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 13));
+		table.getTableHeader().setBackground(Color.WHITE);
+		table.getTableHeader().setForeground(GuiTheme.TEXT);
+		table.getTableHeader().setBorder(new LineBorder(BORDER, 1, true));
 
-		JTable table = new JTable(model);
-		styleTable(table);
+		DefaultTableCellRenderer center = new DefaultTableCellRenderer();
+		center.setHorizontalAlignment(SwingConstants.CENTER);
+		table.getColumnModel().getColumn(0).setCellRenderer(center);
+
+		// Chọn dòng → điền form
+		table.getSelectionModel().addListSelectionListener((ListSelectionEvent e) -> {
+			if (!e.getValueIsAdjusting())
+				fillFormFromSelection();
+		});
 
 		JScrollPane scroll = new JScrollPane(table);
 		scroll.setBorder(new LineBorder(BORDER, 1, true));
 		scroll.getViewport().setBackground(Color.WHITE);
-		scroll.setPreferredSize(new Dimension(1000, 80));
+		scroll.setPreferredSize(new Dimension(10000, 110));
 
-		JPanel pnl = new JPanel(new BorderLayout());
-		pnl.setOpaque(false);
-		pnl.add(scroll);
-
-		return pnl;
+		JPanel pnlWrap = new JPanel(new BorderLayout());
+		pnlWrap.setOpaque(false);
+		pnlWrap.add(scroll, BorderLayout.CENTER);
+		pnlOuter.add(pnlWrap, BorderLayout.CENTER);
+		return pnlOuter;
 	}
 
-	// ================= ACTION =================
+	// ── ACTION PANEL ────────────────────────────────────────────────────────
 	private JPanel buildActionPanel() {
 		JPanel pnl = new JPanel();
 		pnl.setLayout(new BoxLayout(pnl, BoxLayout.Y_AXIS));
 		pnl.setOpaque(false);
 
-		// radio
-		JPanel radio = new JPanel(new FlowLayout(FlowLayout.CENTER, 40, 5));
-		radio.setOpaque(false);
-
-		JRadioButton rdoTra = new JRadioButton("Trả vé");
-		JRadioButton rdoDoi = new JRadioButton("Đổi vé");
-		rdoTra.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 13));
-		rdoDoi.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 13));
+		JRadioButton rdoTra = buildRadio("Trả vé");
+		JRadioButton rdoDoi = buildRadio("Đổi vé");
 		ButtonGroup group = new ButtonGroup();
 		group.add(rdoTra);
 		group.add(rdoDoi);
 		rdoDoi.setSelected(true);
-		radio.add(rdoTra);
-		radio.add(rdoDoi);
-		pnl.add(radio);
-		// form
-		JPanel pnlDoi = buildFormDoi();
-		JPanel pnlTra = buildFormTra();
 
+		JPanel pnlRadio = new JPanel(new FlowLayout(FlowLayout.LEFT, 20, 0));
+		pnlRadio.setOpaque(false);
+		pnlRadio.add(rdoDoi);
+		pnlRadio.add(rdoTra);
+		pnl.add(pnlRadio);
+		pnl.add(Box.createVerticalStrut(8));
+
+		pnlDoi = buildFormDoi();
+		pnlTra = buildFormTra();
 		pnlTra.setVisible(false);
 
 		rdoTra.addActionListener(e -> {
 			pnlTra.setVisible(true);
 			pnlDoi.setVisible(false);
 		});
-
 		rdoDoi.addActionListener(e -> {
 			pnlTra.setVisible(false);
 			pnlDoi.setVisible(true);
@@ -137,182 +196,273 @@ final class DoiTraGUI extends JPanel {
 
 		pnl.add(pnlDoi);
 		pnl.add(pnlTra);
-		rdoTra.setFont(FONT_LABEL);
-		rdoDoi.setFont(FONT_LABEL);
 		return pnl;
 	}
 
-	// ================= FORM ĐỔI =================
+	// ── FORM ĐỔI ────────────────────────────────────────────────────────────
 	private JPanel buildFormDoi() {
-		JPanel pnl = new JPanel();
-		pnl.setLayout(new BoxLayout(pnl, BoxLayout.Y_AXIS));
-		pnl.setBackground(Color.WHITE);
-		pnl.setBorder(new CompoundBorder(new LineBorder(BORDER, 1, true), new EmptyBorder(10, 15, 10, 15) // 🔥 giảm
-																											// padding
-		));
+		JPanel pnl = baseFormPanel("Thông tin vé mới");
 
-		// TITLE
-		JLabel title = new JLabel("Thông tin vé mới", SwingConstants.CENTER);
-		title.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 16)); // 🔥 nhỏ lại
-		title.setAlignmentX(Component.CENTER_ALIGNMENT);
-		pnl.add(title);
+		cbChuyen = new JComboBox<>(new String[] { "SE1", "SE3", "SE5", "SE19", "TN2" });
+		cbGhe = new JComboBox<>(new String[] { "A01", "A12", "B05", "C03", "D08" });
+		tfNgayDoi = makeTextField("");
+		tfGiaCu = makeTextField("");
+		tfGiaMoi = makeTextField("");
+		tfChenhLech = makeTextField("");
 
-		pnl.add(Box.createVerticalStrut(8)); // 🔥 giảm spacing
+		// Tự tính chênh lệch khi đổi giá mới
+		tfGiaMoi.addCaretListener(e -> recalcChenhLech());
 
-		// ROW 1
-		JPanel row1 = new JPanel(new FlowLayout(FlowLayout.LEFT, 25, 8));
+		JPanel row1 = new JPanel(new FlowLayout(FlowLayout.LEFT, 16, 4));
 		row1.setOpaque(false);
+		row1.add(buildField("Chuyến:", wrapCombo(cbChuyen)));
+		row1.add(buildField("Ghế:", wrapCombo(cbGhe)));
+		row1.add(buildField("Ngày:", wrapField(tfNgayDoi)));
 
-		row1.add(createField("Chuyến:", new JComboBox<>(new String[] { "SE5" })));
-		row1.add(createField("Ghế:", new JComboBox<>(new String[] { "B05" })));
-		row1.add(createField("Ngày:", new JTextField("29/08/2026")));
+		JPanel row2 = new JPanel(new FlowLayout(FlowLayout.LEFT, 16, 4));
+		row2.setOpaque(false);
+		row2.add(buildField("Giá cũ:", wrapField(tfGiaCu)));
+		row2.add(buildField("Giá mới:", wrapField(tfGiaMoi)));
+		row2.add(buildField("Chênh lệch:", wrapField(tfChenhLech)));
 
 		pnl.add(row1);
-
-		// ROW 2
-		JPanel row2 = new JPanel(new FlowLayout(FlowLayout.LEFT, 20, 2));
-		row2.setOpaque(false);
-
-		row2.add(createField("Giá cũ:", new JTextField("450.000")));
-		row2.add(createField("Giá mới:", new JTextField("500.000")));
-
 		pnl.add(row2);
-
-		// ROW 3
-		JPanel row3 = new JPanel(new FlowLayout(FlowLayout.LEFT, 20, 2));
-		row3.setOpaque(false);
-
-		row3.add(createField("Chênh lệch:", new JTextField("50.000")));
-
-		pnl.add(row3);
-
-		// BUTTON
-		JPanel pnlBtn = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 5));
-		pnlBtn.setOpaque(false);
-
-		JButton btn = new JButton("Xác nhận");
-		styleButton(btn);
-		btn.setPreferredSize(new Dimension(120, 34)); // 🔥 nhỏ lại
-
-		pnlBtn.add(btn);
-		pnl.add(pnlBtn);
-
+		pnl.add(buildConfirmRow("Xác nhận"));
 		return pnl;
 	}
 
-	// ================= FORM TRẢ =================
+	// ── FORM TRẢ ────────────────────────────────────────────────────────────
 	private JPanel buildFormTra() {
-		JPanel pnl = new JPanel();
-		pnl.setLayout(new BoxLayout(pnl, BoxLayout.Y_AXIS));
-		pnl.setBackground(Color.WHITE);
-		pnl.setBorder(new CompoundBorder(new LineBorder(BORDER, 1, true), new EmptyBorder(10, 15, 10, 15)));
+		JPanel pnl = baseFormPanel("Thông tin trả vé");
 
-		// ===== TITLE =====
-		JLabel title = new JLabel("Thông tin trả vé", SwingConstants.CENTER);
-		title.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 16));
-		title.setAlignmentX(Component.CENTER_ALIGNMENT);
-		pnl.add(title);
+		cbLyDo = new JComboBox<>(new String[] { "Bận việc", "Ốm", "Khác" });
+		tfPhiTra = makeTextField("");
+		tfHoanLai = makeTextField("");
+		tfHoanLai.setEditable(false);
 
-		pnl.add(Box.createVerticalStrut(8));
+		cbLyDo.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
 
-		// ===== ROW 1 =====
-		JPanel row1 = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 5));
+		JPanel row1 = new JPanel(new FlowLayout(FlowLayout.LEFT, 16, 4));
 		row1.setOpaque(false);
+		row1.add(buildField("Lý do trả vé:", wrapCombo(cbLyDo)));
 
-		row1.add(createField("Lý do trả vé:", new JComboBox<>(new String[] { "Bận việc", "Ốm", "Khác" })));
+		JPanel row2 = new JPanel(new FlowLayout(FlowLayout.LEFT, 16, 4));
+		row2.setOpaque(false);
+		row2.add(buildField("Phí trả vé:", wrapField(tfPhiTra)));
+		row2.add(buildField("Tiền hoàn lại:", wrapField(tfHoanLai)));
+
+		// Tự tính hoàn lại khi đổi phí
+		tfPhiTra.addCaretListener(e -> recalcHoanLai());
 
 		pnl.add(row1);
-
-		// ===== ROW 2 =====
-		JPanel row2 = new JPanel(new FlowLayout(FlowLayout.LEFT, 25, 5));
-		row2.setOpaque(false);
-
-		row2.add(createField("Phí trả vé:", new JTextField("10%")));
-		row2.add(createField("Tiền hoàn lại:", new JTextField("405.000 VNĐ")));
-
 		pnl.add(row2);
-
-		pnl.add(Box.createVerticalStrut(5));
-
-		// ===== BUTTON =====
-		JPanel pnlBtn = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 5));
-		pnlBtn.setOpaque(false);
-
-		JButton btn = new JButton("Xác nhận");
-		styleButton(btn);
-		btn.setPreferredSize(new Dimension(120, 34));
-
-		pnlBtn.add(btn);
-
-		pnl.add(pnlBtn);
-
+		pnl.add(buildConfirmRow("Xác nhận"));
 		return pnl;
 	}
 
-	// ================= HELPER =================
-	private GridBagConstraints baseGbc() {
-		GridBagConstraints gbc = new GridBagConstraints();
-		gbc.insets = new Insets(5, 10, 5, 10);
-		gbc.fill = GridBagConstraints.HORIZONTAL;
-		return gbc;
+	// ── LOGIC ───────────────────────────────────────────────────────────────
+
+	/** Nạp lại table theo keyword (rỗng = hiện tất cả) */
+	private void reloadTable(String keyword) {
+		tableModel.setRowCount(0);
+		String kw = keyword.toUpperCase();
+		for (Map.Entry<String, String[]> entry : FAKE_DATA.entrySet()) {
+			String maVe = entry.getKey();
+			String[] d = entry.getValue();
+			if (kw.isEmpty() || maVe.toUpperCase().contains(kw)) {
+				tableModel.addRow(new Object[] { maVe, d[0], d[1], d[2], d[3], d[4], d[5] });
+			}
+		}
 	}
 
-	private void addField(JPanel pnl, GridBagConstraints gbc, int x, int y, String label, JComponent comp) {
-		JLabel lb = new JLabel(label);
-		lb.setFont(FONT_LABEL);
+	/** Điền form đổi + trả từ dòng đang chọn */
+	private void fillFormFromSelection() {
+		int row = table.getSelectedRow();
+		if (row < 0)
+			return;
 
-		gbc.gridx = x * 2;
-		gbc.gridy = y;
-		pnl.add(lb, gbc);
+		String maVe = (String) tableModel.getValueAt(row, 0);
+		String[] d = FAKE_DATA.get(maVe);
+		if (d == null)
+			return;
 
-		gbc.gridx = x * 2 + 1;
+		// Form đổi
+		cbChuyen.setSelectedItem(d[0]);
+		cbGhe.setSelectedItem(d[6]);
+		tfNgayDoi.setText(d[4]);
+		tfGiaCu.setText(d[7]);
+		tfGiaMoi.setText(d[7]); // mặc định bằng giá cũ
+		tfChenhLech.setText("0");
 
-		comp.setFont(FONT_INPUT); // 🔥 fix font
-		comp.setPreferredSize(new Dimension(180, FIELD_HEIGHT)); // 🔥 fix height
-
-		pnl.add(comp, gbc);
+		// Form trả — phí 10%, tính hoàn lại
+		tfPhiTra.setText("10%");
+		recalcHoanLai();
 	}
 
-	private void styleButton(JButton btn) {
-		btn.setFont(FONT_BUTTON);
-		btn.setBackground(PRIMARY);
-		btn.setForeground(Color.WHITE);
-		btn.setFocusPainted(false);
-		btn.setBorder(new LineBorder(PRIMARY, 1, true));
-		btn.setPreferredSize(new Dimension(130, BUTTON_HEIGHT));
+	/** Tự tính chênh lệch = giá mới - giá cũ */
+	private void recalcChenhLech() {
+		try {
+			long cu = Long.parseLong(tfGiaCu.getText().replace(".", "").trim());
+			long moi = Long.parseLong(tfGiaMoi.getText().replace(".", "").trim());
+			long cl = moi - cu;
+			tfChenhLech.setText(String.format("%,d", cl).replace(",", "."));
+		} catch (NumberFormatException ignored) {
+			tfChenhLech.setText("");
+		}
 	}
 
-	private void styleTable(JTable table) {
-		table.setRowHeight(28);
-		table.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 13));
-		table.setGridColor(new Color(230, 233, 238));
-		table.setSelectionBackground(new Color(207, 209, 214));
+	/** Tự tính tiền hoàn lại = giá gốc × (1 - phí%) */
+	private void recalcHoanLai() {
+		try {
+			int row = table.getSelectedRow();
+			if (row < 0)
+				return;
+			String maVe = (String) tableModel.getValueAt(row, 0);
+			String[] d = FAKE_DATA.get(maVe);
+			if (d == null)
+				return;
 
-		JTableHeader header = table.getTableHeader();
-		header.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 13));
-		header.setBackground(Color.WHITE);
-		header.setBorder(new LineBorder(BORDER, 1, true));
-
-		DefaultTableCellRenderer center = new DefaultTableCellRenderer();
-		center.setHorizontalAlignment(SwingConstants.CENTER);
-		table.getColumnModel().getColumn(0).setCellRenderer(center);
+			long gia = Long.parseLong(d[7].replace(".", ""));
+			String phiStr = tfPhiTra.getText().replace("%", "").trim();
+			double phi = Double.parseDouble(phiStr) / 100.0;
+			long hoan = Math.round(gia * (1 - phi));
+			tfHoanLai.setText(String.format("%,d VNĐ", hoan).replace(",", "."));
+		} catch (NumberFormatException ignored) {
+			tfHoanLai.setText("");
+		}
 	}
 
-	private JPanel createField(String label, JComponent comp) {
+	// ── UI HELPERS ───────────────────────────────────────────────────────────
+
+	private JPanel baseFormPanel(String titleText) {
 		JPanel pnl = new JPanel();
 		pnl.setLayout(new BoxLayout(pnl, BoxLayout.Y_AXIS));
+		pnl.setBackground(new Color(242, 247, 252));
+		pnl.setBorder(new CompoundBorder(new LineBorder(BORDER, 1, true), new EmptyBorder(10, 15, 10, 15)));
+		JLabel title = new JLabel(titleText);
+		title.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 15));
+		title.setForeground(GuiTheme.TEXT);
+		pnl.add(title);
+		pnl.add(Box.createVerticalStrut(6));
+		return pnl;
+	}
+
+	private JPanel buildField(String label, JComponent comp) {
+		JPanel pnl = new JPanel(new BorderLayout(0, 4));
 		pnl.setOpaque(false);
-
 		JLabel lb = new JLabel(label);
-		lb.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 13)); //
+		lb.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
+		lb.setForeground(new Color(55, 55, 55));
+		pnl.add(lb, BorderLayout.NORTH);
+		pnl.add(comp, BorderLayout.CENTER);
+		return pnl;
+	}
 
-		comp.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
-		comp.setPreferredSize(new Dimension(130, 28)); //
+	private JPanel wrapField(JTextField tf) {
+		JPanel p = new JPanel(new BorderLayout()) {
+			@Override
+			protected void paintComponent(Graphics g) {
+				Graphics2D g2 = (Graphics2D) g.create();
+				g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+				g2.setColor(tf.isEnabled() && tf.isEditable() ? Color.WHITE : new Color(220, 235, 248));
+				g2.fillRoundRect(0, 0, getWidth(), getHeight(), 12, 12);
+				g2.setColor(new Color(180, 205, 230));
+				g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 12, 12);
+				g2.dispose();
+			}
+		};
+		p.setOpaque(false);
+		p.setBorder(new EmptyBorder(6, 12, 6, 12));
+		p.setPreferredSize(new Dimension(160, 36));
+		tf.setOpaque(false);
+		tf.setBorder(null);
+		tf.setForeground(new Color(50, 50, 50));
+		p.add(tf, BorderLayout.CENTER);
+		return p;
+	}
 
-		pnl.add(lb);
-		pnl.add(Box.createVerticalStrut(2));
-		pnl.add(comp);
+	private JPanel wrapCombo(JComboBox<String> cb) {
+		JPanel p = new JPanel(new BorderLayout()) {
+			@Override
+			protected void paintComponent(Graphics g) {
+				Graphics2D g2 = (Graphics2D) g.create();
+				g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+				g2.setColor(Color.WHITE);
+				g2.fillRoundRect(0, 0, getWidth(), getHeight(), 12, 12);
+				g2.setColor(new Color(180, 205, 230));
+				g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 12, 12);
+				g2.dispose();
+			}
+		};
+		p.setOpaque(false);
+		p.setBorder(new EmptyBorder(4, 8, 4, 4));
+		p.setPreferredSize(new Dimension(160, 36));
+		cb.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
+		cb.setOpaque(false);
+		cb.setBorder(null);
+		p.add(cb, BorderLayout.CENTER);
+		return p;
+	}
 
+	private JTextField makeTextField(String text) {
+		JTextField tf = new JTextField(text);
+		tf.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
+		return tf;
+	}
+
+	private JPanel buildConfirmRow(String label) {
+		JPanel outer = new JPanel(new BorderLayout());
+		outer.setOpaque(false);
+		outer.setBorder(new EmptyBorder(18, 0, 0, 0));
+		JPanel btnWrap = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
+		btnWrap.setOpaque(false);
+		btnWrap.add(buildActionButton(label));
+		outer.add(btnWrap, BorderLayout.EAST);
+		return outer;
+	}
+
+	private JButton buildActionButton(String label) {
+		JButton btn = new JButton(label) {
+			@Override
+			protected void paintComponent(Graphics g) {
+				Graphics2D g2 = (Graphics2D) g.create();
+				g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+				g2.setColor(getModel().isPressed() ? GuiTheme.NAVY_DARK
+						: getModel().isRollover() ? GuiTheme.NAVY_HOVER : GuiTheme.NAVY);
+				g2.fillRoundRect(0, 0, getWidth(), getHeight(), 12, 12);
+				g2.setColor(Color.WHITE);
+				g2.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
+				FontMetrics fm = g2.getFontMetrics();
+				String txt = getText();
+				g2.drawString(txt, (getWidth() - fm.stringWidth(txt)) / 2,
+						(getHeight() + fm.getAscent() - fm.getDescent()) / 2);
+				g2.dispose();
+			}
+		};
+		btn.setPreferredSize(new Dimension(130, 36));
+		btn.setContentAreaFilled(false);
+		btn.setBorderPainted(false);
+		btn.setFocusPainted(false);
+		btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+		return btn;
+	}
+
+	private static JRadioButton buildRadio(String text) {
+		JRadioButton rdo = new JRadioButton(text);
+		rdo.setOpaque(false);
+		rdo.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
+		rdo.setForeground(GuiTheme.TEXT);
+		rdo.setFocusPainted(false);
+		return rdo;
+	}
+
+	private JPanel buildSectionTitle(String title) {
+		JPanel pnl = new JPanel(new BorderLayout());
+		pnl.setOpaque(false);
+		JLabel lb = new JLabel(title);
+		lb.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 16));
+		lb.setForeground(GuiTheme.TEXT);
+		pnl.add(lb, BorderLayout.WEST);
 		return pnl;
 	}
 }
