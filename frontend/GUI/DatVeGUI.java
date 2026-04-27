@@ -15,33 +15,33 @@ import javax.swing.border.EmptyBorder;
 
 public class DatVeGUI extends JPanel {
 
-	// Tọa độ đo theo ảnh BanDo.png kích thước 428×561
-	// x/428, y/561 → xPct, yPct
+    // {tên, dotX%, dotY%, labelX%, labelY%} 428x561
+    // dotX/Y = tọa độ điểm tròn trên bản đồ
+    // labelX/Y = tọa độ tên ga (có thể chỉnh độc lập)
 	private static final Object[][] GA_DATA = {
-	    {"Ngọc Hồi",   0.425, 0.168},  // x≈182, y≈94
-	    {"Phủ Lý",     0.442, 0.193},  // x≈189, y≈108
-	    {"Nam Định",   0.465, 0.205},  // x≈199, y≈119
-	    {"Ninh Bình",  0.456, 0.223},  // x≈195, y≈125
-	    {"Thanh Hóa",  0.439, 0.253},  // x≈188, y≈142
-	    {"Vinh",       0.425, 0.319},  // x≈182, y≈179
-	    {"Hà Tĩnh",    0.456, 0.344},  // x≈195, y≈193
-	    {"Vũng Áng",   0.491, 0.367},  // x≈210, y≈206
-	    {"Đồng Hới",   0.512, 0.406},  // x≈219, y≈228
-	    {"Đông Hà",    0.551, 0.442},  // x≈236, y≈248
-	    {"Huế",        0.589, 0.469},  // x≈252, y≈263
-	    {"Đà Nẵng",    0.638, 0.496},  // x≈273, y≈278
-	    {"Tam Kỳ",     0.668, 0.531},  // x≈286, y≈298
-	    {"Quảng Ngãi", 0.701, 0.565},  // x≈300, y≈317
-	    {"Bồng Sơn",   0.715, 0.601},  // x≈306, y≈337
-	    {"Diêu Trì",   0.724, 0.642},  // x≈310, y≈360  ← GA ĐI
-	    {"Tuy Hòa",    0.734, 0.697},  // x≈314, y≈391
-	    {"Khánh Hòa",  0.724, 0.743},  // x≈310, y≈417
-	    {"Tháp Chàm",  0.720, 0.788},  // x≈308, y≈442
-	    {"Phan Rí",    0.687, 0.822},  // x≈294, y≈461
-	    {"Long Thành", 0.568, 0.848},  // x≈243, y≈476
-	    {"Thủ Thiêm",  0.521, 0.857},  // x≈223, y≈481
-	};
-
+		    {"Ngọc Hồi",   0.425, 0.168,   0.621, 0.169},// x≈182, y≈94  a=266 b=95
+		    {"Phủ Lý",     0.442, 0.193,   0.551, 0.193},// x≈189, y≈108 a=236 b=108
+		    {"Nam Định",   0.467, 0.206,   0.530, 0.214},// x≈200, y≈116 a=227 b=120
+		    {"Ninh Bình",  0.456, 0.223,   0.507, 0.235},// x≈195, y≈125 a=217 b=132
+		    {"Thanh Hóa",  0.439, 0.253,   0.469, 0.264},// x≈188, y≈142 a=201 b=148
+		    {"Vinh",       0.425, 0.319,   0.460, 0.317},// x≈182, y≈179 a=197 b=178
+		    {"Hà Tĩnh",    0.456, 0.344,   0.493, 0.337},// x≈195, y≈193 a=211 b=189
+		    {"Vũng Áng",   0.491, 0.367,   0.516, 0.362},// x≈210, y≈206 a=221 b=203
+		    {"Đồng Hới",   0.512, 0.406,   0.544, 0.398},// x≈219, y≈228 a=233 b=223
+		    {"Đông Hà",    0.551, 0.442,   0.577, 0.426},// x≈236, y≈248 a=247 b=239
+		    {"Huế",        0.589, 0.469,   0.614, 0.453},// x≈252, y≈263 a=263 b=254
+		    {"Đà Nẵng",    0.638, 0.496,   0.664, 0.478},// x≈273, y≈278 a=284 b=268
+		    {"Tam Kỳ",     0.668, 0.531,   0.696, 0.524},// x≈286, y≈298 a=298 b=294
+		    {"Quảng Ngãi", 0.701, 0.565,   0.734, 0.561},// x≈300, y≈317 a=314 b=315
+		    {"Bồng Sơn",   0.715, 0.601,   0.750, 0.602},// x≈306, y≈337 a=321 b=338
+		    {"Diêu Trì",   0.724, 0.642,   0.762, 0.647},// x≈310, y≈360 a=326 b=363
+		    {"Tuy Hòa",    0.734, 0.697,   0.766, 0.693},// x≈314, y≈391 a=328 b=389
+		    {"Khánh Hòa",  0.724, 0.743,   0.771, 0.749},// x≈310, y≈417 a=330 b=420
+		    {"Tháp Chàm",  0.720, 0.788,   0.771, 0.791},// x≈308, y≈442 a=330 b=444
+		    {"Phan Rí",    0.687, 0.822,   0.713, 0.838},// x≈294, y≈461 a=305 b=470
+		    {"Long Thành", 0.568, 0.848,   0.643, 0.873},// x≈243, y≈476 a=275 b=490
+		    {"Thủ Thiêm",  0.521, 0.857,   0.600, 0.907} // x≈223, y≈481 a=257 b=509
+		};
 
     private static final String GA_DI_MAC_DINH   = "Diêu Trì";
     private static final Color  CLR_ROUTE_NORMAL = new Color(30,  100, 190, 210);
@@ -51,11 +51,11 @@ public class DatVeGUI extends JPanel {
 
     // Form fields
     private JTextField        txtGaDi;
-    private JTextField        txtGaDen;    
-    private JComboBox<String> cbGaDen;      
+    private JTextField        txtGaDen;     // hiển thị tên ga đến
+    private JComboBox<String> cbGaDen;      // dùng nội bộ để lưu danh sách + popup
     private JRadioButton      rbMotChieu, rbKhuHoi;
     private JDateChooser      dcNgayDi, dcNgayVe;
-    private JTextField        txtSoLuong;   
+    private JTextField        txtSoLuong;   // ← nhập được + tăng/giảm
     private MapPanel          mapPanel;
 
     public DatVeGUI() {
@@ -104,16 +104,13 @@ public class DatVeGUI extends JPanel {
         gbc.gridwidth = 1;
         gbc.anchor = GridBagConstraints.WEST;
 
-        // ── GA ĐI (disabled, style giống ga đến) ──
         txtGaDi = new JTextField(GA_DI_MAC_DINH);
         txtGaDi.setEditable(false);
         txtGaDi.setEnabled(false);
         txtGaDi.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
         addRow(form, gbc, 1, "Ga đi:", wrapField(txtGaDi, true), 14);
 
-        // ── GA ĐẾN: JTextField + nút mũi tên + JPopupMenu — giống hệt style ga đi ──
         String[] gaDenList = buildGaDenList();
-        // cbGaDen ẩn, chỉ dùng để lưu selectedIndex + danh sách
         cbGaDen = new JComboBox<>(gaDenList);
         cbGaDen.setVisible(false);
 
@@ -551,7 +548,7 @@ public class DatVeGUI extends JPanel {
                 g2.fillRect(0, 0, getWidth(), getHeight());
                 g2.setColor(Color.DARK_GRAY);
                 g2.setFont(new Font("Segoe UI", Font.PLAIN, 11));
-                g2.drawString("Đặt ảnh vào /Images/BanDo.png", 12, 22);
+ 
             }
 
             // Xác định vùng highlight
@@ -576,19 +573,17 @@ public class DatVeGUI extends JPanel {
                 g2.drawLine(p1.x, p1.y, p2.x, p2.y);
             }
 
-            // Vẽ điểm ga + chữ (không có nền label)
-            Font fNormal = new Font("Segoe UI", Font.PLAIN, 10);
-            Font fBold   = new Font("Segoe UI", Font.BOLD,  10);
+            // ── Pass 1: vẽ các điểm ga ──
+            Font fNormal = new Font("Segoe UI", Font.PLAIN, 11);
+            Font fBold   = new Font("Segoe UI", Font.BOLD,  11);
 
             for (Object[] ga : GA_DATA) {
                 String name = (String) ga[0];
                 Point  pt   = toScreen((double)ga[1], (double)ga[2]);
-
                 boolean isDi      = name.equals(GA_DI_MAC_DINH);
                 boolean isDen     = name.equals(selectedGaDen);
                 boolean isHovered = name.equals(hoveredGa);
-
-                int   dotR;
+                int dotR;
                 Color dotFill, dotBorder;
                 if (isDi) {
                     dotR = 7; dotFill = CLR_DOT_DI;  dotBorder = new Color(150, 25, 10);
@@ -599,40 +594,35 @@ public class DatVeGUI extends JPanel {
                 } else {
                     dotR = 4; dotFill = Color.WHITE;  dotBorder = new Color(40, 90, 160, 170);
                 }
-
-                // Border điểm
                 g2.setColor(dotBorder);
-                g2.fillOval(pt.x - dotR - 2, pt.y - dotR - 2, (dotR+2)*2, (dotR+2)*2);
-                // Chấm trong
+                g2.fillOval(pt.x-dotR-2, pt.y-dotR-2, (dotR+2)*2, (dotR+2)*2);
                 g2.setColor(dotFill);
-                g2.fillOval(pt.x - dotR, pt.y - dotR, dotR*2, dotR*2);
+                g2.fillOval(pt.x-dotR, pt.y-dotR, dotR*2, dotR*2);
+            }
 
-                // Chữ — bên phải điểm, không có nền
-                Font useFont = (isDi || isDen) ? fBold : fNormal;
+            // ── Pass 2: label theo tọa độ riêng (cột 3,4 trong GA_DATA) ──
+            g2.setStroke(new BasicStroke(0.7f));
+            for (int i = 0; i < GA_DATA.length; i++) {
+                String name = (String) GA_DATA[i][0];
+                Point  pt   = toScreen((double)GA_DATA[i][1], (double)GA_DATA[i][2]);
+                Point  lp   = toScreen((double)GA_DATA[i][3], (double)GA_DATA[i][4]);
+                boolean isDi  = name.equals(GA_DI_MAC_DINH);
+                boolean isDen = name.equals(selectedGaDen);
+
+                Font       useFont = (isDi || isDen) ? fBold : fNormal;
                 g2.setFont(useFont);
                 FontMetrics fmu = g2.getFontMetrics(useFont);
                 int tw = fmu.stringWidth(name);
-                int tx = pt.x + dotR + 3;
-                int ty = pt.y + fmu.getAscent()/2 - 1;
-                // Nếu sát mép phải → lật sang trái điểm
-                if (tx + tw > getWidth() - 4) tx = pt.x - tw - dotR - 2;
+                int ty = lp.y + fmu.getAscent() / 2;
 
-                // Viền chữ mỏng để dễ đọc trên bản đồ
-                g2.setColor(new Color(255, 255, 255, 160));
-                g2.setFont(useFont.deriveFont(Collections.singletonMap(
-                    java.awt.font.TextAttribute.WEIGHT,
-                    java.awt.font.TextAttribute.WEIGHT_ULTRABOLD)));
-                for (int dx = -1; dx <= 1; dx++)
-                    for (int dy = -1; dy <= 1; dy++)
-                        if (dx != 0 || dy != 0)
-                            g2.drawString(name, tx + dx, ty + dy);
 
-                g2.setFont(useFont);
+                // Chữ
                 g2.setColor(isDi  ? new Color(165, 25, 8)
                            : isDen ? new Color(15, 65, 155)
                            :         new Color(20, 50, 90));
-                g2.drawString(name, tx, ty);
+                g2.drawString(name, lp.x, ty);
             }
+            g2.setStroke(new BasicStroke(2.6f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
 
             g2.dispose();
         }
