@@ -450,7 +450,6 @@ public class DatVeGUI1 extends JPanel {
 	        // Giữ cỡ chữ 10 và 12 như bạn muốn
 	        l.setFont(new Font("Segoe UI", Font.BOLD, (i % 2 == 0) ? 10 : 12));
 	        l.setForeground((i % 2 == 0) ? new Color(100, 100, 100) : Color.BLACK);
-	        // Căn lề trái sát khung
 	        l.setHorizontalAlignment(SwingConstants.LEFT);
 	        info.add(l);
 	    }
