@@ -438,7 +438,6 @@ public class DatVeGUI1 extends JPanel {
 	    badgeWrap.add(badge);
 	    card.add(badgeWrap, BorderLayout.NORTH);
 
-	    // --- PHẦN CHỮ: SÁT LÊN TRÊN VÀ KHÔNG PADDING ---
 	    JPanel info = new JPanel(new GridLayout(4, 1, 0, 0)); 
 	    info.setOpaque(false);
 	    // Top = 0px để sát lên trên, Bottom = 15px để chừa chỗ cho đèn tàu phía dưới
