@@ -13,7 +13,6 @@ import java.util.Map;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
-import javax.swing.Icon;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
@@ -29,6 +28,12 @@ public class AppFrame extends JFrame {
 	private final Map<String, SidebarButton> routeButtons = new LinkedHashMap<>();
 	private final Map<String, SidebarButton> searchSubButtons = new LinkedHashMap<>();
 	private final JLabel headerTitle = new JLabel("THÔNG TIN CÁ NHÂN");
+
+	// References để gọi refresh() khi navigate
+	private DoiVeGUI  doiVeGUI;
+	private TraVeGUI  traVeGUI;
+	private DoiVeGUI1 doiVeGUI1;
+	private TraVeGUI1 traVeGUI1;
 
 	private JPanel searchSubmenuPanel;
 	private SidebarButton searchMainButton;
@@ -169,7 +174,7 @@ public class AppFrame extends JFrame {
 		repaint();
 	}
 
-	private void showCard(String card) {
+	public void showCard(String card) {
 		activeCard = card;
 		cardLayout.show(contentCards, card);
 
@@ -197,39 +202,45 @@ public class AppFrame extends JFrame {
 			updateTitle(card);
 			updateSidebarState(card);
 		}
+
+		// Gọi refresh() cho các màn hình cần nạp lại dữ liệu từ màn trước
+		if ("doi-ve".equals(card)       && doiVeGUI  != null) doiVeGUI .refresh();
+		if ("tra-ve".equals(card)       && traVeGUI  != null) traVeGUI .refresh();
+		if ("doi-ve-step-2".equals(card) && doiVeGUI1 != null) doiVeGUI1.refresh();
+		if ("tra-ve-step-2".equals(card) && traVeGUI1 != null) traVeGUI1.refresh();
 	}
 
 	private void updateTitle(String card) {
 		switch (card) {
-		case "home":
-			headerTitle.setText("THÔNG TIN CÁ NHÂN");
-			break;
-		case "tra-cuu-chuyen":
-			headerTitle.setText("DANH SÁCH CHUYẾN ĐI");
-			break;
-		case "tra-cuu-tau":
-			headerTitle.setText("TRA CỨU TÀU");
-			break;
-		case "tra-cuu-ve":
-			headerTitle.setText("TRA CỨU VÉ");
-			break;
-		case "tra-cuu-khach":
-			headerTitle.setText("TRA CỨU KHÁCH HÀNG");
-			break;
-		case "dat-ve":
-			headerTitle.setText("ĐẶT VÉ TÀU");
-			break;
-		case "doi-tra":
-			headerTitle.setText("ĐỔI/TRẢ VÉ");
-			break;
-		case "thong-ke":
-			headerTitle.setText("THỐNG KÊ CA LÀM" + "");
-			break;
-		case "ho-tro":
-			headerTitle.setText("HỖ TRỢ");
-			break;
-		default:
-			headerTitle.setText("THÔNG TIN CÁ NHÂN");
+			case "home":
+				headerTitle.setText("THÔNG TIN CÁ NHÂN");
+				break;
+			case "tra-cuu-chuyen":
+				headerTitle.setText("DANH SÁCH CHUYẾN ĐI");
+				break;
+			case "tra-cuu-tau":
+				headerTitle.setText("TRA CỨU TÀU");
+				break;
+			case "tra-cuu-ve":
+				headerTitle.setText("TRA CỨU VÉ");
+				break;
+			case "tra-cuu-khach":
+				headerTitle.setText("TRA CỨU KHÁCH HÀNG");
+				break;
+			case "dat-ve":
+				headerTitle.setText("ĐẶT VÉ TÀU");
+				break;
+			case "doi-tra":
+				headerTitle.setText("ĐỔI/TRẢ VÉ");
+				break;
+			case "thong-ke":
+				headerTitle.setText("THỐNG KÊ CA LÀM" + "");
+				break;
+			case "ho-tro":
+				headerTitle.setText("HỖ TRỢ");
+				break;
+			default:
+				headerTitle.setText("THÔNG TIN CÁ NHÂN");
 		}
 	}
 
@@ -339,9 +350,18 @@ public class AppFrame extends JFrame {
 		contentCards.add(new VeGUI(), "tra-cuu-ve");
 		contentCards.add(new KhachHangGUI(), "tra-cuu-khach");
 		contentCards.add(new DatVeGUI(), "dat-ve");
-		contentCards.add(new DoiTraGUI(), "doi-tra");
 		contentCards.add(new ThongKeGUI(), "thong-ke");
 		contentCards.add(new HoTroGUI(), "ho-tro");
+		contentCards.add(new DoiTraGUI(this), "doi-tra");
+
+		doiVeGUI = new DoiVeGUI(this);
+		traVeGUI = new TraVeGUI(this);
+		contentCards.add(traVeGUI, "tra-ve");
+		traVeGUI1 = new TraVeGUI1(this);
+		contentCards.add(traVeGUI1, "tra-ve-step-2");
+		contentCards.add(doiVeGUI, "doi-ve");
+		doiVeGUI1 = new DoiVeGUI1(this);
+		contentCards.add(doiVeGUI1, "doi-ve-step-2");
 	}
 
 	public void onLoginSuccess() {

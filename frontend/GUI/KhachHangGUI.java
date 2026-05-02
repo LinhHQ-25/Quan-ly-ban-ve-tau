@@ -31,6 +31,8 @@ import javax.swing.table.DefaultTableModel;
 
 final class KhachHangGUI extends JPanel {
     private static final Color BORDER = new Color(210, 215, 224);
+    private static final Color FIELD_BG = new Color(141, 184, 219);
+    private static final Color PRIMARY = new Color(71, 71, 156);
 
     KhachHangGUI() {
         setBackground(GuiTheme.LIGHT_BG);
@@ -81,7 +83,7 @@ final class KhachHangGUI extends JPanel {
         gbc.gridy = 0;
         gbc.weightx = 1.0;
 
-        gbc.gridx = 0; pnlGrid.add(buildField("Mã khách hàng:", buildCombo("KH001", "KH002", "KH003")), gbc);
+                gbc.gridx = 0; pnlGrid.add(buildField("Mã khách hàng:", buildCombo("KH001", "KH002", "KH003")), gbc);
         gbc.gridx = 1; pnlGrid.add(buildField("Họ và tên:", buildCombo("Nguyễn Văn A", "Trần Thị B", "Lê Văn C")), gbc);
         gbc.gridx = 2; pnlGrid.add(buildField("Số điện thoại:", buildCombo("0909000001", "0909000002", "0909000003")), gbc);
         gbc.gridx = 3; pnlGrid.add(buildField("Ngày đăng ký:", buildDateField()), gbc);
@@ -191,9 +193,9 @@ final class KhachHangGUI extends JPanel {
         JPanel pnlButtons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 12, 4));
         pnlButtons.setOpaque(false);
         JButton btnReset = new JButton("Xóa bộ lọc");
-        styleButton(btnReset);
+        styleButton(btnReset, new Color(244, 246, 250), new Color(72, 72, 190), new Color(145, 145, 145));
         JButton btnSearch = new JButton("Tra cứu");
-        styleButton(btnSearch);
+        styleButton(btnSearch, PRIMARY, Color.WHITE, PRIMARY);
         pnlButtons.add(btnReset);
         pnlButtons.add(btnSearch);
         pnlBlock.add(pnlButtons, BorderLayout.CENTER);
@@ -218,14 +220,14 @@ final class KhachHangGUI extends JPanel {
         return chk;
     }
 
-    private static void styleButton(JButton btn) {
+    private static void styleButton(JButton btn, Color bg, Color fg, Color border) {
         btn.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
-        btn.setForeground(new Color(72, 72, 190));
-        btn.setBackground(new Color(244, 246, 250));
+        btn.setForeground(fg);
+        btn.setBackground(bg);
         btn.setFocusPainted(false);
         btn.setOpaque(true);
-        btn.setBorder(new LineBorder(new Color(145, 145, 145), 1, true));
-        btn.setPreferredSize(new Dimension(104, 34));
+        btn.setBorder(new LineBorder(border, 1, true));
+        btn.setPreferredSize(new Dimension(96, 34));
     }
 
     private JPanel buildTablePanel() {

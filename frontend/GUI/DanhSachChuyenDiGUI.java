@@ -36,6 +36,8 @@ import de.wannawork.jcalendar.JCalendarComboBox;
 
 final class DanhSachChuyenDiGUI extends JPanel {
     private static final Color BORDER = new Color(210, 215, 224);
+    private static final Color FIELD_BG = new Color(141, 184, 219);
+    private static final Color PRIMARY = new Color(71, 71, 156);
 
     DanhSachChuyenDiGUI() {
         setBackground(GuiTheme.LIGHT_BG);
@@ -89,7 +91,7 @@ final class DanhSachChuyenDiGUI extends JPanel {
         gbc.gridx = 0; pnlGrid.add(buildField("Ga đi:", buildCombo("Từ Sơn", "Hà Nội", "Đà Nẵng", "Phú Thọ")), gbc);
         gbc.gridx = 1; pnlGrid.add(buildField("Ga đến:", buildCombo("Phú Thọ", "Hải Phòng", "Nha Trang", "TP.HCM")), gbc);
         gbc.gridx = 2; pnlGrid.add(buildField("Ngày đi:", buildDateField()), gbc);
-        gbc.gridx = 3; pnlGrid.add(buildField("Mã / Tên tàu:", buildCombo("Train 011", "Train 012", "Train 013")), gbc);
+        gbc.gridx = 3; pnlGrid.add(buildField("Mã /Tên tàu:", buildCombo("Train 011", "Train 012", "Train 013")), gbc);
 
         gbc.gridy = 1;
         gbc.gridx = 0; pnlGrid.add(buildField("Ghế trống", buildSeatField()), gbc);
@@ -106,7 +108,9 @@ final class DanhSachChuyenDiGUI extends JPanel {
         pnlField.setOpaque(false);
         JLabel lbField = new JLabel(label);
         lbField.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
-        lbField.setForeground(GuiTheme.TEXT);
+       
+//        lbField.setOpaque(true);
+
         pnlField.add(lbField, BorderLayout.NORTH);
         pnlField.add(comp, BorderLayout.CENTER);
         return pnlField;
@@ -123,11 +127,7 @@ final class DanhSachChuyenDiGUI extends JPanel {
     }
 
     private JPanel buildDateField() {
-        JCalendarComboBox chooser = new JCalendarComboBox(
-            Calendar.getInstance(),
-            new Locale("vi", "VN"),
-            new SimpleDateFormat("dd/MM/yyyy")
-        );
+        JCalendarComboBox chooser = new JCalendarComboBox(Calendar.getInstance(), new Locale("vi", "VN"), new SimpleDateFormat("dd/MM/yyyy"));
         chooser.setPreferredSize(new Dimension(160, 28));
         chooser.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
         chooser.setBorder(new LineBorder(GuiTheme.SEARCH_FIELD_BORDER, 1, true));
@@ -172,7 +172,7 @@ final class DanhSachChuyenDiGUI extends JPanel {
         pnlOptions.setLayout(new BoxLayout(pnlOptions, BoxLayout.Y_AXIS));
         ButtonGroup grp = new ButtonGroup();
         JRadioButton rdoA = buildRadio("Toa thường");
-        JRadioButton rdoB = buildRadio("Toa VIP");
+        JRadioButton rdoB = buildRadio("Toa Vip");
         grp.add(rdoA);
         grp.add(rdoB);
         rdoA.setSelected(true);
@@ -206,9 +206,9 @@ final class DanhSachChuyenDiGUI extends JPanel {
         JPanel pnlButtons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 12, 4));
         pnlButtons.setOpaque(false);
         JButton btnReset = new JButton("Xóa bộ lọc");
-        styleButton(btnReset);
+        styleButton(btnReset, new Color(244, 246, 250), new Color(72, 72, 190), new Color(145, 145, 145));
         JButton btnSearch = new JButton("Tra cứu");
-        styleButton(btnSearch);
+        styleButton(btnSearch, PRIMARY, Color.WHITE, PRIMARY);
         pnlButtons.add(btnReset);
         pnlButtons.add(btnSearch);
         pnlBlock.add(pnlButtons, BorderLayout.CENTER);
@@ -233,14 +233,14 @@ final class DanhSachChuyenDiGUI extends JPanel {
         return chk;
     }
 
-    private static void styleButton(JButton btn) {
+    private static void styleButton(JButton btn, Color bg, Color fg, Color border) {
         btn.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
-        btn.setForeground(new Color(72, 72, 190));
-        btn.setBackground(new Color(244, 246, 250));
+        btn.setForeground(fg);
+        btn.setBackground(bg);
         btn.setFocusPainted(false);
         btn.setOpaque(true);
-        btn.setBorder(new LineBorder(new Color(145, 145, 145), 1, true));
-        btn.setPreferredSize(new Dimension(104, 34));
+        btn.setBorder(new LineBorder(border, 1, true));
+        btn.setPreferredSize(new Dimension(96, 34));
     }
 
     private JPanel buildTablePanel() {

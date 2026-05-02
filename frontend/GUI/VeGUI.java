@@ -31,6 +31,8 @@ import de.wannawork.jcalendar.JCalendarComboBox;
 
 final class VeGUI extends JPanel {
     private static final Color BORDER = new Color(210, 215, 224);
+    private static final Color FIELD_BG = new Color(141, 184, 219);
+    private static final Color PRIMARY = new Color(71, 71, 156);
 
     VeGUI() {
         setBackground(GuiTheme.LIGHT_BG);
@@ -137,11 +139,7 @@ final class VeGUI extends JPanel {
     }
 
     private JPanel buildDateField() {
-        JCalendarComboBox chooser = new JCalendarComboBox(
-            Calendar.getInstance(),
-            new Locale("vi", "VN"),
-            new SimpleDateFormat("dd/MM/yyyy")
-        );
+        JCalendarComboBox chooser = new JCalendarComboBox(Calendar.getInstance(), new Locale("vi", "VN"), new SimpleDateFormat("dd/MM/yyyy"));
         chooser.setPreferredSize(new Dimension(160, 28));
         chooser.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
         chooser.setBorder(new LineBorder(GuiTheme.SEARCH_FIELD_BORDER, 1, true));
@@ -171,10 +169,10 @@ final class VeGUI extends JPanel {
         pnlButtons.setOpaque(false);
 
         JButton btnReset = new JButton("Xóa bộ lọc");
-        styleButton(btnReset);
+        styleButton(btnReset, new Color(244, 246, 250), new Color(72, 72, 190), new Color(145, 145, 145));
 
         JButton btnSearch = new JButton("Tra cứu");
-        styleButton(btnSearch);
+        styleButton(btnSearch, PRIMARY, Color.WHITE, PRIMARY);
 
         pnlButtons.add(btnReset);
         pnlButtons.add(btnSearch);
@@ -182,19 +180,20 @@ final class VeGUI extends JPanel {
         return pnlBlock;
     }
 
-    private static void styleButton(JButton btn) {
+    private static void styleButton(JButton btn, Color bg, Color fg, Color border) {
         btn.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
-        btn.setForeground(new Color(72, 72, 190));
-        btn.setBackground(new Color(244, 246, 250));
+        btn.setForeground(fg);
+        btn.setBackground(bg);
         btn.setFocusPainted(false);
         btn.setOpaque(true);
-        btn.setBorder(new LineBorder(new Color(145, 145, 145), 1, true));
-        btn.setPreferredSize(new Dimension(104, 34));
+        btn.setBorder(new LineBorder(border, 1, true));
+        btn.setPreferredSize(new Dimension(96, 34));
     }
 
     private JPanel buildTablePanel() {
         JPanel pnlOuter = new JPanel(new BorderLayout(0, 8));
         pnlOuter.setOpaque(false);
+        pnlOuter.add(buildSectionTitle("Danh sách vé tàu"), BorderLayout.NORTH);
 
         DefaultTableModel tblModel = new DefaultTableModel(
             new Object[] { "STT", "Mã vé", "Tên khách hàng", "CCCD", "Thời gian khởi hành", "Vị trí toa - ghế", "Trạng thái" },
@@ -243,5 +242,15 @@ final class VeGUI extends JPanel {
 
         pnlOuter.add(spnScroll, BorderLayout.CENTER);
         return pnlOuter;
+    }
+
+    private JPanel buildSectionTitle(String title) {
+        JPanel pnl = new JPanel(new BorderLayout());
+        pnl.setOpaque(false);
+        JLabel lb = new JLabel(title);
+        lb.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 16));
+        lb.setForeground(GuiTheme.TEXT);
+        pnl.add(lb, BorderLayout.WEST);
+        return pnl;
     }
 }
