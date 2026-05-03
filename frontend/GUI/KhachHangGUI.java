@@ -8,6 +8,11 @@ import java.awt.Font;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Locale;
+import java.awt.Component;
+import com.toedter.calendar.JDateChooser;
 
 import javax.swing.Box;
 import javax.swing.BoxLayout;
@@ -40,36 +45,21 @@ final class KhachHangGUI extends JPanel {
 
         JPanel pnlPage = new JPanel();
         pnlPage.setOpaque(false);
-        pnlPage.setLayout(new BoxLayout(pnlPage, BoxLayout.Y_AXIS));
+        pnlPage.setLayout(new BorderLayout(0, 12));
         pnlPage.setBorder(new EmptyBorder(
-            GuiTheme.PAGE_PAD_TOP,
+            0,
             GuiTheme.PAGE_PAD_LEFT,
             GuiTheme.PAGE_PAD_BOTTOM,
             GuiTheme.PAGE_PAD_LEFT
         ));
 
-        pnlPage.add(buildHeader("TRA CỨU KHÁCH HÀNG", "Dùng để xem thông tin khách hàng và lịch sử đặt vé."));
-        pnlPage.add(Box.createVerticalStrut(12));
-        pnlPage.add(buildFilterPanel());
-        pnlPage.add(Box.createVerticalStrut(12));
-        pnlPage.add(buildTablePanel());
+        pnlPage.add(buildFilterPanel(), BorderLayout.NORTH);
+        pnlPage.add(buildTablePanel(), BorderLayout.CENTER);
 
-        add(pnlPage, BorderLayout.NORTH);
+        add(pnlPage, BorderLayout.CENTER);
     }
 
-    private JPanel buildHeader(String title, String subtitle) {
-        JPanel pnlHeader = new JPanel(new BorderLayout(0, 6));
-        pnlHeader.setOpaque(false);
-        JLabel lbTitle = new JLabel(title);
-        lbTitle.setFont(GuiTheme.font("Segoe UI", Font.BOLD, GuiTheme.PAGE_TITLE_SIZE));
-        lbTitle.setForeground(GuiTheme.TEXT);
-        JLabel lbSubtitle = new JLabel(subtitle);
-        lbSubtitle.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, GuiTheme.PAGE_SUBTITLE_SIZE));
-        lbSubtitle.setForeground(GuiTheme.SUB_TEXT);
-        pnlHeader.add(lbTitle, BorderLayout.NORTH);
-        pnlHeader.add(lbSubtitle, BorderLayout.SOUTH);
-        return pnlHeader;
-    }
+
 
     private JPanel buildFilterPanel() {
         JPanel pnlOuter = new JPanel(new BorderLayout());
@@ -83,16 +73,25 @@ final class KhachHangGUI extends JPanel {
         gbc.gridy = 0;
         gbc.weightx = 1.0;
 
-                gbc.gridx = 0; pnlGrid.add(buildField("Mã khách hàng:", buildCombo("KH001", "KH002", "KH003")), gbc);
+        gbc.gridx = 0; pnlGrid.add(buildField("Mã khách hàng:", buildCombo("KH001", "KH002", "KH003")), gbc);
         gbc.gridx = 1; pnlGrid.add(buildField("Họ và tên:", buildCombo("Nguyễn Văn A", "Trần Thị B", "Lê Văn C")), gbc);
-        gbc.gridx = 2; pnlGrid.add(buildField("Số điện thoại:", buildCombo("0909000001", "0909000002", "0909000003")), gbc);
-        gbc.gridx = 3; pnlGrid.add(buildField("Ngày đăng ký:", buildDateField()), gbc);
+        gbc.gridx = 2; pnlGrid.add(buildField("Ngày sinh:", buildDateField()), gbc);
+        gbc.gridx = 3; pnlGrid.add(buildField("Số điện thoại:", buildCombo("0909000001", "0909000002", "0909000003")), gbc);
 
         gbc.gridy = 1;
-        gbc.gridx = 0; pnlGrid.add(buildField("Điểm tích lũy", buildSeatField()), gbc);
-        gbc.gridx = 1; pnlGrid.add(buildTypeBlock(), gbc);
-        gbc.gridx = 2; pnlGrid.add(buildUtilBlock(), gbc);
-        gbc.gridx = 3; pnlGrid.add(buildActionBlock(), gbc);
+        gbc.gridx = 0; pnlGrid.add(buildField("CCCD:", buildCombo("079099000111", "079099000222")), gbc);
+        gbc.gridx = 1; pnlGrid.add(buildField("Email:", buildCombo("nguyenvana@gmail.com", "tranthib@gmail.com")), gbc);
+        gbc.gridx = 2; pnlGrid.add(buildField("Ngày đăng ký:", buildDateField()), gbc);
+        gbc.gridx = 3; pnlGrid.add(buildField("Điểm tích lũy:", buildSeatField()), gbc);
+
+        gbc.gridy = 2;
+        gbc.gridx = 0; pnlGrid.add(buildField("Loại khách hàng:", buildCombo("", "Dưới 6 tuổi", "Từ 6 đến dưới 10 tuổi", "Từ 60 tuổi trở lên", "Sinh viên", "Người lớn")), gbc);
+        gbc.gridx = 1; pnlGrid.add(buildUtilBlock(), gbc);
+        
+        gbc.gridx = 2; 
+        gbc.gridwidth = 2; 
+        gbc.anchor = GridBagConstraints.SOUTH;
+        pnlGrid.add(buildActionBlock(), gbc);
 
         pnlOuter.add(pnlGrid, BorderLayout.CENTER);
         return pnlOuter;
@@ -120,20 +119,23 @@ final class KhachHangGUI extends JPanel {
     }
 
     private JPanel buildDateField() {
+        JDateChooser dc = new JDateChooser();
+        dc.setDateFormatString("dd/MM/yyyy");
+        dc.setDate(new java.util.Date());
+        dc.setPreferredSize(new Dimension(160, 28));
+        dc.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
+        dc.setBackground(GuiTheme.SEARCH_FIELD_BG);
+        dc.setBorder(new LineBorder(GuiTheme.SEARCH_FIELD_BORDER, 1, true));
+        
+        Component editor = dc.getDateEditor().getUiComponent();
+        editor.setBackground(GuiTheme.SEARCH_FIELD_BG);
+        if (editor instanceof javax.swing.JComponent) {
+            ((javax.swing.JComponent) editor).setBorder(null);
+        }
+        
         JPanel pnlWrap = new JPanel(new BorderLayout());
         pnlWrap.setOpaque(false);
-        JTextField txtDate = new JTextField();
-        txtDate.setPreferredSize(new Dimension(145, 28));
-        txtDate.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
-        txtDate.setBackground(GuiTheme.SEARCH_FIELD_BG);
-        txtDate.setBorder(new LineBorder(GuiTheme.SEARCH_FIELD_BORDER, 1, true));
-        pnlWrap.add(txtDate, BorderLayout.CENTER);
-        JButton btnDate = new JButton("▣");
-        btnDate.setPreferredSize(new Dimension(28, 28));
-        btnDate.setFocusable(false);
-        btnDate.setBorder(new LineBorder(GuiTheme.SEARCH_FIELD_BORDER, 1, true));
-        btnDate.setBackground(GuiTheme.SEARCH_FIELD_BG);
-        pnlWrap.add(btnDate, BorderLayout.EAST);
+        pnlWrap.add(dc, BorderLayout.CENTER);
         return pnlWrap;
     }
 
@@ -232,7 +234,7 @@ final class KhachHangGUI extends JPanel {
 
     private JPanel buildTablePanel() {
         DefaultTableModel tblModel = new DefaultTableModel(
-            new Object[] { "STT", "Mã khách", "Họ và tên", "Số điện thoại", "Ngày đăng ký", "Điểm tích lũy", "Trạng thái" },
+            new Object[] { "STT", "Mã khách", "Họ và tên", "Ngày sinh", "CCCD", "Số ĐT", "Email", "Loại khách", "Trạng thái" },
             0
         ) {
             @Override public boolean isCellEditable(int row, int column) { return false; }
@@ -255,16 +257,17 @@ final class KhachHangGUI extends JPanel {
         JScrollPane spnScroll = new JScrollPane(tblData);
         spnScroll.setBorder(new LineBorder(BORDER, 1, true));
         spnScroll.getViewport().setBackground(Color.WHITE);
-        spnScroll.setPreferredSize(new Dimension(10000, 300));
         SwingUtilities.invokeLater(() -> {
-            if (tblData.getColumnModel().getColumnCount() >= 7) {
-                tblData.getColumnModel().getColumn(0).setPreferredWidth(50);
-                tblData.getColumnModel().getColumn(1).setPreferredWidth(120);
-                tblData.getColumnModel().getColumn(2).setPreferredWidth(120);
-                tblData.getColumnModel().getColumn(3).setPreferredWidth(100);
+            if (tblData.getColumnModel().getColumnCount() >= 9) {
+                tblData.getColumnModel().getColumn(0).setPreferredWidth(40);
+                tblData.getColumnModel().getColumn(1).setPreferredWidth(80);
+                tblData.getColumnModel().getColumn(2).setPreferredWidth(130);
+                tblData.getColumnModel().getColumn(3).setPreferredWidth(90);
                 tblData.getColumnModel().getColumn(4).setPreferredWidth(100);
-                tblData.getColumnModel().getColumn(5).setPreferredWidth(150);
-                tblData.getColumnModel().getColumn(6).setPreferredWidth(100);
+                tblData.getColumnModel().getColumn(5).setPreferredWidth(100);
+                tblData.getColumnModel().getColumn(6).setPreferredWidth(160);
+                tblData.getColumnModel().getColumn(7).setPreferredWidth(120);
+                tblData.getColumnModel().getColumn(8).setPreferredWidth(100);
             }
         });
         JPanel pnlWrap = new JPanel(new BorderLayout());

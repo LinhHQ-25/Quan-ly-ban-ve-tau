@@ -11,6 +11,8 @@ import java.awt.Insets;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Locale;
+import java.awt.Component;
+import com.toedter.calendar.JDateChooser;
 
 import javax.swing.Box;
 import javax.swing.BoxLayout;
@@ -32,8 +34,6 @@ import javax.swing.border.LineBorder;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 
-import de.wannawork.jcalendar.JCalendarComboBox;
-
 final class DanhSachChuyenDiGUI extends JPanel {
     private static final Color BORDER = new Color(210, 215, 224);
     private static final Color FIELD_BG = new Color(141, 184, 219);
@@ -45,36 +45,21 @@ final class DanhSachChuyenDiGUI extends JPanel {
 
         JPanel pnlPage = new JPanel();
         pnlPage.setOpaque(false);
-        pnlPage.setLayout(new BoxLayout(pnlPage, BoxLayout.Y_AXIS));
+        pnlPage.setLayout(new BorderLayout(0, 12));
         pnlPage.setBorder(new EmptyBorder(
-            GuiTheme.PAGE_PAD_TOP,
+            0,
             GuiTheme.PAGE_PAD_LEFT,
             GuiTheme.PAGE_PAD_BOTTOM,
             GuiTheme.PAGE_PAD_LEFT
         ));
 
-        pnlPage.add(buildHeader("DANH SÁCH CHUYẾN ĐI", "Dùng để tìm danh sách chuyến, điểm đi, điểm đến và giờ chạy."));
-        pnlPage.add(Box.createVerticalStrut(12));
-        pnlPage.add(buildFilterPanel());
-        pnlPage.add(Box.createVerticalStrut(12));
-        pnlPage.add(buildTablePanel());
+        pnlPage.add(buildFilterPanel(), BorderLayout.NORTH);
+        pnlPage.add(buildTablePanel(), BorderLayout.CENTER);
 
-        add(pnlPage, BorderLayout.NORTH);
+        add(pnlPage, BorderLayout.CENTER);
     }
 
-    private JPanel buildHeader(String title, String subtitle) {
-        JPanel pnlHeader = new JPanel(new BorderLayout(0, 6));
-        pnlHeader.setOpaque(false);
-        JLabel lbTitle = new JLabel(title);
-        lbTitle.setFont(GuiTheme.font("Segoe UI", Font.BOLD, GuiTheme.PAGE_TITLE_SIZE));
-        lbTitle.setForeground(GuiTheme.TEXT);
-        JLabel lbSubtitle = new JLabel(subtitle);
-        lbSubtitle.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, GuiTheme.PAGE_SUBTITLE_SIZE));
-        lbSubtitle.setForeground(GuiTheme.SUB_TEXT);
-        pnlHeader.add(lbTitle, BorderLayout.NORTH);
-        pnlHeader.add(lbSubtitle, BorderLayout.SOUTH);
-        return pnlHeader;
-    }
+
 
     private JPanel buildFilterPanel() {
         JPanel pnlOuter = new JPanel(new BorderLayout());
@@ -127,27 +112,24 @@ final class DanhSachChuyenDiGUI extends JPanel {
     }
 
     private JPanel buildDateField() {
-        JCalendarComboBox chooser = new JCalendarComboBox(Calendar.getInstance(), new Locale("vi", "VN"), new SimpleDateFormat("dd/MM/yyyy"));
-        chooser.setPreferredSize(new Dimension(160, 28));
-        chooser.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
-        chooser.setBorder(new LineBorder(GuiTheme.SEARCH_FIELD_BORDER, 1, true));
-        chooser.setDateFormat(new SimpleDateFormat("dd/MM/yyyy"));
-        chooser.setBackground(GuiTheme.SEARCH_FIELD_BG);
-        styleCalendarChooser(chooser);
-        return chooser;
-    }
-
-    private void styleCalendarChooser(java.awt.Container container) {
-        container.setBackground(GuiTheme.SEARCH_FIELD_BG);
-        if (container instanceof javax.swing.JComponent) {
-            ((javax.swing.JComponent) container).setOpaque(true);
+        JDateChooser dc = new JDateChooser();
+        dc.setDateFormatString("dd/MM/yyyy");
+        dc.setDate(new java.util.Date());
+        dc.setPreferredSize(new Dimension(160, 28));
+        dc.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
+        dc.setBackground(GuiTheme.SEARCH_FIELD_BG);
+        dc.setBorder(new LineBorder(GuiTheme.SEARCH_FIELD_BORDER, 1, true));
+        
+        Component editor = dc.getDateEditor().getUiComponent();
+        editor.setBackground(GuiTheme.SEARCH_FIELD_BG);
+        if (editor instanceof javax.swing.JComponent) {
+            ((javax.swing.JComponent) editor).setBorder(null);
         }
-        for (java.awt.Component child : container.getComponents()) {
-            child.setBackground(GuiTheme.SEARCH_FIELD_BG);
-            if (child instanceof java.awt.Container) {
-                styleCalendarChooser((java.awt.Container) child);
-            }
-        }
+        
+        JPanel pnlWrap = new JPanel(new BorderLayout());
+        pnlWrap.setOpaque(false);
+        pnlWrap.add(dc, BorderLayout.CENTER);
+        return pnlWrap;
     }
 
     private JPanel buildSeatField() {
@@ -272,7 +254,6 @@ final class DanhSachChuyenDiGUI extends JPanel {
         JScrollPane spnScroll = new JScrollPane(tblData);
         spnScroll.setBorder(new LineBorder(BORDER, 1, true));
         spnScroll.getViewport().setBackground(Color.WHITE);
-        spnScroll.setPreferredSize(new Dimension(10000, 300));
         SwingUtilities.invokeLater(() -> {
             if (tblData.getColumnModel().getColumnCount() >= 7) {
                 tblData.getColumnModel().getColumn(0).setPreferredWidth(50);
