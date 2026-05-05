@@ -29,7 +29,7 @@ public class DatVeGUI1 extends JPanel {
 	private final boolean motChieu;
 	private final Runnable onQuayLai;
 
-	// ══ Dữ liệu giả ══════════════════════════════════════
+	
 	// Danh sách dữ liệu hiển thị trên các thẻ chuyến tàu (Mã tàu, giờ đi/đến)
 	private static final String[][] CHUYEN = {
 			{ "SE8", "28/04/2026 06:00", "29/04/2026 16:10", "28/04/2026", "29/04/2026" },
@@ -693,151 +693,174 @@ public class DatVeGUI1 extends JPanel {
 	}
 
 	// ══ THANH DƯỚI ════════════════════════════════════════
-	private JPanel buildBotBar() {
-		JPanel bar = new JPanel(new BorderLayout());
-		bar.setBackground(Color.WHITE);
-		bar.setBorder(new MatteBorder(1, 0, 0, 0, BORDER_C));
+	// ══ THANH DƯỚI ════════════════════════════════════════
+		private JPanel buildBotBar() {
+			JPanel bar = new JPanel(new BorderLayout());
+			bar.setBackground(Color.WHITE);
+			bar.setBorder(new MatteBorder(1, 0, 0, 0, BORDER_C));
 
-		JButton btnQuay = makeOutlineBtn("↩ Quay lại");
-		btnQuay.addActionListener(e -> {
-			if (onQuayLai != null)
-				onQuayLai.run();
-		});
+			Icon icQuayLai = loadAndScaleIcon("/Images/logoBack.png", 14, 14);
+			JButton btnQuay = makeOutlineBtn("Quay lại", icQuayLai);
+			btnQuay.addActionListener(e -> {
+				if (onQuayLai != null)
+					onQuayLai.run();
+			});
 
-		lblGheDaChon = new JLabel("  Số vé đã chọn: 0/" + soLuong);
-		lblGheDaChon.setFont(f(12));
-		lblGheDaChon.setForeground(new Color(50, 70, 110));
+			lblGheDaChon = new JLabel("  Số vé đã chọn: 0/" + soLuong);
+			lblGheDaChon.setFont(f(12));
+			lblGheDaChon.setForeground(new Color(50, 70, 110));
 
-		btnAction = makeNavyBtn("⇒ Chọn nhanh");
-		btnAction.addActionListener(e -> {
-			if (gheChon.size() >= soLuong) {
-				JOptionPane.showMessageDialog(this, "Đã chọn " + soLuong + " ghế!\nTiến hành thanh toán...",
-						"Xác nhận đặt vé", JOptionPane.INFORMATION_MESSAGE);
-			} else {
-				gheChon.clear();
-				Set<Integer> dadat = gheDaDat(chuyenIdx, toaIdx);
-				for (int g = 1; g <= 28 && gheChon.size() < soLuong; g++)
-					if (!dadat.contains(g))
-						gheChon.add(g);
-				refreshToaGhe();
-				updateGheDaChon();
-				updateActionBtn();
-			}
-		});
+			// --- ĐÃ SỬA: Thêm đuôi .png vào đây để hiện icon lúc mới mở lên ---
+			Icon icChonNhanh = loadAndScaleIcon("/Images/logoGhe.png", 14, 14);
+			btnAction = makeNavyBtn("Chọn nhanh", icChonNhanh);
+			btnAction.addActionListener(e -> {
+				if (gheChon.size() >= soLuong) {
+					JOptionPane.showMessageDialog(this, "Đã chọn " + soLuong + " ghế!\nTiến hành thanh toán...",
+							"Xác nhận đặt vé", JOptionPane.INFORMATION_MESSAGE);
+				} else {
+					gheChon.clear();
+					Set<Integer> dadat = gheDaDat(chuyenIdx, toaIdx);
+					for (int g = 1; g <= 28 && gheChon.size() < soLuong; g++)
+						if (!dadat.contains(g))
+							gheChon.add(g);
+					refreshToaGhe();
+					updateGheDaChon();
+					updateActionBtn();
+				}
+			});
 
-		// SỬA TẠI ĐÂY: Đổi số 7 thành 2 để ép nút bấm sát mép trên/dưới của footer
-		JPanel left = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 2));
-		JPanel right = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 2));
-		
-		left.setBackground(Color.WHITE);
-		right.setBackground(Color.WHITE);
-		
-		left.add(btnQuay);
-		right.add(lblGheDaChon);
-		right.add(btnAction);
-		
-		bar.add(left, BorderLayout.WEST);
-		bar.add(right, BorderLayout.EAST);
-		
-		return bar;
-	}
-
-	private void updateGheDaChon() {
-		if (lblGheDaChon != null)
-			lblGheDaChon.setText("  Số vé đã chọn: " + gheChon.size() + "/" + soLuong);
-	}
-
-	private void updateActionBtn() {
-		if (btnAction == null)
-			return;
-		if (gheChon.size() >= soLuong) {
-			btnAction.setText("Tiếp tục →");
-		} else {
-			btnAction.setText("⇒ Chọn nhanh");
+			JPanel left = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 2));
+			JPanel right = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 2));
+			
+			left.setBackground(Color.WHITE);
+			right.setBackground(Color.WHITE);
+			
+			left.add(btnQuay);
+			right.add(lblGheDaChon);
+			right.add(btnAction);
+			
+			bar.add(left, BorderLayout.WEST);
+			bar.add(right, BorderLayout.EAST);
+			
+			return bar;
 		}
-		btnAction.repaint();
-	}
 
-	// ══ HELPERS ══════════════════════════════════════════
-	private JButton makeNavArrow(String t) {
-		JButton b = new JButton(t) {
-			@Override
-			protected void paintComponent(Graphics g) {
-				Graphics2D g2 = (Graphics2D) g.create();
-				g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-				g2.setColor(isEnabled() ? new Color(215, 228, 248) : new Color(238, 240, 246));
-				g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
-				g2.setColor(isEnabled() ? NAVY : new Color(175, 185, 205));
-				g2.setFont(new Font("Segoe UI", Font.BOLD, 18));
-				FontMetrics fm = g2.getFontMetrics();
-				g2.drawString(t, (getWidth() - fm.stringWidth(t)) / 2,
-						(getHeight() + fm.getAscent() - fm.getDescent()) / 2);
-				g2.dispose();
+		private void updateGheDaChon() {
+			if (lblGheDaChon != null)
+				lblGheDaChon.setText("  Số vé đã chọn: " + gheChon.size() + "/" + soLuong);
+		}
+
+		private void updateActionBtn() {
+			if (btnAction == null)
+				return;
+			if (gheChon.size() >= soLuong) {
+				btnAction.setText("Tiếp tục");
+				btnAction.setIcon(loadAndScaleIcon("/Images/logoGoOn.png", 14, 14));
+				
+				// --- ĐÃ SỬA: Ép vị trí chữ sang bên Trái (Icon sẽ tự động nhảy sang bên Phải) ---
+				btnAction.setHorizontalTextPosition(SwingConstants.LEFT);
+			} else {
+				btnAction.setText("Chọn nhanh");
+				btnAction.setIcon(loadAndScaleIcon("/Images/logoGhe.png", 14, 14));
+				
+				// --- ĐÃ SỬA: Trả vị trí chữ về bên Phải icon như bình thường ---
+				btnAction.setHorizontalTextPosition(SwingConstants.RIGHT);
 			}
-		};
-		b.setPreferredSize(new Dimension(26, 78));
-		b.setContentAreaFilled(false);
-		b.setBorderPainted(false);
-		b.setFocusPainted(false);
-		b.setCursor(new Cursor(Cursor.HAND_CURSOR));
-		return b;
-	}
+			
+			// --- ĐÃ SỬA: Thêm hàm revalidate() để nút tự động tính toán lại và co dãn chiều ngang theo chữ mới ---
+			btnAction.revalidate(); 
+			btnAction.repaint();
+		}
 
-	private JButton makeOutlineBtn(String text) {
-		JButton b = new JButton(text) {
-			@Override
-			protected void paintComponent(Graphics g) {
-				Graphics2D g2 = (Graphics2D) g.create();
-				g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-				boolean en = isEnabled();
-				g2.setColor(en
-						? (getModel().isPressed() ? new Color(198, 215, 242)
-								: getModel().isRollover() ? new Color(212, 228, 250) : new Color(226, 236, 252))
-						: new Color(238, 241, 248));
-				g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
-				g2.setColor(en ? NAVY : new Color(175, 185, 205));
-				g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 8, 8);
-				g2.setFont(f(12));
-				g2.setColor(en ? NAVY : new Color(155, 165, 185));
-				FontMetrics fm = g2.getFontMetrics();
-				g2.drawString(getText(), (getWidth() - fm.stringWidth(getText())) / 2,
-						(getHeight() + fm.getAscent() - fm.getDescent()) / 2);
-				g2.dispose();
-			}
-		};
-		b.setPreferredSize(new Dimension(112, 30));
-		b.setContentAreaFilled(false);
-		b.setBorderPainted(false);
-		b.setFocusPainted(false);
-		b.setCursor(new Cursor(Cursor.HAND_CURSOR));
-		return b;
-	}
+		// ══ HELPERS ══════════════════════════════════════════
+		// (Hàm makeNavArrow giữ nguyên, mình chỉ sửa makeOutlineBtn và makeNavyBtn bên dưới)
+		private JButton makeNavArrow(String t) {
+			JButton b = new JButton(t) {
+				@Override
+				protected void paintComponent(Graphics g) {
+					Graphics2D g2 = (Graphics2D) g.create();
+					g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+					g2.setColor(isEnabled() ? new Color(215, 228, 248) : new Color(238, 240, 246));
+					g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
+					g2.setColor(isEnabled() ? NAVY : new Color(175, 185, 205));
+					g2.setFont(new Font("Segoe UI", Font.BOLD, 18));
+					FontMetrics fm = g2.getFontMetrics();
+					g2.drawString(t, (getWidth() - fm.stringWidth(t)) / 2,
+							(getHeight() + fm.getAscent() - fm.getDescent()) / 2);
+					g2.dispose();
+				}
+			};
+			b.setPreferredSize(new Dimension(26, 78));
+			b.setContentAreaFilled(false);
+			b.setBorderPainted(false);
+			b.setFocusPainted(false);
+			b.setCursor(new Cursor(Cursor.HAND_CURSOR));
+			return b;
+		}
 
-	private JButton makeNavyBtn(String text) {
-		JButton b = new JButton(text) {
-			@Override
-			protected void paintComponent(Graphics g) {
-				Graphics2D g2 = (Graphics2D) g.create();
-				g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-				g2.setColor(getModel().isPressed() ? new Color(18, 42, 85)
-						: getModel().isRollover() ? new Color(38, 68, 128) : NAVY);
-				g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
-				g2.setColor(Color.WHITE);
-				g2.setFont(fb(12));
-				FontMetrics fm = g2.getFontMetrics();
-				g2.drawString(getText(), (getWidth() - fm.stringWidth(getText())) / 2,
-						(getHeight() + fm.getAscent() - fm.getDescent()) / 2);
-				g2.dispose();
-			}
-		};
-		b.setPreferredSize(new Dimension(136, 32));
-		b.setContentAreaFilled(false);
-		b.setBorderPainted(false);
-		b.setFocusPainted(false);
-		b.setCursor(new Cursor(Cursor.HAND_CURSOR));
-		return b;
-	}
+		private JButton makeOutlineBtn(String text, Icon icon) {
+			JButton b = new JButton(text) {
+				@Override
+				protected void paintComponent(Graphics g) {
+					Graphics2D g2 = (Graphics2D) g.create();
+					g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+					boolean en = isEnabled();
+					g2.setColor(en
+							? (getModel().isPressed() ? new Color(198, 215, 242)
+									: getModel().isRollover() ? new Color(212, 228, 250) : new Color(226, 236, 252))
+							: new Color(238, 241, 248));
+					g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
+					g2.setColor(en ? NAVY : new Color(175, 185, 205));
+					g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 8, 8);
+					g2.dispose();
+					
+					// Để Java tự vẽ icon và text căn giữa
+					super.paintComponent(g); 
+				}
+			};
+			b.setIcon(icon);
+			b.setFont(f(12));
+			b.setForeground(NAVY);
+			b.setIconTextGap(8); // Khoảng cách giữa ảnh và chữ
+			
+			// Dùng đệm lề (Padding) để nút co giãn theo nội dung, bỏ setPreferredSize
+			b.setBorder(new EmptyBorder(6, 16, 6, 16)); 
+			
+			b.setContentAreaFilled(false);
+			b.setFocusPainted(false);
+			b.setCursor(new Cursor(Cursor.HAND_CURSOR));
+			return b;
+		}
 
+		private JButton makeNavyBtn(String text, Icon icon) {
+			JButton b = new JButton(text) {
+				@Override
+				protected void paintComponent(Graphics g) {
+					Graphics2D g2 = (Graphics2D) g.create();
+					g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+					g2.setColor(getModel().isPressed() ? new Color(18, 42, 85)
+							: getModel().isRollover() ? new Color(38, 68, 128) : NAVY);
+					g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
+					g2.dispose();
+					
+					// Để Java tự vẽ icon và text căn giữa
+					super.paintComponent(g); 
+				}
+			};
+			b.setIcon(icon);
+			b.setFont(fb(12));
+			b.setForeground(Color.WHITE);
+			b.setIconTextGap(8); // Khoảng cách giữa ảnh và chữ
+			
+			// Dùng đệm lề (Padding) để nút co giãn theo nội dung, bỏ setPreferredSize
+			b.setBorder(new EmptyBorder(6, 16, 6, 16));
+			
+			b.setContentAreaFilled(false);
+			b.setBorderPainted(false);
+			b.setFocusPainted(false);
+			b.setCursor(new Cursor(Cursor.HAND_CURSOR));
+			return b;
+		}
 	private JPanel makeLegend(Color c, String txt) {
 		JPanel p = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
 		p.setBackground(BG);
