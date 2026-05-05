@@ -28,7 +28,6 @@ import javax.swing.border.LineBorder;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.Timer;
-
 final class ThongKeGUI extends JPanel {
     private static final Color BORDER   = new Color(210, 215, 224);
     private static final Color FIELD_BG = new Color(141, 184, 219);
