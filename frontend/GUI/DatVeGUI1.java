@@ -29,7 +29,6 @@ public class DatVeGUI1 extends JPanel {
 	private final boolean motChieu;
 	private final Runnable onQuayLai;
 
-	// ══ Dữ liệu giả ══════════════════════════════════════
 	// Danh sách dữ liệu hiển thị trên các thẻ chuyến tàu (Mã tàu, giờ đi/đến)
 	private static final String[][] CHUYEN = {
 			{ "SE8", "28/04/2026 06:00", "29/04/2026 16:10", "28/04/2026", "29/04/2026" },
