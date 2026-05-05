@@ -27,7 +27,7 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
-
+import javax.swing.Timer;
 final class ThongKeGUI extends JPanel {
     private static final Color BORDER   = new Color(210, 215, 224);
     private static final Color FIELD_BG = new Color(141, 184, 219);
@@ -193,47 +193,94 @@ final class ThongKeGUI extends JPanel {
     }
 
     private JButton buildExportButton() {
-        final Color BG_NORMAL  = new Color(30,  90, 200);
-        final Color BG_HOVER   = new Color(20,  70, 170);
-        final Color BG_PRESSED = new Color(14,  52, 135);
-
-        boolean[] hovered = {false};
-
         JButton btn = new JButton("Tạo báo cáo") {
+            // Các biến phục vụ hiệu ứng Fade
+            private float hoverProgress = 0f;
+            private boolean isHovered = false;
+            private Timer timer;
+
+            {
+                // Khởi tạo Timer để xử lý hiệu ứng chuyển động (animation)
+                timer = new Timer(15, e -> {
+                    if (isHovered && hoverProgress < 1f) {
+                        hoverProgress += 0.1f;
+                        if (hoverProgress >= 1f) { hoverProgress = 1f; timer.stop(); }
+                        repaint();
+                    } else if (!isHovered && hoverProgress > 0f) {
+                        hoverProgress -= 0.1f;
+                        if (hoverProgress <= 0f) { hoverProgress = 0f; timer.stop(); }
+                        repaint();
+                    }
+                });
+
+                addMouseListener(new MouseAdapter() {
+                    @Override public void mouseEntered(MouseEvent e) {
+                        isHovered = true;
+                        timer.start();
+                    }
+                    @Override public void mouseExited(MouseEvent e) {
+                        isHovered = false;
+                        timer.start();
+                    }
+                });
+            }
+
+            // Hàm pha trộn màu giữa màu gốc và màu hover
+            private Color blend(Color c1, Color c2, float ratio) {
+                float ir = 1.0f - ratio;
+                int r = Math.min(255, (int) (c1.getRed() * ir + c2.getRed() * ratio));
+                int g = Math.min(255, (int) (c1.getGreen() * ir + c2.getGreen() * ratio));
+                int b = Math.min(255, (int) (c1.getBlue() * ir + c2.getBlue() * ratio));
+                return new Color(r, g, b);
+            }
+
             @Override
             protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                // subtle drop shadow
-                g2.setColor(new Color(0, 0, 0, 28));
-                g2.fillRoundRect(2, 4, getWidth() - 2, getHeight() - 3, 10, 10);
-                // body
-                Color bg = getModel().isPressed() ? BG_PRESSED : hovered[0] ? BG_HOVER : BG_NORMAL;
+
+                // 1. Xác định các tông màu
+                Color normal = GuiTheme.NAVY;
+                Color hover = GuiTheme.NAVY_HOVER; // Nếu class GuiTheme không có NAVY_HOVER, hãy dùng normal.brighter()
+                Color pressed = GuiTheme.NAVY.darker();
+
+                // 2. Tính toán màu nền dựa trên trạng thái
+                Color bg;
+                if (getModel().isPressed()) {
+                    bg = pressed;
+                } else {
+                    bg = blend(normal, hover, hoverProgress);
+                }
+
+                // 3. Vẽ nền bo góc 20 (y chang nút Đăng nhập)
                 g2.setColor(bg);
-                g2.fillRoundRect(0, 0, getWidth() - 2, getHeight() - 2, 10, 10);
-                // top gloss
-                g2.setColor(new Color(255, 255, 255, 25));
-                g2.fillRoundRect(0, 0, getWidth() - 2, (getHeight() - 2) / 2, 10, 10);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 20, 20);
+
+                // 4. Vẽ chữ (giữ nguyên vị trí và font cũ)
+                g2.setColor(Color.WHITE);
+                g2.setFont(getFont());
+                FontMetrics fm = g2.getFontMetrics();
+                int x = (getWidth() - fm.stringWidth(getText())) / 2;
+                int y = (getHeight() + fm.getAscent()) / 2 - 2;
+                g2.drawString(getText(), x, y);
+
                 g2.dispose();
-                super.paintComponent(g);
             }
         };
+
+        // Giữ nguyên các thiết lập thuộc tính cũ
         btn.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 14));
         btn.setForeground(Color.WHITE);
         btn.setContentAreaFilled(false);
         btn.setBorderPainted(false);
         btn.setFocusPainted(false);
         btn.setOpaque(false);
-        btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
         btn.setPreferredSize(new Dimension(155, 40));
 
-        btn.addMouseListener(new MouseAdapter() {
-            @Override public void mouseEntered(MouseEvent e) { hovered[0] = true;  btn.repaint(); }
-            @Override public void mouseExited (MouseEvent e) { hovered[0] = false; btn.repaint(); }
-        });
-
+        // Giữ nguyên sự kiện click để xuất PDF
         btn.addActionListener(e -> {
-            int[] d = chartPanel.getData(); // [0]=gheCung, [1]=giuong, [2]=gheMem
+            int[] d = chartPanel.getData(); 
             BaoCaoPDF.export(tenNhanVien, doanhThu, veBan, veHuy,
                 d[1], d[2], d[0]);
         });

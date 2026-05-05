@@ -100,9 +100,6 @@ public class DoiVeGUI extends JPanel {
         page.setBorder(new EmptyBorder(
                 GuiTheme.PAGE_PAD_TOP, GuiTheme.PAGE_PAD_LEFT,
                 GuiTheme.PAGE_PAD_BOTTOM, GuiTheme.PAGE_PAD_LEFT));
-
-        page.add(buildHeader());
-        page.add(Box.createVerticalStrut(12));
         page.add(buildCurrentInfoCard());
         page.add(Box.createVerticalStrut(10));
         page.add(buildChuyenCard());       // ← TABLE chuyến (khác DatVeGUI1)
@@ -131,24 +128,6 @@ public class DoiVeGUI extends JPanel {
         refreshToaStepper();
         refreshGhe();
         updateBottomBar();
-    }
-
-    // ══════════════════════════════════════════════════════════════════════════
-    // HEADER
-    // ══════════════════════════════════════════════════════════════════════════
-    private JPanel buildHeader() {
-        JPanel p = new JPanel(new BorderLayout(0, 4));
-        p.setOpaque(false);
-        JLabel title = new JLabel("ĐỔI VÉ TÀU");
-        title.setFont(GuiTheme.font("Segoe UI", Font.BOLD, GuiTheme.PAGE_TITLE_SIZE));
-        title.setForeground(GuiTheme.TEXT);
-        JLabel sub = new JLabel("Kiểm tra vé hiện tại, chọn chuyến mới và ghế muốn đổi sang.");
-        sub.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, GuiTheme.PAGE_SUBTITLE_SIZE));
-        sub.setForeground(GuiTheme.SUB_TEXT);
-        p.add(title, BorderLayout.NORTH);
-        p.add(sub,   BorderLayout.SOUTH);
-        stretch(p);
-        return p;
     }
 
     // ══════════════════════════════════════════════════════════════════════════

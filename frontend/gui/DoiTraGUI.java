@@ -66,8 +66,6 @@ public final class DoiTraGUI extends JPanel {
 				GuiTheme.PAGE_PAD_TOP, GuiTheme.PAGE_PAD_LEFT,
 				GuiTheme.PAGE_PAD_BOTTOM, GuiTheme.PAGE_PAD_LEFT));
 
-		page.add(buildHeader());
-		page.add(Box.createVerticalStrut(10));
 		page.add(buildNoteBox());
 		page.add(Box.createVerticalStrut(12));
 		page.add(buildSearchBar());
@@ -83,25 +81,6 @@ public final class DoiTraGUI extends JPanel {
 	// ══════════════════════════════════════════════════════════════════════
 	// UI BUILDERS
 	// ══════════════════════════════════════════════════════════════════════
-
-	private JPanel buildHeader() {
-		JPanel p = new JPanel(new BorderLayout(0, 4));
-		p.setOpaque(false);
-
-		JLabel title = new JLabel("ĐỔI / TRẢ VÉ");
-		title.setFont(GuiTheme.font("Segoe UI", Font.BOLD, GuiTheme.PAGE_TITLE_SIZE));
-		title.setForeground(GuiTheme.TEXT);
-
-		JLabel sub = new JLabel("Chọn vé trong danh sách rồi nhấn Đổi vé hoặc Trả vé.");
-		sub.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, GuiTheme.PAGE_SUBTITLE_SIZE));
-		sub.setForeground(GuiTheme.SUB_TEXT);
-
-		p.add(title, BorderLayout.NORTH);
-		p.add(sub,   BorderLayout.SOUTH);
-		fixStretch(p);
-		return p;
-	}
-
 	/** Hộp vàng tóm tắt quy định */
 	private JPanel buildNoteBox() {
 		JPanel p = new JPanel() {
