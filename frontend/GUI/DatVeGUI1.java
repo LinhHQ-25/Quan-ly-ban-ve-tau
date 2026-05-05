@@ -276,33 +276,30 @@ public class DatVeGUI1 extends JPanel {
 	    JPanel c = new JPanel(new BorderLayout(0, 0));
 	    c.setBackground(BG);
 
-	    // --- PHẦN HEADER CHIỀU ĐI (Nền xanh ôm khít, xóa khoảng cách thừa) ---
 	    JPanel headerWrapper = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
 	    headerWrapper.setBackground(BG);
 	    headerWrapper.setBorder(new EmptyBorder(5, 0, 5, 0)); 
 
-	    // Sử dụng chuỗi text sạch, chỉ dùng 1 dấu cách duy nhất
 	    String textHeader = "Chiều đi: Ngày " + ngayDi + " từ " + gaDi + " đến " + gaDen;
 	    JLabel lblChieu = new JLabel(textHeader);
-	    
-	    // Ép font Segoe UI Bold size 13 chuẩn
 	    lblChieu.setFont(new Font("Segoe UI", Font.BOLD, 13));
 	    lblChieu.setForeground(Color.WHITE);
 	    lblChieu.setOpaque(true);
 	    lblChieu.setBackground(NAVY_LIGHT);
-	    
-	    // Border: 6px trên dưới, 12px trái phải để dải màu không quá thô
 	    lblChieu.setBorder(new EmptyBorder(6, 12, 6, 12));
 
 	    headerWrapper.add(lblChieu);
 	    c.add(headerWrapper, BorderLayout.NORTH);
 
-	    // --- PHẦN NỘI DUNG CHÍNH (BODY) ---
 	    JPanel body = new JPanel(new BorderLayout(0, 6));
 	    body.setBackground(BG);
 	    body.setBorder(new EmptyBorder(8, 10, 4, 10));
 
-	    body.add(buildChuyenRow(), BorderLayout.NORTH);
+	    // Nới rộng chiều cao hàng tàu lên 175 để đầu tàu có không gian dài ra, không bị ép chữ
+	    JPanel rowContainer = buildChuyenRow();
+	    rowContainer.setPreferredSize(new Dimension(0, 140)); 
+
+	    body.add(rowContainer, BorderLayout.NORTH);
 	    body.add(buildToaGheSection(), BorderLayout.CENTER);
 
 	    c.add(body, BorderLayout.CENTER);
@@ -364,6 +361,18 @@ public class DatVeGUI1 extends JPanel {
 	    boolean sel = (ci == chuyenIdx);
 	    String[] ch = CHUYEN[ci];
 
+	    // Tạo Panel nội dung chữ trước để lấy kích thước thực tế
+	    JPanel info = new JPanel(new GridLayout(4, 1, 0, 0)); 
+	    info.setOpaque(false);
+	    String[] labels = {"TG đi:", ch[1], "TG đến:", ch[2]};
+	    for (int i = 0; i < labels.length; i++) {
+	        JLabel l = new JLabel(labels[i]);
+	        l.setFont(new Font("Segoe UI", Font.BOLD, (i % 2 == 0) ? 10 : 12));
+	        l.setForeground((i % 2 == 0) ? new Color(100, 100, 100) : Color.BLACK);
+	        l.setHorizontalAlignment(SwingConstants.LEFT);
+	        info.add(l);
+	    }
+
 	    JPanel card = new JPanel(new BorderLayout(0, 0)) {
 	        private boolean isHover = false;
 	        {
@@ -393,17 +402,20 @@ public class DatVeGUI1 extends JPanel {
 	            g2.setColor(mainColor);
 	            g2.fillRoundRect(2, 2, w - 4, trainH, 25, 25);
 
-	            // 2. VẼ Ô TRẮNG: Nới cao thêm để không tràn chữ
+	            // 2. VẼ KHUNG TRẮNG ÔM KHÍT
 	            g2.setColor(Color.WHITE);
-	            // y=28 (đưa sát lên trên), chiều cao nới rộng (trainH - 45)
-	            g2.fillRoundRect(8, 28, w - 16, trainH - 45, 12, 12);
+	            // Lấy chiều cao thực tế của cụm chữ + 10px padding cho đẹp
+	            int infoH = info.getPreferredSize().height + 10; 
+	            int infoW = w - 16;
+	            // Vẽ khung trắng bắt đầu từ y=32, cao đúng bằng infoH
+	            g2.fillRoundRect(8, 32, infoW, infoH, 12, 12);
 
-	            // 3. Vẽ đèn tàu (Dịch xuống sát mép dưới thân)
+	            // 3. Đèn tàu (vị trí cố định phía dưới)
 	            g2.setColor(Color.WHITE);
 	            g2.fillOval(w/4 - 8, trainH - 14, 16, 16);
 	            g2.fillOval(3*w/4 - 8, trainH - 14, 16, 16);
 
-	            // 4. Vẽ đường ray
+	            // 4. Đường ray
 	            g2.setColor(Color.BLACK);
 	            int railY = h - 15;
 	            g2.setStroke(new BasicStroke(1.5f));
@@ -417,9 +429,8 @@ public class DatVeGUI1 extends JPanel {
 	        }
 	    };
 	    card.setOpaque(false);
-	    card.setCursor(new Cursor(Cursor.HAND_CURSOR));
 
-	    // Badge tên tàu bo tròn
+	    // Badge tên tàu
 	    JLabel badge = new JLabel(ch[0], SwingConstants.CENTER) {
 	        @Override protected void paintComponent(Graphics g) {
 	            Graphics2D g2 = (Graphics2D) g.create();
@@ -432,121 +443,119 @@ public class DatVeGUI1 extends JPanel {
 	    badge.setFont(new Font("Segoe UI", Font.BOLD, 11));
 	    badge.setPreferredSize(new Dimension(55, 22));
 	    
-	    // Panel chứa badge đưa sát lên trên
 	    JPanel badgeWrap = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 4));
 	    badgeWrap.setOpaque(false);
 	    badgeWrap.add(badge);
 	    card.add(badgeWrap, BorderLayout.NORTH);
 
-	    JPanel info = new JPanel(new GridLayout(4, 1, 0, 0)); 
-	    info.setOpaque(false);
-	    // Top = 0px để sát lên trên, Bottom = 15px để chừa chỗ cho đèn tàu phía dưới
-	    info.setBorder(new EmptyBorder(0, 14, 15, 10));
+	    // Đưa Panel chữ vào Wrapper để ôm khít trong khung trắng
+	    JPanel infoWrapper = new JPanel(new FlowLayout(FlowLayout.LEFT, 13, 5));
+	    infoWrapper.setOpaque(false);
+	    // Căn chỉnh lề trên là 5px để lọt lòng vào ô trắng có y=32
+	    infoWrapper.setBorder(new EmptyBorder(5, 0, 0, 0)); 
+	    infoWrapper.add(info);
 
-	    String[] labels = {"TG đi:", ch[1], "TG đến:", ch[2]};
-	    for (int i = 0; i < labels.length; i++) {
-	        JLabel l = new JLabel(labels[i]);
-	        // Giữ cỡ chữ 10 và 12 như bạn muốn
-	        l.setFont(new Font("Segoe UI", Font.BOLD, (i % 2 == 0) ? 10 : 12));
-	        l.setForeground((i % 2 == 0) ? new Color(100, 100, 100) : Color.BLACK);
-	        l.setHorizontalAlignment(SwingConstants.LEFT);
-	        info.add(l);
-	    }
-	    card.add(info, BorderLayout.CENTER);
+	    card.add(infoWrapper, BorderLayout.CENTER);
 
 	    return card;
 	}
 
-	private JPanel buildTrainIcon(boolean sel) {
-		// paintComponent: Thực hiện vẽ đồ họa chi tiết của icon toa tàu (Thân tàu, cửa
-		// sổ, bánh xe)
-		JPanel p = new JPanel() {
-			@Override
-			protected void paintComponent(Graphics g) {
-				Graphics2D g2 = (Graphics2D) g.create();
-				g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-				int w = getWidth(), h = getHeight();
-				// Thân tàu
-				g2.setColor(sel ? NAVY_SEL : new Color(100, 130, 175));
-				g2.fillRoundRect(3, 2, w - 6, h - 14, 8, 8);
-				// Cửa sổ
-				g2.setColor(new Color(210, 228, 255));
-				g2.fillRoundRect(6, 6, 9, 6, 2, 2);
-				g2.fillRoundRect(w / 2 - 3, 6, 9, 6, 2, 2);
-				// Bánh
-				g2.setColor(new Color(40, 40, 60));
-				g2.fillOval(4, h - 12, 9, 9);
-				g2.fillOval(w - 13, h - 12, 9, 9);
-				// Đèn
-				Color lampCol = sel ? new Color(255, 220, 80) : new Color(220, 210, 120);
-				g2.setColor(lampCol);
-				g2.fillOval(w - 11, h / 2 - 3, 5, 5);
-				g2.dispose();
-			}
-		};
-		p.setOpaque(false);
-		p.setPreferredSize(new Dimension(52, 40));
-		return p;
-	}
-
 	// ══ TOA + GHẾ ════════════════════════════════════════
 	private JPanel buildToaGheSection() {
-		JPanel sec = new JPanel(new BorderLayout(0, 4));
+		JPanel sec = new JPanel(new BorderLayout(0, 0));
 		sec.setBackground(BG);
 
-		// ttl: Nhãn chữ "Danh sách toa tàu"
-		JLabel ttl = new JLabel("  Danh sách toa tàu");
-		ttl.setFont(fb(12));
-		ttl.setForeground(new Color(45, 58, 90));
-		sec.add(ttl, BorderLayout.NORTH);
+		// --- Khối Top: Tiêu đề và Thanh cuộn ---
+		JPanel topWrapper = new JPanel(new BorderLayout(0, 4)); 
+		topWrapper.setBackground(BG);
 
-		// ── Scroll toa ngang ──
-		// pnlToaScroll: Thực hiện vẽ hàng ngang các biểu tượng toa tàu (SE801,
-		// SE802...)
+		JPanel ttlWrapper = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+		ttlWrapper.setBackground(BG);
+		JLabel ttl = new JLabel("Danh sách toa tàu");
+		ttl.setFont(fb(13));
+		ttl.setForeground(Color.WHITE);
+		ttl.setOpaque(true);
+		ttl.setBackground(NAVY_LIGHT);
+		ttl.setBorder(new EmptyBorder(6, 12, 6, 12));
+		ttlWrapper.add(ttl);
+		
+		topWrapper.add(ttlWrapper, BorderLayout.NORTH);
+
 		pnlToaScroll = new JPanel();
 		pnlToaScroll.setLayout(new BoxLayout(pnlToaScroll, BoxLayout.X_AXIS));
 		pnlToaScroll.setBackground(BG);
-		pnlToaScroll.setBorder(new EmptyBorder(4, 4, 4, 4));
+		pnlToaScroll.setBorder(new EmptyBorder(0, 0, 0, 0)); 
 
 		JScrollPane toaSP = new JScrollPane(pnlToaScroll, JScrollPane.VERTICAL_SCROLLBAR_NEVER,
 				JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
 		toaSP.setBorder(null);
 		toaSP.setBackground(BG);
-		toaSP.setPreferredSize(new Dimension(0, 86));
+		toaSP.setPreferredSize(new Dimension(0, 100));
 		toaSP.getHorizontalScrollBar().setUnitIncrement(20);
-		sec.add(toaSP, BorderLayout.CENTER);
+		
+		topWrapper.add(toaSP, BorderLayout.CENTER);
+		sec.add(topWrapper, BorderLayout.NORTH);
 
-		// ── Ghế ──
-		JPanel gheSec = new JPanel(new BorderLayout(0, 3));
+		// --- Khối Bottom: Toa thường, Danh sách ghế và Chú thích ---
+		JPanel gheSec = new JPanel(new BorderLayout(0, 2)); 
 		gheSec.setBackground(BG);
+		gheSec.setBorder(new EmptyBorder(0, 0, 0, 0)); 
 
-		// lblTenToa: Thực hiện vẽ nhãn chữ "Toa thường: SE801"
-		lblTenToa = new JLabel("  Toa thường: --");
-		lblTenToa.setFont(fb(12));
-		lblTenToa.setForeground(NAVY_LIGHT);
+		lblTenToa = new JLabel("Toa thường: --", SwingConstants.CENTER);
+		lblTenToa.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+		lblTenToa.setForeground(NAVY);
 		gheSec.add(lblTenToa, BorderLayout.NORTH);
 
-		// pnlGhe: Thực hiện vẽ bảng lưới các ô ghế ngồi số từ 1 đến 28
+		JPanel pnlGheWrapper = new JPanel(new BorderLayout()) {
+			@Override
+			protected void paintComponent(Graphics g) {
+				super.paintComponent(g);
+				Graphics2D g2 = (Graphics2D) g.create();
+				g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+				g2.setColor(new Color(200, 205, 225)); 
+				g2.setStroke(new BasicStroke(1.5f));
+				g2.drawRoundRect(1, 1, getWidth() - 3, getHeight() - 3, 15, 15); 
+				g2.dispose();
+			}
+		};
+		pnlGheWrapper.setBackground(BG);
+		pnlGheWrapper.setBorder(new EmptyBorder(4, 4, 4, 4)); 
+		
 		pnlGhe = new JPanel();
-		pnlGhe.setBackground(Color.WHITE);
-		pnlGhe.setBorder(BorderFactory.createLineBorder(BORDER_C));
-		gheSec.add(pnlGhe, BorderLayout.CENTER);
+		pnlGhe.setBackground(BG);
+		pnlGheWrapper.add(pnlGhe, BorderLayout.CENTER);
+		
+		gheSec.add(pnlGheWrapper, BorderLayout.CENTER);
 
-		// Chú thích
-		// legend: Thực hiện vẽ dòng "Số ghế còn trống", "Đang chọn", "Còn trống", "Đã
-		// đặt" ở dưới bảng ghế
-		JPanel legend = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 2));
-		legend.setBackground(BG);
-		lblGheTrong = new JLabel("  Số ghế còn trống: --");
-		lblGheTrong.setFont(f(11));
-		lblGheTrong.setForeground(new Color(70, 85, 110));
-		legend.add(lblGheTrong);
-		legend.add(makeLegend(SEAT_SEL, "Đang chọn"));
-		legend.add(makeLegend(SEAT_OK, "Còn trống"));
-		legend.add(makeLegend(SEAT_TAKEN, "Đã đặt"));
-		gheSec.add(legend, BorderLayout.SOUTH);
+		// --- 3. Chú thích (CĂN GIỮA TUYỆT ĐỐI VÀ ÉP SÁT LỀ PHẢI) ---
+		JPanel botLegendArea = new JPanel(new BorderLayout());
+		botLegendArea.setBackground(BG);
+		// Xóa padding trái/phải về 0 để legend sát mép khung
+		botLegendArea.setBorder(new EmptyBorder(4, 0, 2, 0));
 
-		sec.add(gheSec, BorderLayout.SOUTH);
+		lblGheTrong = new JLabel("Số ghế còn trống: --", SwingConstants.CENTER);
+		lblGheTrong.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+		lblGheTrong.setForeground(Color.BLACK);
+		
+		// Cụm 3 ô màu bên phải: giảm khoảng cách giữa chúng xuống 6px cho sát nhau
+		JPanel legendBoxes = new JPanel(new FlowLayout(FlowLayout.RIGHT, 6, 0));
+		legendBoxes.setBackground(BG);
+		legendBoxes.add(makeLegend(SEAT_SEL, "Đang chọn"));
+		legendBoxes.add(makeLegend(SEAT_OK, "Còn trống"));
+		legendBoxes.add(makeLegend(SEAT_TAKEN, "Đã đặt"));
+
+		// TẠO ĐỐI TRỌNG BÊN TRÁI: Cục panel tàng hình có chiều ngang bằng đúng legendBoxes
+		JPanel leftDummy = new JPanel();
+		leftDummy.setBackground(BG);
+		leftDummy.setPreferredSize(legendBoxes.getPreferredSize());
+
+		// Gắn vào: Trái tàng hình - Giữa chữ - Phải 3 nút
+		botLegendArea.add(leftDummy, BorderLayout.WEST);
+		botLegendArea.add(lblGheTrong, BorderLayout.CENTER);
+		botLegendArea.add(legendBoxes, BorderLayout.EAST);
+
+		gheSec.add(botLegendArea, BorderLayout.SOUTH);
+		sec.add(gheSec, BorderLayout.CENTER);
 
 		refreshToaGhe();
 		return sec;
@@ -557,29 +566,34 @@ public class DatVeGUI1 extends JPanel {
 
 		// Vẽ toa
 		pnlToaScroll.removeAll();
-		pnlToaScroll.add(Box.createHorizontalStrut(4));
+		int gap = 14; 
+		pnlToaScroll.add(Box.createHorizontalStrut(gap)); 
 		for (int t = 0; t < toaList.length; t++) {
 			pnlToaScroll.add(buildToaIcon(toaList[t], t == toaIdx, t));
-			pnlToaScroll.add(Box.createHorizontalStrut(4));
+			if (t < toaList.length - 1) {
+				pnlToaScroll.add(Box.createHorizontalStrut(gap)); 
+			}
 		}
+		pnlToaScroll.add(Box.createHorizontalStrut(gap)); 
+
 		pnlToaScroll.revalidate();
 		pnlToaScroll.repaint();
 
 		// Vẽ ghế
 		Set<Integer> dadat = gheDaDat(chuyenIdx, toaIdx);
-		lblTenToa.setText("  Toa thường: " + toaList[toaIdx]);
+		// ĐÃ XÓA KHOẢNG TRẮNG ĐỂ CĂN GIỮA CHUẨN
+		lblTenToa.setText("Toa thường: " + toaList[toaIdx]); 
 		int trong = 0;
 		for (int g = 1; g <= 28; g++)
 			if (!dadat.contains(g))
 				trong++;
-		lblGheTrong.setText("  Số ghế còn trống: " + trong + "/28");
+		// ĐÃ XÓA KHOẢNG TRẮNG ĐỂ CĂN GIỮA CHUẨN
+		lblGheTrong.setText("Số ghế còn trống: " + trong + "/28");
 
 		pnlGhe.removeAll();
-		pnlGhe.setLayout(new GridLayout(2, 14, 3, 3));
-		pnlGhe.setBorder(new EmptyBorder(7, 10, 7, 10));
+		pnlGhe.setLayout(new GridLayout(2, 14, 4, 4)); // Giãn cách giữa các ghế
+		pnlGhe.setBorder(new EmptyBorder(6, 10, 6, 10)); 
 
-		// Đoạn loop này thực hiện tạo ra từng nút bấm tương ứng với số ghế (1, 2, 3...)
-		// và đổ màu theo trạng thái
 		for (int i = 1; i <= 28; i++) {
 			final int gNum = i;
 			final boolean taken = dadat.contains(i);
@@ -624,13 +638,12 @@ public class DatVeGUI1 extends JPanel {
 	}
 
 	private JPanel buildToaIcon(String maToa, boolean sel, int ti) {
-		// paintComponent: Thực hiện vẽ icon của từng toa tàu trong danh sách (Hình chữ
-		// nhật xanh, cửa sổ, bánh xe)
 		JPanel p = new JPanel(new BorderLayout(0, 0)) {
 			@Override
 			protected void paintComponent(Graphics g) {
 				Graphics2D g2 = (Graphics2D) g.create();
 				g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+				// Giữ lại nền xanh nhạt khi chọn toa
 				g2.setColor(sel ? new Color(210, 232, 255) : new Color(235, 242, 252));
 				g2.fillRoundRect(0, 0, getWidth(), getHeight(), 7, 7);
 				if (sel) {
@@ -647,29 +660,20 @@ public class DatVeGUI1 extends JPanel {
 		p.setPreferredSize(new Dimension(58, 78));
 		p.setCursor(new Cursor(Cursor.HAND_CURSOR));
 
-		JPanel icon = new JPanel() {
-			@Override
-			protected void paintComponent(Graphics g) {
-				Graphics2D g2 = (Graphics2D) g.create();
-				g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-				int w = getWidth(), h = getHeight();
-				g2.setColor(sel ? NAVY : new Color(75, 105, 155));
-				g2.fillRoundRect(3, 2, w - 6, h - 12, 6, 6);
-				// Cửa sổ
-				g2.setColor(new Color(205, 225, 255));
-				g2.fillRect(6, 6, 8, 5);
-				g2.fillRect(w / 2 - 2, 6, 8, 5);
-				// Bánh
-				g2.setColor(new Color(35, 35, 55));
-				g2.fillOval(4, h - 10, 7, 7);
-				g2.fillOval(w - 11, h - 10, 7, 7);
-				g2.dispose();
-			}
-		};
-		icon.setOpaque(false);
+		// --- ĐÃ SỬA: Dùng JLabel chứa ảnh thay vì panel vẽ tay ---
+		JLabel icon = new JLabel();
+		icon.setHorizontalAlignment(SwingConstants.CENTER);
 		icon.setPreferredSize(new Dimension(52, 44));
 
-		// lbl: Thực hiện vẽ mã tên toa dưới icon (Ví dụ: SE801)
+		// Load ảnh (nhớ đảm bảo file ảnh là logoToaTau.png nằm trong thư mục /Images)
+		Icon toaImg = loadAndScaleIcon("/Images/logoToaTau.png", 56, 36);
+		if (toaImg != null) {
+			icon.setIcon(toaImg);
+		} else {
+			icon.setText("Lỗi ảnh"); // Sẽ hiện chữ này nếu sai đường dẫn hoặc sai tên file
+		}
+
+		// Nhãn hiển thị mã toa (SE801...)
 		JLabel lbl = new JLabel(maToa, SwingConstants.CENTER);
 		lbl.setFont(f(9));
 		lbl.setForeground(sel ? NAVY : new Color(55, 75, 115));
@@ -694,19 +698,16 @@ public class DatVeGUI1 extends JPanel {
 		bar.setBackground(Color.WHITE);
 		bar.setBorder(new MatteBorder(1, 0, 0, 0, BORDER_C));
 
-		// btnQuay: Thực hiện vẽ nút "Quay lại" ở góc trái phía dưới
 		JButton btnQuay = makeOutlineBtn("↩ Quay lại");
 		btnQuay.addActionListener(e -> {
 			if (onQuayLai != null)
 				onQuayLai.run();
 		});
 
-		// lblGheDaChon: Thực hiện vẽ nhãn hiển thị "Số vé đã chọn: 0/1" ở góc phải
 		lblGheDaChon = new JLabel("  Số vé đã chọn: 0/" + soLuong);
 		lblGheDaChon.setFont(f(12));
 		lblGheDaChon.setForeground(new Color(50, 70, 110));
 
-		// btnAction: Thực hiện vẽ nút "Chọn nhanh" màu xanh Navy ở góc phải phía dưới
 		btnAction = makeNavyBtn("⇒ Chọn nhanh");
 		btnAction.addActionListener(e -> {
 			if (gheChon.size() >= soLuong) {
@@ -724,15 +725,20 @@ public class DatVeGUI1 extends JPanel {
 			}
 		});
 
-		JPanel left = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 7));
-		JPanel right = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 7));
+		// SỬA TẠI ĐÂY: Đổi số 7 thành 2 để ép nút bấm sát mép trên/dưới của footer
+		JPanel left = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 2));
+		JPanel right = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 2));
+		
 		left.setBackground(Color.WHITE);
 		right.setBackground(Color.WHITE);
+		
 		left.add(btnQuay);
 		right.add(lblGheDaChon);
 		right.add(btnAction);
+		
 		bar.add(left, BorderLayout.WEST);
 		bar.add(right, BorderLayout.EAST);
+		
 		return bar;
 	}
 
@@ -833,24 +839,26 @@ public class DatVeGUI1 extends JPanel {
 	}
 
 	private JPanel makeLegend(Color c, String txt) {
-		// makeLegend: Thực hiện vẽ một ô vuông màu nhỏ kèm nhãn chữ cho phần chú thích
-		// (Legend)
-		JPanel p = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 0));
+		JPanel p = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
 		p.setBackground(BG);
 		JPanel box = new JPanel() {
 			@Override
 			protected void paintComponent(Graphics g) {
 				Graphics2D g2 = (Graphics2D) g.create();
+				g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 				g2.setColor(c);
-				g2.fillRoundRect(0, 0, getWidth(), getHeight(), 4, 4);
+				g2.fillRoundRect(0, 0, getWidth(), getHeight(), 3, 3); // Bo góc ô màu 3px
 				g2.dispose();
 			}
 		};
-		box.setPreferredSize(new Dimension(13, 13));
+		// Phóng to ô màu lên xíu cho cân đối với cỡ chữ 14
+		box.setPreferredSize(new Dimension(16, 16)); 
 		box.setOpaque(false);
+		
 		JLabel l = new JLabel(txt);
-		l.setFont(f(10));
-		l.setForeground(new Color(75, 88, 110));
+		l.setFont(new Font("Segoe UI", Font.PLAIN, 14)); // Nâng lên chữ cỡ 14
+		l.setForeground(Color.BLACK);
+		
 		p.add(box);
 		p.add(l);
 		return p;
