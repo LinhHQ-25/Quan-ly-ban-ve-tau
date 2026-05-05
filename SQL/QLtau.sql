@@ -156,10 +156,12 @@ CREATE TABLE Ve (
     maGhe VARCHAR(20) NOT NULL,
     maKhuyenMai VARCHAR(20),
     maChuyen VARCHAR(20) NOT NULL,
+    maKH VARCHAR(20) NOT NULL,
 
     FOREIGN KEY (maGhe) REFERENCES Ghe(maGhe),
     FOREIGN KEY (maKhuyenMai) REFERENCES KhuyenMai(maKhuyenMai),
-    FOREIGN KEY (maChuyen) REFERENCES ChuyenTau(maChuyen)
+    FOREIGN KEY (maChuyen) REFERENCES ChuyenTau(maChuyen),
+    FOREIGN KEY (maKH) REFERENCES KhachHang(maKH)
 );
 
 -- UNIQUE INDEX (CHỐNG TRÙNG GHẾ THÔNG MINH)
@@ -182,6 +184,7 @@ CREATE TABLE DonDoiTraVe (
     maVe VARCHAR(20) UNIQUE,
     FOREIGN KEY (maVe) REFERENCES Ve(maVe)
 );
+GO
 
 -- ==========================================
 -- DỮ LIỆU MẪU (MOCK DATA)
@@ -247,9 +250,9 @@ INSERT INTO HoaDon (maHoaDon, ngayLapHD, maNV, maKH, tongTien, tienNhan, phuongT
 ('HD020526-0002', '2026-05-02 11:30:00', 'MP0003', 'HK0000000205', 800000, 1000000, 'TIEN_MAT');
 
 -- 11. Ve
-INSERT INTO Ve (maVe, ngayMua, loaiVe, trangThaiVe, giaVe, maGhe, maKhuyenMai, maChuyen) VALUES
-('001CT01Train001123', '2026-05-01 10:05:00', 'MOT_CHIEU', 'DA_THANH_TOAN', 1500000, 'SEAT10201', NULL, 'CT01Train001'),
-('001CT01Train001456', '2026-05-02 11:35:00', 'MOT_CHIEU', 'DA_THANH_TOAN', 800000, 'SEAT10101', 'KM-0526-0001', 'CT01Train001');
+INSERT INTO Ve (maVe, ngayMua, loaiVe, trangThaiVe, giaVe, maGhe, maKhuyenMai, maChuyen, maKH) VALUES
+('001CT01Train001123', '2026-05-01 10:05:00', 'MOT_CHIEU', 'DA_THANH_TOAN', 1500000, 'SEAT10201', NULL, 'CT01Train001', 'HK0000000190'),
+('001CT01Train001456', '2026-05-02 11:35:00', 'MOT_CHIEU', 'DA_THANH_TOAN', 800000, 'SEAT10101', 'KM-0526-0001', 'CT01Train001', 'HK0000000205');
 
 -- 12. DonDoiTraVe
 INSERT INTO DonDoiTraVe (maDon, ngayLap, loaiDon, tienBu, tienHoanTra, maVe) VALUES

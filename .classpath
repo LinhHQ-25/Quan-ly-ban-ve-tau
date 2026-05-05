@@ -14,5 +14,6 @@
 	<classpathentry kind="lib" path="libs/jcalendar-0.8.1.jar"/>
 	<classpathentry kind="lib" path="libs/fontbox-2.0.31.jar"/>
 	<classpathentry kind="lib" path="libs/jcalendar-1.4 (1).jar"/>
+	<classpathentry kind="lib" path="libs/mssql-jdbc-13.4.0.jre11.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

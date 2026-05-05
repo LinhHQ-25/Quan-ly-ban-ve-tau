@@ -34,6 +34,9 @@ final class VeGUI extends JPanel {
     private static final Color FIELD_BG = new Color(141, 184, 219);
     private static final Color PRIMARY = new Color(71, 71, 156);
 
+    private DefaultTableModel tblModel;
+    private JTable tblData;
+
     VeGUI() {
         setBackground(GuiTheme.LIGHT_BG);
         setLayout(new BorderLayout());
@@ -52,6 +55,9 @@ final class VeGUI extends JPanel {
         pnlPage.add(buildTablePanel(), BorderLayout.CENTER);
 
         add(pnlPage, BorderLayout.CENTER);
+
+        // Tự động load dữ liệu khi mở form
+        loadDataToTable();
     }
 
 
@@ -161,6 +167,13 @@ final class VeGUI extends JPanel {
         JButton btnReset = buildNavyButton("Xóa bộ lọc");
         JButton btnSearch = buildNavyButton("Tra cứu");
 
+        btnSearch.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseClicked(java.awt.event.MouseEvent e) {
+                loadDataToTable();
+            }
+        });
+
         pnlButtons.add(btnReset);
         pnlButtons.add(btnSearch);
         pnlBlock.add(pnlButtons, BorderLayout.CENTER);
@@ -194,14 +207,14 @@ final class VeGUI extends JPanel {
         pnlOuter.setOpaque(false);
         pnlOuter.add(buildSectionTitle("Danh sách vé tàu"), BorderLayout.NORTH);
 
-        DefaultTableModel tblModel = new DefaultTableModel(
+        tblModel = new DefaultTableModel(
             new Object[] { "STT", "Mã vé", "Tên khách", "Loại vé", "Khởi hành", "Ga đi - Ga đến", "Vị trí", "Ngày mua", "Trạng thái" },
             0
         ) {
             @Override public boolean isCellEditable(int row, int column) { return false; }
         };
 
-        JTable tblData = new JTable(tblModel);
+        tblData = new JTable(tblModel);
         tblData.setRowHeight(28);
         tblData.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 13));
         tblData.setForeground(GuiTheme.TEXT);
@@ -256,5 +269,58 @@ final class VeGUI extends JPanel {
         lb.setBorder(new EmptyBorder(6, 12, 6, 12));
         pnl.add(lb);
         return pnl;
+    }
+
+    private void loadDataToTable() {
+        if (tblModel == null) return;
+        tblModel.setRowCount(0); // Clear current data
+        
+        java.sql.Connection conn = null;
+        java.sql.PreparedStatement stmt = null;
+        java.sql.ResultSet rs = null;
+        
+        try {
+            conn = connect_DB.Connect_DB.getInstance().getConnection();
+            if (conn == null) return;
+            
+            String sql = "SELECT v.maVe, kh.hoTenKH, v.loaiVe, ct.thoiGianKhoiHanh, " +
+                         "gDi.tenGa AS gaDi, gDen.tenGa AS gaDen, v.maGhe, v.ngayMua, v.trangThaiVe " +
+                         "FROM Ve v " +
+                         "JOIN KhachHang kh ON v.maKH = kh.maKH " +
+                         "JOIN ChuyenTau ct ON v.maChuyen = ct.maChuyen " +
+                         "JOIN Ga gDi ON ct.gaDi = gDi.maGa " +
+                         "JOIN Ga gDen ON ct.gaDen = gDen.maGa";
+                         
+            stmt = conn.prepareStatement(sql);
+            rs = stmt.executeQuery();
+            
+            int stt = 1;
+            SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy HH:mm");
+            
+            while (rs.next()) {
+                String maVe = rs.getString("maVe");
+                String tenKhach = rs.getString("hoTenKH");
+                String loaiVe = rs.getString("loaiVe");
+                java.sql.Timestamp khoiHanhDate = rs.getTimestamp("thoiGianKhoiHanh");
+                String khoiHanh = (khoiHanhDate != null) ? sdf.format(khoiHanhDate) : "";
+                
+                String tuyenDuong = rs.getString("gaDi") + " - " + rs.getString("gaDen");
+                String viTri = rs.getString("maGhe");
+                
+                java.sql.Timestamp ngayMuaDate = rs.getTimestamp("ngayMua");
+                String ngayMua = (ngayMuaDate != null) ? sdf.format(ngayMuaDate) : "";
+                String trangThai = rs.getString("trangThaiVe");
+                
+                tblModel.addRow(new Object[] {
+                    stt++, maVe, tenKhach, loaiVe, khoiHanh, tuyenDuong, viTri, ngayMua, trangThai
+                });
+            }
+        } catch (java.sql.SQLException ex) {
+            ex.printStackTrace();
+        } finally {
+            try { if (rs != null) rs.close(); } catch (Exception e) {}
+            try { if (stmt != null) stmt.close(); } catch (Exception e) {}
+            // Không đóng connection nếu đang dùng chung
+        }
     }
 }
