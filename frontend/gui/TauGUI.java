@@ -41,6 +41,7 @@ final class TauGUI extends JPanel {
     private static final Color CARD_BORDER = new Color(125, 192, 225);
     private static final Color ACTIVE_BG = new Color(229, 244, 234);
     private static final Color ACTIVE_TEXT = new Color(31, 125, 70);
+    private static final Color PRIMARY = new Color(71, 71, 156);
     private static final Color MAINTAIN_BG = new Color(252, 239, 220);
     private static final Color MAINTAIN_TEXT = new Color(166, 107, 24);
     private static final int CARD_WIDTH = 118;
@@ -189,8 +190,8 @@ final class TauGUI extends JPanel {
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.insets = new Insets(0, 0, 8, 18);
         gbc.fill = GridBagConstraints.HORIZONTAL;
+        
         gbc.gridy = 0;
-
         gbc.gridx = 0;
         gbc.weightx = 1.1;
         pnlGrid.add(buildField("Mã tàu", buildTextField(150)), gbc);
@@ -204,6 +205,11 @@ final class TauGUI extends JPanel {
         pnlGrid.add(buildField("Trạng thái:", buildStatusCombo()), gbc);
 
         gbc.gridx = 3;
+        gbc.weightx = 1.0;
+        pnlGrid.add(buildField("Số toa:", buildCoachSpinner()), gbc);
+
+        gbc.gridy = 1;
+        gbc.gridx = 3;
         gbc.weightx = 1.2;
         pnlGrid.add(buildField("", buildActionBlock()), gbc);
 
@@ -216,7 +222,7 @@ final class TauGUI extends JPanel {
         pnlField.setOpaque(false);
         JLabel lbField = new JLabel(label);
         lbField.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
-        lbField.setForeground(GuiTheme.TEXT);
+        lbField.setForeground(PRIMARY);
         pnlField.add(lbField, BorderLayout.NORTH);
         pnlField.add(comp, BorderLayout.CENTER);
         return pnlField;
@@ -226,7 +232,7 @@ final class TauGUI extends JPanel {
         JTextField txtField = new JTextField();
         txtField.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
         txtField.setBackground(GuiTheme.SEARCH_FIELD_BG);
-        txtField.setForeground(GuiTheme.SEARCH_FIELD_TEXT);
+        txtField.setForeground(PRIMARY);
         txtField.setBorder(new LineBorder(GuiTheme.SEARCH_FIELD_BORDER, 1, true));
         txtField.setPreferredSize(new Dimension(width, 28));
         return txtField;
@@ -236,50 +242,70 @@ final class TauGUI extends JPanel {
         JComboBox<String> cboStatus = new JComboBox<>(new String[] { "", "Hoạt động", "Bảo trì" });
         cboStatus.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
         cboStatus.setBackground(GuiTheme.SEARCH_FIELD_BG);
-        cboStatus.setForeground(GuiTheme.SEARCH_FIELD_TEXT);
+        cboStatus.setForeground(PRIMARY);
         cboStatus.setBorder(new LineBorder(GuiTheme.SEARCH_FIELD_BORDER, 1, true));
         cboStatus.setPreferredSize(new Dimension(90, 28));
+        cboStatus.setRenderer(new javax.swing.DefaultListCellRenderer() {
+            @Override
+            public Component getListCellRendererComponent(javax.swing.JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
+                Component c = super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+                c.setForeground(PRIMARY);
+                return c;
+            }
+        });
         return cboStatus;
     }
 
     private JSpinner buildCoachSpinner() {
         JSpinner spnCoach = new JSpinner(new SpinnerNumberModel(0, 0, 99, 1));
         spnCoach.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
+        ((JSpinner.DefaultEditor)spnCoach.getEditor()).getTextField().setForeground(PRIMARY);
         spnCoach.setPreferredSize(new Dimension(100, 30));
         spnCoach.setBorder(new LineBorder(GuiTheme.SEARCH_FIELD_BORDER, 1, true));
         return spnCoach;
     }
 
     private JPanel buildActionBlock() {
-        JPanel pnlBlock = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 18));
+        JPanel pnlBlock = new JPanel(new BorderLayout());
         pnlBlock.setOpaque(false);
+        JPanel pnlButtons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 12, 4));
+        pnlButtons.setOpaque(false);
 
-        pnlBlock.add(buildField("Số toa", buildCoachSpinner()));
+        JButton btnReset = buildNavyButton("Xóa bộ lọc");
+        JButton btnSearch = buildNavyButton("Tra cứu");
 
-        JButton btnReset = new JButton("Xóa bộ lọc");
-        styleActionButton(btnReset);
-
-        JButton btnSearch = new JButton("Tra cứu");
-        styleActionButton(btnSearch);
-
-        pnlBlock.add(btnReset);
-        pnlBlock.add(btnSearch);
+        pnlButtons.add(btnReset);
+        pnlButtons.add(btnSearch);
+        pnlBlock.add(pnlButtons, BorderLayout.CENTER);
         return pnlBlock;
     }
 
-    private static void styleActionButton(JButton btn) {
-        btn.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
-        btn.setForeground(new Color(72, 72, 190));
-        btn.setBackground(new Color(244, 246, 250));
-        btn.setFocusPainted(false);
-        btn.setOpaque(true);
-        btn.setBorder(new LineBorder(new Color(145, 145, 145), 1, true));
-        btn.setPreferredSize(new Dimension(104, 34));
+    private JButton buildNavyButton(String text) {
+        JButton btn = new JButton(text) {
+            @Override protected void paintComponent(java.awt.Graphics g) {
+                java.awt.Graphics2D g2 = (java.awt.Graphics2D) g.create();
+                g2.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING, java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(getModel().isPressed() ? GuiTheme.NAVY_DARK
+                    : getModel().isRollover() ? GuiTheme.NAVY_HOVER : GuiTheme.NAVY);
+                g2.fillRoundRect(0,0,getWidth(),getHeight(),12,12);
+                g2.setColor(Color.WHITE);
+                g2.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
+                java.awt.FontMetrics fm = g2.getFontMetrics();
+                g2.drawString(text,(getWidth()-fm.stringWidth(text))/2,
+                    (getHeight()+fm.getAscent()-fm.getDescent())/2);
+                g2.dispose();
+            }
+        };
+        btn.setPreferredSize(new Dimension(130, 38));
+        btn.setContentAreaFilled(false); btn.setBorderPainted(false); btn.setFocusPainted(false);
+        btn.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+        return btn;
     }
 
     private JPanel buildTablePanel() {
-        JPanel pnlWrap = new JPanel(new BorderLayout());
+        JPanel pnlWrap = new JPanel(new BorderLayout(0, 8));
         pnlWrap.setOpaque(false);
+        pnlWrap.add(buildSectionTitle("Danh sách tàu"), BorderLayout.NORTH);
 
         DefaultTableModel tblModel = new DefaultTableModel(
             new Object[] { "STT", "Mã tàu", "Tên tàu", "Số toa", "Năm sản xuất", "Trạng thái", "Ghi chú" },
@@ -331,6 +357,20 @@ final class TauGUI extends JPanel {
 
         pnlWrap.add(spnScroll, BorderLayout.CENTER);
         return pnlWrap;
+    }
+
+    private JPanel buildSectionTitle(String title) {
+        JPanel pnl = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        pnl.setOpaque(false);
+        pnl.setBorder(new EmptyBorder(5, 0, 5, 0));
+        JLabel lb = new JLabel(title);
+        lb.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 14));
+        lb.setForeground(Color.WHITE);
+        lb.setOpaque(true);
+        lb.setBackground(PRIMARY);
+        lb.setBorder(new EmptyBorder(6, 12, 6, 12));
+        pnl.add(lb);
+        return pnl;
     }
 
     private static final class RoundedPanel extends JPanel {

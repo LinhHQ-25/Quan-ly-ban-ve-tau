@@ -70,9 +70,9 @@ final class VeGUI extends JPanel {
         gbc.weightx = 1.0;
 
         gbc.gridx = 0; pnlGrid.add(buildField("Mã vé:", buildTextField()), gbc);
-        gbc.gridx = 1; pnlGrid.add(buildField("Loại vé:", buildCombo("", "Một chiều", "Khứ hồi")), gbc);
+        gbc.gridx = 1; pnlGrid.add(buildField("Loại vé:", buildCombo("", "MOT_CHIEU", "KHU_HOI")), gbc);
         gbc.gridx = 2; pnlGrid.add(buildField("Ngày mua:", buildDateField()), gbc);
-        gbc.gridx = 3; pnlGrid.add(buildField("Trạng thái vé:", buildCombo("", "Hợp lệ", "Đã hủy")), gbc);
+        gbc.gridx = 3; pnlGrid.add(buildField("Trạng thái vé:", buildCombo("", "CHO_THANH_TOAN", "DA_THANH_TOAN", "DA_HUY")), gbc);
 
         gbc.gridy = 1;
         gbc.gridx = 0; pnlGrid.add(buildField("Họ tên khách:", buildTextField()), gbc);
@@ -81,8 +81,10 @@ final class VeGUI extends JPanel {
         gbc.gridx = 3; pnlGrid.add(buildField("Ga đến:", buildTextField()), gbc);
 
         gbc.gridy = 2;
-        gbc.gridx = 0;
-        gbc.gridwidth = 4;
+        gbc.gridx = 0; pnlGrid.add(buildField("Mã ghế:", buildTextField()), gbc);
+        
+        gbc.gridx = 1;
+        gbc.gridwidth = 3;
         gbc.fill = GridBagConstraints.HORIZONTAL;
         pnlGrid.add(buildActionBlock(), gbc);
 
@@ -95,7 +97,7 @@ final class VeGUI extends JPanel {
         pnlField.setOpaque(false);
         JLabel lbField = new JLabel(label);
         lbField.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
-        lbField.setForeground(GuiTheme.TEXT);
+        lbField.setForeground(PRIMARY);
         pnlField.add(lbField, BorderLayout.NORTH);
         pnlField.add(comp, BorderLayout.CENTER);
         return pnlField;
@@ -105,19 +107,28 @@ final class VeGUI extends JPanel {
         JTextField txtField = new JTextField();
         txtField.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
         txtField.setBackground(GuiTheme.SEARCH_FIELD_BG);
+        txtField.setForeground(PRIMARY);
         txtField.setBorder(new LineBorder(GuiTheme.SEARCH_FIELD_BORDER, 1, true));
         txtField.setPreferredSize(new Dimension(160, 28));
         return txtField;
     }
 
-    private JTextField buildCombo(String... values) {
-        JTextField txtField = new JTextField(values.length > 0 ? values[0] : "");
-        txtField.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
-        txtField.setBackground(GuiTheme.SEARCH_FIELD_BG);
-        txtField.setForeground(GuiTheme.SEARCH_FIELD_TEXT);
-        txtField.setBorder(new LineBorder(GuiTheme.SEARCH_FIELD_BORDER, 1, true));
-        txtField.setPreferredSize(new Dimension(160, 28));
-        return txtField;
+    private javax.swing.JComboBox<String> buildCombo(String... values) {
+        javax.swing.JComboBox<String> cmb = new javax.swing.JComboBox<>(values);
+        cmb.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
+        cmb.setBackground(GuiTheme.SEARCH_FIELD_BG);
+        cmb.setForeground(PRIMARY);
+        cmb.setBorder(new LineBorder(GuiTheme.SEARCH_FIELD_BORDER, 1, true));
+        cmb.setPreferredSize(new Dimension(160, 28));
+        cmb.setRenderer(new javax.swing.DefaultListCellRenderer() {
+            @Override
+            public java.awt.Component getListCellRendererComponent(javax.swing.JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
+                java.awt.Component c = super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+                c.setForeground(PRIMARY);
+                return c;
+            }
+        });
+        return cmb;
     }
 
     private JPanel buildDateField() {
@@ -147,11 +158,8 @@ final class VeGUI extends JPanel {
         JPanel pnlButtons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 12, 4));
         pnlButtons.setOpaque(false);
 
-        JButton btnReset = new JButton("Xóa bộ lọc");
-        styleButton(btnReset, new Color(244, 246, 250), new Color(72, 72, 190), new Color(145, 145, 145));
-
-        JButton btnSearch = new JButton("Tra cứu");
-        styleButton(btnSearch, PRIMARY, Color.WHITE, PRIMARY);
+        JButton btnReset = buildNavyButton("Xóa bộ lọc");
+        JButton btnSearch = buildNavyButton("Tra cứu");
 
         pnlButtons.add(btnReset);
         pnlButtons.add(btnSearch);
@@ -159,14 +167,26 @@ final class VeGUI extends JPanel {
         return pnlBlock;
     }
 
-    private static void styleButton(JButton btn, Color bg, Color fg, Color border) {
-        btn.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
-        btn.setForeground(fg);
-        btn.setBackground(bg);
-        btn.setFocusPainted(false);
-        btn.setOpaque(true);
-        btn.setBorder(new LineBorder(border, 1, true));
-        btn.setPreferredSize(new Dimension(96, 34));
+    private JButton buildNavyButton(String text) {
+        JButton btn = new JButton(text) {
+            @Override protected void paintComponent(java.awt.Graphics g) {
+                java.awt.Graphics2D g2 = (java.awt.Graphics2D) g.create();
+                g2.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING, java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(getModel().isPressed() ? GuiTheme.NAVY_DARK
+                    : getModel().isRollover() ? GuiTheme.NAVY_HOVER : GuiTheme.NAVY);
+                g2.fillRoundRect(0,0,getWidth(),getHeight(),12,12);
+                g2.setColor(Color.WHITE);
+                g2.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
+                java.awt.FontMetrics fm = g2.getFontMetrics();
+                g2.drawString(text,(getWidth()-fm.stringWidth(text))/2,
+                    (getHeight()+fm.getAscent()-fm.getDescent())/2);
+                g2.dispose();
+            }
+        };
+        btn.setPreferredSize(new Dimension(130, 38));
+        btn.setContentAreaFilled(false); btn.setBorderPainted(false); btn.setFocusPainted(false);
+        btn.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+        return btn;
     }
 
     private JPanel buildTablePanel() {
@@ -225,12 +245,16 @@ final class VeGUI extends JPanel {
     }
 
     private JPanel buildSectionTitle(String title) {
-        JPanel pnl = new JPanel(new BorderLayout());
+        JPanel pnl = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
         pnl.setOpaque(false);
+        pnl.setBorder(new EmptyBorder(5, 0, 5, 0));
         JLabel lb = new JLabel(title);
-        lb.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 16));
-        lb.setForeground(GuiTheme.TEXT);
-        pnl.add(lb, BorderLayout.WEST);
+        lb.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 14));
+        lb.setForeground(Color.WHITE);
+        lb.setOpaque(true);
+        lb.setBackground(PRIMARY);
+        lb.setBorder(new EmptyBorder(6, 12, 6, 12));
+        pnl.add(lb);
         return pnl;
     }
 }
