@@ -239,6 +239,18 @@ public class AppFrame extends JFrame {
 			case "ho-tro":
 				headerTitle.setText("HỖ TRỢ");
 				break;
+			case "tra-ve":
+				headerTitle.setText("TRẢ VÉ");
+				break;
+			case "tra-ve-step-2":
+				headerTitle.setText("TRẢ VÉ");
+				break;
+			case "doi-ve":
+				headerTitle.setText("ĐỔI VÉ");
+				break;
+			case "doi-ve-step-2":
+				headerTitle.setText("ĐỔI VÉ");
+				break;
 			default:
 				headerTitle.setText("THÔNG TIN CÁ NHÂN");
 		}

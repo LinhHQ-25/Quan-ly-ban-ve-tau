@@ -6,11 +6,10 @@ import java.awt.*;
 
 /**
  * DoiVeGUI1 – Màn hình xác nhận đổi vé (bước 2).
- * Flow: DoiVeGUI → DoiVeGUI1
- *
- * Hiển thị so sánh vé cũ vs vé mới + lệ phí. Người dùng xác nhận để hoàn tất.
- * Dữ liệu được nhận qua setDonDoi() từ DoiVeGUI.
- * AppFrame gọi refresh() mỗi khi showCard("doi-ve-step-2").
+ * REDESIGN: Cân bằng 2 cột
+ *  - Gộp lệ phí vào card so sánh (phần dưới)
+ *  - Tóm tắt thay đổi ngắn gọn (SE8→SE6, Ghế 5→Ghế 12)
+ *  - 2 cột vé cũ / vé mới cân bằng ngang nhau (50/50)
  */
 public class DoiVeGUI1 extends JPanel {
 
@@ -19,15 +18,16 @@ public class DoiVeGUI1 extends JPanel {
     private static final Color OK_FG     = new Color(30, 120, 60);
     private static final Color OK_BG     = new Color(236, 252, 240);
     private static final Color OK_BORDER = new Color(160, 215, 175);
+    private static final Color NEW_FG    = new Color(37, 69, 121); // NAVY
+    private static final int   FIELD_H   = 26;
 
-    // ── Dữ liệu tĩnh nhận từ DoiVeGUI ────────────────────────────────────
-    private static String   s_maVe       = "";
-    private static String[] s_data       = new String[0];
-    private static String   s_chuyenMoi  = "";
-    private static String   s_ngayMoi    = "";
-    private static String   s_gheMoi     = "";
+    // ── Dữ liệu tĩnh ──────────────────────────────────────────────────────
+    private static String   s_maVe      = "";
+    private static String[] s_data      = new String[0];
+    private static String   s_chuyenMoi = "";
+    private static String   s_ngayMoi   = "";
+    private static String   s_gheMoi    = "";
 
-    /** DoiVeGUI gọi hàm này trước khi showCard("doi-ve-step-2") */
     public static void setDonDoi(String maVe, String[] data,
                                  String chuyenMoi, String ngayMoi, String gheMoi) {
         s_maVe      = maVe;
@@ -40,13 +40,12 @@ public class DoiVeGUI1 extends JPanel {
     // ── State ──────────────────────────────────────────────────────────────
     private final AppFrame appFrame;
 
-    // Labels vé cũ (cập nhật qua refresh)
-    private JLabel valMaVe, valChuyen, valGaDi, valGaDen, valNgayGio, valLoai, valSoLuong;
-    // Labels vé mới (cập nhật qua refresh)
-    private JLabel valChuyenMoi, valNgayMoi, valGheMoi;
-    // Label mã vé trong fee card
-    private JLabel valMaVeFee;
-
+    // Vé cũ
+    private JLabel valMaVe, valChuyen, valGaDi, valGaDen, valNgayGio, valLoai;
+    // Vé mới
+    private JLabel valChuyenMoi, valGaDiMoi, valGaDenMoi, valNgayMoi, valLoaiMoi, valGheMoi;
+    // Tóm tắt thay đổi
+    private JLabel lbThayDoi;
 
     // ── Constructor ────────────────────────────────────────────────────────
     public DoiVeGUI1(AppFrame appFrame) {
@@ -61,15 +60,12 @@ public class DoiVeGUI1 extends JPanel {
                 GuiTheme.PAGE_PAD_TOP, GuiTheme.PAGE_PAD_LEFT,
                 GuiTheme.PAGE_PAD_BOTTOM, GuiTheme.PAGE_PAD_LEFT));
 
-        page.add(buildHeader());
-        page.add(Box.createVerticalStrut(12));
         page.add(buildSuccessBox());
-        page.add(Box.createVerticalStrut(12));
+        page.add(Box.createVerticalStrut(10));
         page.add(buildCompareCard());
-        page.add(Box.createVerticalStrut(8));
-        page.add(buildFeeCard());
-        page.add(Box.createVerticalStrut(16));
+        page.add(Box.createVerticalStrut(13));
         page.add(buildButtonRow());
+        page.add(Box.createVerticalGlue());
 
         JScrollPane outer = new JScrollPane(page);
         outer.setBorder(null);
@@ -78,27 +74,22 @@ public class DoiVeGUI1 extends JPanel {
         add(outer, BorderLayout.CENTER);
     }
 
-    /**
-     * AppFrame gọi hàm này mỗi khi showCard("doi-ve-step-2").
-     * Nạp lại tất cả dữ liệu từ DoiVeGUI vào các label hiển thị.
-     */
     public void refresh() {
-        // Vé cũ
         valMaVe    .setText(s_maVe.isEmpty() ? "—" : s_maVe);
         valChuyen  .setText(safe(s_data, 0));
         valGaDi    .setText(safe(s_data, 1));
         valGaDen   .setText(safe(s_data, 2));
         valLoai    .setText(safe(s_data, 3));
         valNgayGio .setText(safe(s_data, 4));
-        valSoLuong .setText(safe(s_data, 5));
 
-        // Vé mới
         valChuyenMoi.setText(s_chuyenMoi.isEmpty() ? "—" : s_chuyenMoi);
-        valNgayMoi  .setText(s_ngayMoi  .isEmpty() ? "—" : s_ngayMoi);
-        valGheMoi   .setText(s_gheMoi   .isEmpty() ? "—" : s_gheMoi);
+        valGaDiMoi  .setText(safe(s_data, 1));
+        valGaDenMoi .setText(safe(s_data, 2));
+        valLoaiMoi  .setText(safe(s_data, 3));
+        valNgayMoi  .setText(s_ngayMoi.isEmpty()   ? "—" : s_ngayMoi);
+        valGheMoi   .setText(s_gheMoi.isEmpty()    ? "—" : s_gheMoi);
 
-        // Fee card
-        valMaVeFee.setText(s_maVe.isEmpty() ? "—" : s_maVe);
+        lbThayDoi.setText(buildThayDoi());
 
         revalidate();
         repaint();
@@ -108,25 +99,6 @@ public class DoiVeGUI1 extends JPanel {
     // UI BUILDERS
     // ══════════════════════════════════════════════════════════════════════
 
-    private JPanel buildHeader() {
-        JPanel p = new JPanel(new BorderLayout(0, 4));
-        p.setOpaque(false);
-
-        JLabel title = new JLabel("XÁC NHẬN ĐỔI VÉ");
-        title.setFont(GuiTheme.font("Segoe UI", Font.BOLD, GuiTheme.PAGE_TITLE_SIZE));
-        title.setForeground(GuiTheme.TEXT);
-
-        JLabel sub = new JLabel("Vui lòng kiểm tra lại thông tin vé cũ và vé mới trước khi xác nhận.");
-        sub.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, GuiTheme.PAGE_SUBTITLE_SIZE));
-        sub.setForeground(GuiTheme.SUB_TEXT);
-
-        p.add(title, BorderLayout.NORTH);
-        p.add(sub,   BorderLayout.SOUTH);
-        fixAlignAndMax(p);
-        return p;
-    }
-
-    /** Banner xanh nhắc kiểm tra */
     private JPanel buildSuccessBox() {
         JPanel p = new JPanel() {
             @Override protected void paintComponent(Graphics g) {
@@ -141,109 +113,126 @@ public class DoiVeGUI1 extends JPanel {
         };
         p.setOpaque(false);
         p.setLayout(new BoxLayout(p, BoxLayout.X_AXIS));
-        p.setBorder(new EmptyBorder(12, 16, 12, 16));
+        p.setBorder(new EmptyBorder(10, 16, 10, 16));
+        p.setAlignmentX(LEFT_ALIGNMENT);
+        // FIX: hardcode height thay vì dùng getPreferredSize() trước khi add vào hierarchy
+        p.setMaximumSize(new Dimension(Integer.MAX_VALUE, 44));
 
         JLabel icon = new JLabel("ℹ");
-        icon.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 20));
+        icon.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 18));
         icon.setForeground(OK_FG);
 
         JLabel msg = new JLabel(
-                "Thông tin hợp lệ. Sau khi xác nhận, lệ phí 30.000 đ sẽ được thu tại quầy.");
+                "Thông tin hợp lệ. Lệ phí 30.000 đ / vé · Thu tại quầy.");
         msg.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 13));
         msg.setForeground(OK_FG);
 
         p.add(icon);
+        p.add(Box.createHorizontalStrut(10));
         p.add(msg);
-        fixAlignAndMax(p);
         return p;
     }
 
-    /** Card so sánh vé cũ → vé mới với mũi tên ở giữa */
     private JPanel buildCompareCard() {
-        JPanel card = buildCard("So sánh vé cũ và vé mới");
+        JPanel card = buildCard("So sánh vé cũ → vé mới");
 
-        JPanel outer = new JPanel(new BorderLayout(16, 0));
-        outer.setOpaque(false);
+        // ── Khởi tạo labels ──
+        valMaVe     = fieldLabel(GuiTheme.SUB_TEXT);
+        valChuyen   = fieldLabel(GuiTheme.SUB_TEXT);
+        valGaDi     = fieldLabel(GuiTheme.SUB_TEXT);
+        valGaDen    = fieldLabel(GuiTheme.SUB_TEXT);
+        valNgayGio  = fieldLabel(GuiTheme.SUB_TEXT);
+        valLoai     = fieldLabel(GuiTheme.SUB_TEXT);
 
-        // Khởi tạo labels vé cũ
-        valMaVe    = valueLabel(GuiTheme.SUB_TEXT);
-        valChuyen  = valueLabel(GuiTheme.SUB_TEXT);
-        valGaDi    = valueLabel(GuiTheme.SUB_TEXT);
-        valGaDen   = valueLabel(GuiTheme.SUB_TEXT);
-        valNgayGio = valueLabel(GuiTheme.SUB_TEXT);
-        valLoai    = valueLabel(GuiTheme.SUB_TEXT);
-        valSoLuong = valueLabel(GuiTheme.SUB_TEXT);
+        valChuyenMoi = fieldLabel(NEW_FG);
+        valGaDiMoi   = fieldLabel(GuiTheme.TEXT);
+        valGaDenMoi  = fieldLabel(GuiTheme.TEXT);
+        valLoaiMoi   = fieldLabel(GuiTheme.TEXT);
+        valNgayMoi   = fieldLabel(NEW_FG);
+        valGheMoi    = fieldLabel(NEW_FG);
 
-        JPanel colOld = buildInfoColumn(
-                "Vé hiện tại  (cũ)",
-                new String[]{"Mã vé", "Chuyến tàu", "Ga đi", "Ga đến", "Ngày/Giờ KH", "Loại vé", "Số lượng"},
-                new JLabel[]{valMaVe, valChuyen, valGaDi, valGaDen, valNgayGio, valLoai, valSoLuong},
-                GuiTheme.SUB_TEXT
-        );
+        JPanel colOld = buildColumn("Vé hiện tại (cũ)", GuiTheme.SUB_TEXT,
+                new String[]{"Mã vé", "Chuyến tàu", "Ga đi", "Ga đến", "Ngày/Giờ KH", "Loại vé"},
+                new JLabel[]{valMaVe, valChuyen, valGaDi, valGaDen, valNgayGio, valLoai});
 
-        // Mũi tên
-        JLabel arrow = new JLabel(" ");
-        arrow.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 30));
-        arrow.setForeground(GuiTheme.NAVY);
+        JLabel arrow = new JLabel("→");
+        arrow.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 24));
+        arrow.setForeground(NEW_FG);
         arrow.setHorizontalAlignment(SwingConstants.CENTER);
         arrow.setVerticalAlignment(SwingConstants.CENTER);
 
-        // Khởi tạo labels vé mới
-        valChuyenMoi = valueLabel(GuiTheme.TEXT);
-        valNgayMoi   = valueLabel(GuiTheme.TEXT);
-        valGheMoi    = valueLabel(GuiTheme.TEXT);
+        JPanel colNew = buildColumn("Vé đổi sang (mới)", NEW_FG,
+                new String[]{"Chuyến mới", "Ga đi", "Ga đến", "Loại vé", "Ngày/Giờ mới", "Ghế mới"},
+                new JLabel[]{valChuyenMoi, valGaDiMoi, valGaDenMoi, valLoaiMoi, valNgayMoi, valGheMoi});
 
-        JPanel colNew = buildInfoColumn(
-                "Vé đổi sang  (mới)",
-                new String[]{"Chuyến mới", "Ngày/Giờ mới", "Ghế mới"},
-                new JLabel[]{valChuyenMoi, valNgayMoi, valGheMoi},
-                GuiTheme.NAVY
-        );
+        // GridBagLayout để 2 cột thực sự 50/50
+        JPanel twoCol = new JPanel(new GridBagLayout());
+        twoCol.setOpaque(false);
+        GridBagConstraints gc = new GridBagConstraints();
+        gc.fill = GridBagConstraints.BOTH;
+        gc.weighty = 1;
 
-        outer.add(colOld,  BorderLayout.WEST);
-        outer.add(arrow,   BorderLayout.CENTER);
-        outer.add(colNew,  BorderLayout.EAST);
+        gc.gridx = 0; gc.weightx = 1; gc.insets = new Insets(0, 0, 0, 0);
+        twoCol.add(colOld, gc);
 
-        card.add(outer, BorderLayout.CENTER);
-        return card;
-    }
+        gc.gridx = 1; gc.weightx = 0; gc.insets = new Insets(0, 8, 0, 8);
+        twoCol.add(arrow, gc);
 
-    /** Card lệ phí */
-    private JPanel buildFeeCard() {
-        JPanel card = buildCard("Lệ phí đổi vé");
-        valMaVeFee = new JLabel("—");
-        valMaVeFee.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 13));
-        valMaVeFee.setForeground(GuiTheme.TEXT);
-        valMaVeFee.setBackground(GuiTheme.SEARCH_FIELD_BG);
-        valMaVeFee.setOpaque(true);
-        valMaVeFee.setBorder(BorderFactory.createCompoundBorder(
-                new LineBorder(BORDER, 1, false),
-                new EmptyBorder(2, 6, 2, 6))
-        );
-        valMaVeFee.setBorder(BorderFactory.createCompoundBorder(
-                new LineBorder(BORDER, 1, false),
-                new EmptyBorder(1, 6, 1, 6)
-        ));
+        gc.gridx = 2; gc.weightx = 1; gc.insets = new Insets(0, 0, 0, 0);
+        twoCol.add(colNew, gc);
 
-        Dimension size = new Dimension(0, 22);
-        valMaVeFee.setPreferredSize(size);
-        valMaVeFee.setMinimumSize(size);
-        valMaVeFee.setMaximumSize(new Dimension(Integer.MAX_VALUE, 22));
+        // ── Dải lệ phí + tóm tắt thay đổi ──
+        lbThayDoi = new JLabel("—");
+        lbThayDoi.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 13));
+        lbThayDoi.setForeground(NEW_FG);
 
-        JPanel grid = new JPanel(new GridLayout(1, 3, 10, 0));
-        grid.setOpaque(false);
-        grid.add(infoCell("Mã vé",         valMaVeFee));
-        grid.add(infoCell("Lệ phí đổi vé", makeStaticValueLabel("30.000 đ / vé")));
-        grid.add(infoCell("Hình thức thu",  makeStaticValueLabel("Thu khi đổi tại quầy")));
+        JPanel feeStrip = new JPanel(new GridLayout(1, 2, 20, 0));
+        feeStrip.setOpaque(false);
+        feeStrip.setBorder(BorderFactory.createCompoundBorder(
+                new MatteBorder(1, 0, 0, 0, BORDER),
+                new EmptyBorder(10, 0, 0, 0)));
 
-        card.add(grid, BorderLayout.CENTER);
+        JPanel feeLeft = new JPanel();
+        feeLeft.setLayout(new BoxLayout(feeLeft, BoxLayout.Y_AXIS));
+        feeLeft.setOpaque(false);
+        JLabel lbFeeTitle = new JLabel("Lệ phí đổi vé");
+        lbFeeTitle.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 12));
+        lbFeeTitle.setForeground(GuiTheme.SUB_TEXT);
+        JLabel lbFeeVal = new JLabel("30.000 đ / vé  ·  Thu tại quầy");
+        lbFeeVal.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 13));
+        lbFeeVal.setForeground(new Color(160, 80, 0));
+        feeLeft.add(lbFeeTitle);
+        feeLeft.add(Box.createVerticalStrut(2));
+        feeLeft.add(lbFeeVal);
+
+        JPanel feeRight = new JPanel();
+        feeRight.setLayout(new BoxLayout(feeRight, BoxLayout.Y_AXIS));
+        feeRight.setOpaque(false);
+        JLabel lbChangeTitle = new JLabel("Thay đổi");
+        lbChangeTitle.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 12));
+        lbChangeTitle.setForeground(GuiTheme.SUB_TEXT);
+        feeRight.add(lbChangeTitle);
+        feeRight.add(Box.createVerticalStrut(2));
+        feeRight.add(lbThayDoi);
+
+        feeStrip.add(feeLeft);
+        feeStrip.add(feeRight);
+
+        JPanel content = new JPanel();
+        content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
+        content.setOpaque(false);
+        content.add(twoCol);
+        content.add(Box.createVerticalStrut(10));
+        content.add(feeStrip);
+
+        card.add(content, BorderLayout.CENTER);
         return card;
     }
 
     private JPanel buildButtonRow() {
         JPanel p = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
         p.setOpaque(false);
-        fixAlignAndMax(p);
+        p.setAlignmentX(LEFT_ALIGNMENT);
 
         JButton btnBack = makeSecondaryButton("← Quay lại", 130, 34);
         btnBack.addActionListener(e -> appFrame.showCard("doi-ve"));
@@ -259,6 +248,19 @@ public class DoiVeGUI1 extends JPanel {
     // ══════════════════════════════════════════════════════════════════════
     // LOGIC
     // ══════════════════════════════════════════════════════════════════════
+
+    private String buildThayDoi() {
+        String oldChuyen = safe(s_data, 0);
+        String oldGhe    = safe(s_data, 6);
+        StringBuilder sb = new StringBuilder();
+        if (!oldChuyen.equals("—") && !s_chuyenMoi.isEmpty())
+            sb.append(oldChuyen).append(" → ").append(s_chuyenMoi);
+        if (!oldGhe.equals("—") && !s_gheMoi.isEmpty()) {
+            if (sb.length() > 0) sb.append("  ·  ");
+            sb.append("Ghế ").append(oldGhe).append(" → Ghế ").append(s_gheMoi);
+        }
+        return sb.length() > 0 ? sb.toString() : "—";
+    }
 
     private void handleConfirm() {
         int choice = JOptionPane.showConfirmDialog(this,
@@ -277,9 +279,9 @@ public class DoiVeGUI1 extends JPanel {
         JOptionPane.showMessageDialog(this,
                 "<html><div style='text-align:center;padding:10px'>" +
                         "<b style='font-size:16px;color:#1e7840'>✔  Đổi vé thành công!</b><br><br>" +
-                        "Mã vé <b>" + s_maVe + "</b> đã được đổi sang chuyến <b>" + s_chuyenMoi + "</b>.<br>" +
-                        "Ngày khởi hành mới: <b>" + s_ngayMoi + "</b> — Ghế: <b>" + s_gheMoi + "</b><br><br>" +
-                        "Lệ phí <b>30.000 đ</b> sẽ được thu khi đến quầy lấy vé." +
+                        "Mã vé <b>" + s_maVe + "</b> đã đổi sang <b>" + s_chuyenMoi + "</b>.<br>" +
+                        "Ngày: <b>" + s_ngayMoi + "</b>  —  Ghế: <b>" + s_gheMoi + "</b><br><br>" +
+                        "Lệ phí <b>30.000 đ</b> sẽ thu khi đến quầy." +
                         "</div></html>",
                 "Hoàn tất", JOptionPane.PLAIN_MESSAGE);
 
@@ -287,43 +289,14 @@ public class DoiVeGUI1 extends JPanel {
     }
 
     // ══════════════════════════════════════════════════════════════════════
-    // HELPERS – UI
+    // UI HELPERS
     // ══════════════════════════════════════════════════════════════════════
 
-    /** Tạo JLabel giá trị có thể cập nhật sau */
-    private JLabel valueLabel(Color textColor) {
-        JLabel lb = new JLabel("—");
-        lb.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 13));
-        lb.setForeground(textColor);
-        return lb;
-    }
-
-    /** Tạo JLabel giá trị tĩnh với viền (dùng trong fee card) */
-    private JLabel makeStaticValueLabel(String text) {
-        JLabel lb = new JLabel(text);
-        lb.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 13));
-        lb.setOpaque(true);
-        lb.setBackground(GuiTheme.SEARCH_FIELD_BG);
-
-        lb.setBorder(BorderFactory.createCompoundBorder(
-                new LineBorder(BORDER, 1, false),
-                new EmptyBorder(1, 6, 1, 6) // 🔥 giảm padding
-        ));
-
-        Dimension size = new Dimension(0, 22); // 🔥 giảm chiều cao xuống
-        lb.setPreferredSize(size);
-        lb.setMinimumSize(size);
-        lb.setMaximumSize(new Dimension(Integer.MAX_VALUE, 22)); // 🔥 chặn không cho bị giãn
-
-        return lb;
-    }
-
-    /** Cột thông tin label-value dùng JLabel[] */
-    private JPanel buildInfoColumn(String title, String[] labels, JLabel[] values, Color titleColor) {
+    private JPanel buildColumn(String title, Color titleColor,
+                               String[] labels, JLabel[] values) {
         JPanel p = new JPanel();
         p.setLayout(new BoxLayout(p, BoxLayout.Y_AXIS));
         p.setOpaque(false);
-        p.setPreferredSize(new Dimension(260, 0));
 
         JLabel lbTitle = new JLabel(title);
         lbTitle.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 13));
@@ -333,36 +306,33 @@ public class DoiVeGUI1 extends JPanel {
         p.add(Box.createVerticalStrut(8));
 
         for (int i = 0; i < labels.length; i++) {
-            JPanel row = new JPanel(new BorderLayout(8, 0));
-            row.setOpaque(false);
-            row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 24));
-            row.setAlignmentX(LEFT_ALIGNMENT);
-
-            JLabel lb = new JLabel(labels[i] + ":");
+            JLabel lb = new JLabel(labels[i]);
             lb.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 12));
             lb.setForeground(GuiTheme.SUB_TEXT);
-            lb.setPreferredSize(new Dimension(110, 20));
+            lb.setAlignmentX(LEFT_ALIGNMENT);
+            p.add(lb);
+            p.add(Box.createVerticalStrut(2));
 
-            row.add(lb,        BorderLayout.WEST);
-            row.add(values[i], BorderLayout.CENTER);
-            p.add(row);
-            p.add(Box.createVerticalStrut(4));
+            values[i].setAlignmentX(LEFT_ALIGNMENT);
+            values[i].setMaximumSize(new Dimension(Integer.MAX_VALUE, FIELD_H));
+            p.add(values[i]);
+            p.add(Box.createVerticalStrut(6));
         }
         return p;
     }
 
-    /** Panel label trên / JLabel value dưới (dùng trong fee card) */
-    private JPanel infoCell(String label, JLabel valueLabel) {
-        JPanel p = new JPanel(new BorderLayout(0, 4));
-        p.setOpaque(false);
-
-        JLabel lb = new JLabel(label);
-        lb.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 12));
-        lb.setForeground(GuiTheme.SUB_TEXT);
-
-        p.add(lb,         BorderLayout.NORTH);
-        p.add(valueLabel, BorderLayout.CENTER);
-        return p;
+    private JLabel fieldLabel(Color color) {
+        JLabel lb = new JLabel("—");
+        lb.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 13));
+        lb.setForeground(color);
+        lb.setOpaque(true);
+        lb.setBackground(GuiTheme.SEARCH_FIELD_BG);
+        lb.setBorder(BorderFactory.createCompoundBorder(
+                new LineBorder(BORDER, 1, false),
+                new EmptyBorder(2, 6, 2, 6)));
+        lb.setPreferredSize(new Dimension(0, FIELD_H));
+        lb.setMaximumSize(new Dimension(Integer.MAX_VALUE, FIELD_H));
+        return lb;
     }
 
     private JPanel buildCard(String titleText) {
@@ -370,11 +340,9 @@ public class DoiVeGUI1 extends JPanel {
         card.setBackground(Color.WHITE);
         card.setBorder(BorderFactory.createCompoundBorder(
                 new LineBorder(BORDER, 1, true),
-                new EmptyBorder(14, 16, 14, 16)
-        ));
+                new EmptyBorder(14, 16, 14, 16)));
         card.setAlignmentX(LEFT_ALIGNMENT);
         card.setMaximumSize(new Dimension(Integer.MAX_VALUE, Integer.MAX_VALUE));
-
         JLabel lbTitle = new JLabel(titleText);
         lbTitle.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 14));
         lbTitle.setForeground(GuiTheme.TEXT);
@@ -396,17 +364,14 @@ public class DoiVeGUI1 extends JPanel {
                 g2.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 13));
                 FontMetrics fm = g2.getFontMetrics();
                 String txt = getText();
-                g2.drawString(txt,
-                        (getWidth()  - fm.stringWidth(txt)) / 2,
+                g2.drawString(txt, (getWidth() - fm.stringWidth(txt)) / 2,
                         (getHeight() + fm.getAscent() - fm.getDescent()) / 2);
                 g2.dispose();
             }
         };
         btn.setPreferredSize(new Dimension(w, h));
-        btn.setContentAreaFilled(false);
-        btn.setBorderPainted(false);
-        btn.setFocusPainted(false);
-        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btn.setContentAreaFilled(false); btn.setBorderPainted(false);
+        btn.setFocusPainted(false); btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
         return btn;
     }
 
@@ -426,26 +391,17 @@ public class DoiVeGUI1 extends JPanel {
                 g2.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 13));
                 FontMetrics fm = g2.getFontMetrics();
                 String txt = getText();
-                g2.drawString(txt,
-                        (getWidth()  - fm.stringWidth(txt)) / 2,
+                g2.drawString(txt, (getWidth() - fm.stringWidth(txt)) / 2,
                         (getHeight() + fm.getAscent() - fm.getDescent()) / 2);
                 g2.dispose();
             }
         };
         btn.setPreferredSize(new Dimension(w, h));
-        btn.setContentAreaFilled(false);
-        btn.setBorderPainted(false);
-        btn.setFocusPainted(false);
-        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btn.setContentAreaFilled(false); btn.setBorderPainted(false);
+        btn.setFocusPainted(false); btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
         return btn;
     }
 
-    private static void fixAlignAndMax(JPanel p) {
-        p.setAlignmentX(LEFT_ALIGNMENT);
-        p.setMaximumSize(new Dimension(Integer.MAX_VALUE, p.getPreferredSize().height + 20));
-    }
-
-    /** Lấy giá trị an toàn từ mảng, trả "—" nếu out-of-bounds */
     private static String safe(String[] arr, int idx) {
         return (arr != null && idx < arr.length && arr[idx] != null) ? arr[idx] : "—";
     }
