@@ -73,19 +73,18 @@ final class KhachHangGUI extends JPanel {
         gbc.gridy = 0;
         gbc.weightx = 1.0;
 
-        gbc.gridx = 0; pnlGrid.add(buildField("Mã khách hàng:", buildCombo("KH001", "KH002", "KH003")), gbc);
-        gbc.gridx = 1; pnlGrid.add(buildField("Họ và tên:", buildCombo("Nguyễn Văn A", "Trần Thị B", "Lê Văn C")), gbc);
+        gbc.gridx = 0; pnlGrid.add(buildField("Mã khách hàng:", buildTextField()), gbc);
+        gbc.gridx = 1; pnlGrid.add(buildField("Họ và tên:", buildTextField()), gbc);
         gbc.gridx = 2; pnlGrid.add(buildField("Ngày sinh:", buildDateField()), gbc);
-        gbc.gridx = 3; pnlGrid.add(buildField("Số điện thoại:", buildCombo("0909000001", "0909000002", "0909000003")), gbc);
+        gbc.gridx = 3; pnlGrid.add(buildField("Số điện thoại:", buildTextField()), gbc);
 
         gbc.gridy = 1;
-        gbc.gridx = 0; pnlGrid.add(buildField("CCCD:", buildCombo("079099000111", "079099000222")), gbc);
-        gbc.gridx = 1; pnlGrid.add(buildField("Email:", buildCombo("nguyenvana@gmail.com", "tranthib@gmail.com")), gbc);
+        gbc.gridx = 0; pnlGrid.add(buildField("CCCD:", buildTextField()), gbc);
+        gbc.gridx = 1; pnlGrid.add(buildField("Email:", buildTextField()), gbc);
         gbc.gridx = 2; pnlGrid.add(buildField("Ngày đăng ký:", buildDateField()), gbc);
-        gbc.gridx = 3; pnlGrid.add(buildField("Điểm tích lũy:", buildSeatField()), gbc);
 
         gbc.gridy = 2;
-        gbc.gridx = 0; pnlGrid.add(buildField("Loại khách hàng:", buildCombo("", "Dưới 6 tuổi", "Từ 6 đến dưới 10 tuổi", "Từ 60 tuổi trở lên", "Sinh viên", "Người lớn")), gbc);
+        gbc.gridx = 0; pnlGrid.add(buildField("Loại khách hàng:", buildCombo("", "TRE_EM_DUOI_6", "TRE_EM_6_DEN_10", "HOC_SINH_SINH_VIEN", "NGUOI_LON", "NGUOI_CAO_TUOI")), gbc);
         gbc.gridx = 1; pnlGrid.add(buildUtilBlock(), gbc);
         
         gbc.gridx = 2; 
@@ -102,20 +101,38 @@ final class KhachHangGUI extends JPanel {
         pnlField.setOpaque(false);
         JLabel lbField = new JLabel(label);
         lbField.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
-        lbField.setForeground(GuiTheme.TEXT);
+        lbField.setForeground(PRIMARY);
         pnlField.add(lbField, BorderLayout.NORTH);
         pnlField.add(comp, BorderLayout.CENTER);
         return pnlField;
     }
 
-    private JTextField buildCombo(String... values) {
-        JTextField txtField = new JTextField(values.length > 0 ? values[0] : "");
+    private JTextField buildTextField() {
+        JTextField txtField = new JTextField();
         txtField.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
         txtField.setBackground(GuiTheme.SEARCH_FIELD_BG);
-        txtField.setForeground(GuiTheme.SEARCH_FIELD_TEXT);
+        txtField.setForeground(PRIMARY);
         txtField.setBorder(new LineBorder(GuiTheme.SEARCH_FIELD_BORDER, 1, true));
         txtField.setPreferredSize(new Dimension(160, 28));
         return txtField;
+    }
+
+    private javax.swing.JComboBox<String> buildCombo(String... values) {
+        javax.swing.JComboBox<String> cmb = new javax.swing.JComboBox<>(values);
+        cmb.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
+        cmb.setBackground(GuiTheme.SEARCH_FIELD_BG);
+        cmb.setForeground(PRIMARY);
+        cmb.setBorder(new LineBorder(GuiTheme.SEARCH_FIELD_BORDER, 1, true));
+        cmb.setPreferredSize(new Dimension(160, 28));
+        cmb.setRenderer(new javax.swing.DefaultListCellRenderer() {
+            @Override
+            public java.awt.Component getListCellRendererComponent(javax.swing.JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
+                java.awt.Component c = super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+                c.setForeground(PRIMARY);
+                return c;
+            }
+        });
+        return cmb;
     }
 
     private JPanel buildDateField() {
@@ -139,23 +156,13 @@ final class KhachHangGUI extends JPanel {
         return pnlWrap;
     }
 
-    private JPanel buildSeatField() {
-        JSpinner spnSeat = new JSpinner(new SpinnerNumberModel(0, 0, 99, 1));
-        spnSeat.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
-        spnSeat.setPreferredSize(new Dimension(95, 28));
-        spnSeat.setBorder(new LineBorder(new Color(188, 197, 208), 1, true));
-        JPanel pnlWrap = new JPanel(new BorderLayout());
-        pnlWrap.setOpaque(false);
-        pnlWrap.add(spnSeat, BorderLayout.CENTER);
-        return pnlWrap;
-    }
 
     private JPanel buildTypeBlock() {
         JPanel pnlBlock = new JPanel(new BorderLayout(0, 4));
         pnlBlock.setOpaque(false);
         JLabel lbBlock = new JLabel("Nhóm khách");
         lbBlock.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
-        lbBlock.setForeground(GuiTheme.TEXT);
+        lbBlock.setForeground(PRIMARY);
         JPanel pnlOptions = new JPanel();
         pnlOptions.setOpaque(false);
         pnlOptions.setLayout(new BoxLayout(pnlOptions, BoxLayout.Y_AXIS));
@@ -177,13 +184,12 @@ final class KhachHangGUI extends JPanel {
         pnlBlock.setOpaque(false);
         JLabel lbBlock = new JLabel("Trạng thái");
         lbBlock.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
-        lbBlock.setForeground(GuiTheme.TEXT);
+        lbBlock.setForeground(PRIMARY);
         JPanel pnlOptions = new JPanel();
         pnlOptions.setOpaque(false);
         pnlOptions.setLayout(new BoxLayout(pnlOptions, BoxLayout.Y_AXIS));
         pnlOptions.add(buildCheck("Đang hoạt động", true));
         pnlOptions.add(buildCheck("Tạm khóa", true));
-        pnlOptions.add(buildCheck("Khách VIP", false));
         pnlBlock.add(lbBlock, BorderLayout.NORTH);
         pnlBlock.add(pnlOptions, BorderLayout.CENTER);
         return pnlBlock;
@@ -194,10 +200,8 @@ final class KhachHangGUI extends JPanel {
         pnlBlock.setOpaque(false);
         JPanel pnlButtons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 12, 4));
         pnlButtons.setOpaque(false);
-        JButton btnReset = new JButton("Xóa bộ lọc");
-        styleButton(btnReset, new Color(244, 246, 250), new Color(72, 72, 190), new Color(145, 145, 145));
-        JButton btnSearch = new JButton("Tra cứu");
-        styleButton(btnSearch, PRIMARY, Color.WHITE, PRIMARY);
+        JButton btnReset = buildNavyButton("Xóa bộ lọc");
+        JButton btnSearch = buildNavyButton("Tra cứu");
         pnlButtons.add(btnReset);
         pnlButtons.add(btnSearch);
         pnlBlock.add(pnlButtons, BorderLayout.CENTER);
@@ -222,17 +226,33 @@ final class KhachHangGUI extends JPanel {
         return chk;
     }
 
-    private static void styleButton(JButton btn, Color bg, Color fg, Color border) {
-        btn.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
-        btn.setForeground(fg);
-        btn.setBackground(bg);
-        btn.setFocusPainted(false);
-        btn.setOpaque(true);
-        btn.setBorder(new LineBorder(border, 1, true));
-        btn.setPreferredSize(new Dimension(96, 34));
+    private JButton buildNavyButton(String text) {
+        JButton btn = new JButton(text) {
+            @Override protected void paintComponent(java.awt.Graphics g) {
+                java.awt.Graphics2D g2 = (java.awt.Graphics2D) g.create();
+                g2.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING, java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(getModel().isPressed() ? GuiTheme.NAVY_DARK
+                    : getModel().isRollover() ? GuiTheme.NAVY_HOVER : GuiTheme.NAVY);
+                g2.fillRoundRect(0,0,getWidth(),getHeight(),12,12);
+                g2.setColor(Color.WHITE);
+                g2.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
+                java.awt.FontMetrics fm = g2.getFontMetrics();
+                g2.drawString(text,(getWidth()-fm.stringWidth(text))/2,
+                    (getHeight()+fm.getAscent()-fm.getDescent())/2);
+                g2.dispose();
+            }
+        };
+        btn.setPreferredSize(new Dimension(130, 38));
+        btn.setContentAreaFilled(false); btn.setBorderPainted(false); btn.setFocusPainted(false);
+        btn.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+        return btn;
     }
 
     private JPanel buildTablePanel() {
+        JPanel pnlWrap = new JPanel(new BorderLayout(0, 8));
+        pnlWrap.setOpaque(false);
+        pnlWrap.add(buildSectionTitle("Danh sách khách hàng"), BorderLayout.NORTH);
+
         DefaultTableModel tblModel = new DefaultTableModel(
             new Object[] { "STT", "Mã khách", "Họ và tên", "Ngày sinh", "CCCD", "Số ĐT", "Email", "Loại khách", "Trạng thái" },
             0
@@ -270,9 +290,21 @@ final class KhachHangGUI extends JPanel {
                 tblData.getColumnModel().getColumn(8).setPreferredWidth(100);
             }
         });
-        JPanel pnlWrap = new JPanel(new BorderLayout());
-        pnlWrap.setOpaque(false);
         pnlWrap.add(spnScroll, BorderLayout.CENTER);
         return pnlWrap;
+    }
+
+    private JPanel buildSectionTitle(String title) {
+        JPanel pnl = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        pnl.setOpaque(false);
+        pnl.setBorder(new EmptyBorder(5, 0, 5, 0));
+        JLabel lb = new JLabel(title);
+        lb.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 14));
+        lb.setForeground(Color.WHITE);
+        lb.setOpaque(true);
+        lb.setBackground(PRIMARY);
+        lb.setBorder(new EmptyBorder(6, 12, 6, 12));
+        pnl.add(lb);
+        return pnl;
     }
 }

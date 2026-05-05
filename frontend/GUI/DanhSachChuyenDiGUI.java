@@ -82,7 +82,7 @@ final class DanhSachChuyenDiGUI extends JPanel {
         gbc.gridx = 0; pnlGrid.add(buildField("Ghế trống", buildSeatField()), gbc);
         gbc.gridx = 1; pnlGrid.add(buildTypeBlock(), gbc);
         gbc.gridx = 2; pnlGrid.add(buildUtilBlock(), gbc);
-        gbc.gridx = 3; pnlGrid.add(buildActionBlock(), gbc);
+        gbc.gridx = 3; pnlGrid.add(buildField("", buildActionBlock()), gbc);
 
         pnlOuter.add(pnlGrid, BorderLayout.CENTER);
         return pnlOuter;
@@ -93,7 +93,7 @@ final class DanhSachChuyenDiGUI extends JPanel {
         pnlField.setOpaque(false);
         JLabel lbField = new JLabel(label);
         lbField.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
-       
+        lbField.setForeground(PRIMARY);
 //        lbField.setOpaque(true);
 
         pnlField.add(lbField, BorderLayout.NORTH);
@@ -105,7 +105,7 @@ final class DanhSachChuyenDiGUI extends JPanel {
         JTextField txtField = new JTextField(values.length > 0 ? values[0] : "");
         txtField.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
         txtField.setBackground(GuiTheme.SEARCH_FIELD_BG);
-        txtField.setForeground(GuiTheme.SEARCH_FIELD_TEXT);
+        txtField.setForeground(PRIMARY);
         txtField.setBorder(new LineBorder(GuiTheme.SEARCH_FIELD_BORDER, 1, true));
         txtField.setPreferredSize(new Dimension(160, 28));
         return txtField;
@@ -135,6 +135,7 @@ final class DanhSachChuyenDiGUI extends JPanel {
     private JPanel buildSeatField() {
         JSpinner spnSeat = new JSpinner(new SpinnerNumberModel(0, 0, 99, 1));
         spnSeat.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
+        ((JSpinner.DefaultEditor)spnSeat.getEditor()).getTextField().setForeground(PRIMARY);
         spnSeat.setPreferredSize(new Dimension(95, 28));
         spnSeat.setBorder(new LineBorder(new Color(188, 197, 208), 1, true));
         JPanel pnlWrap = new JPanel(new BorderLayout());
@@ -148,7 +149,7 @@ final class DanhSachChuyenDiGUI extends JPanel {
         pnlBlock.setOpaque(false);
         JLabel lbBlock = new JLabel("Loại toa");
         lbBlock.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
-        lbBlock.setForeground(GuiTheme.TEXT);
+        lbBlock.setForeground(PRIMARY);
         JPanel pnlOptions = new JPanel();
         pnlOptions.setOpaque(false);
         pnlOptions.setLayout(new BoxLayout(pnlOptions, BoxLayout.Y_AXIS));
@@ -170,7 +171,7 @@ final class DanhSachChuyenDiGUI extends JPanel {
         pnlBlock.setOpaque(false);
         JLabel lbBlock = new JLabel("Tiện ích");
         lbBlock.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
-        lbBlock.setForeground(GuiTheme.TEXT);
+        lbBlock.setForeground(PRIMARY);
         JPanel pnlOptions = new JPanel();
         pnlOptions.setOpaque(false);
         pnlOptions.setLayout(new BoxLayout(pnlOptions, BoxLayout.Y_AXIS));
@@ -187,10 +188,8 @@ final class DanhSachChuyenDiGUI extends JPanel {
         pnlBlock.setOpaque(false);
         JPanel pnlButtons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 12, 4));
         pnlButtons.setOpaque(false);
-        JButton btnReset = new JButton("Xóa bộ lọc");
-        styleButton(btnReset, new Color(244, 246, 250), new Color(72, 72, 190), new Color(145, 145, 145));
-        JButton btnSearch = new JButton("Tra cứu");
-        styleButton(btnSearch, PRIMARY, Color.WHITE, PRIMARY);
+        JButton btnReset = buildNavyButton("Xóa bộ lọc");
+        JButton btnSearch = buildNavyButton("Tra cứu");
         pnlButtons.add(btnReset);
         pnlButtons.add(btnSearch);
         pnlBlock.add(pnlButtons, BorderLayout.CENTER);
@@ -215,14 +214,26 @@ final class DanhSachChuyenDiGUI extends JPanel {
         return chk;
     }
 
-    private static void styleButton(JButton btn, Color bg, Color fg, Color border) {
-        btn.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
-        btn.setForeground(fg);
-        btn.setBackground(bg);
-        btn.setFocusPainted(false);
-        btn.setOpaque(true);
-        btn.setBorder(new LineBorder(border, 1, true));
-        btn.setPreferredSize(new Dimension(96, 34));
+    private JButton buildNavyButton(String text) {
+        JButton btn = new JButton(text) {
+            @Override protected void paintComponent(java.awt.Graphics g) {
+                java.awt.Graphics2D g2 = (java.awt.Graphics2D) g.create();
+                g2.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING, java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(getModel().isPressed() ? GuiTheme.NAVY_DARK
+                    : getModel().isRollover() ? GuiTheme.NAVY_HOVER : GuiTheme.NAVY);
+                g2.fillRoundRect(0,0,getWidth(),getHeight(),12,12);
+                g2.setColor(Color.WHITE);
+                g2.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
+                java.awt.FontMetrics fm = g2.getFontMetrics();
+                g2.drawString(text,(getWidth()-fm.stringWidth(text))/2,
+                    (getHeight()+fm.getAscent()-fm.getDescent())/2);
+                g2.dispose();
+            }
+        };
+        btn.setPreferredSize(new Dimension(130, 38));
+        btn.setContentAreaFilled(false); btn.setBorderPainted(false); btn.setFocusPainted(false);
+        btn.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+        return btn;
     }
 
     private JPanel buildTablePanel() {
@@ -265,19 +276,21 @@ final class DanhSachChuyenDiGUI extends JPanel {
                 tblData.getColumnModel().getColumn(6).setPreferredWidth(100);
             }
         });
-        JPanel pnlWrap = new JPanel(new BorderLayout());
-        pnlWrap.setOpaque(false);
-        pnlWrap.add(spnScroll, BorderLayout.CENTER);
-        return pnlWrap;
+        pnlOuter.add(spnScroll, BorderLayout.CENTER);
+        return pnlOuter;
     }
 
     private JPanel buildSectionTitle(String title) {
-        JPanel pnl = new JPanel(new BorderLayout());
+        JPanel pnl = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
         pnl.setOpaque(false);
+        pnl.setBorder(new EmptyBorder(5, 0, 5, 0));
         JLabel lb = new JLabel(title);
-        lb.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 16));
-        lb.setForeground(GuiTheme.TEXT);
-        pnl.add(lb, BorderLayout.WEST);
+        lb.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 14));
+        lb.setForeground(Color.WHITE);
+        lb.setOpaque(true);
+        lb.setBackground(PRIMARY);
+        lb.setBorder(new EmptyBorder(6, 12, 6, 12));
+        pnl.add(lb);
         return pnl;
     }
 }
