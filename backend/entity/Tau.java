@@ -3,15 +3,17 @@ package entity;
 public class Tau {
     private String maTau;
     private String tenTau;
-    private int soLuongToa;
+    private String trangThai;
+    private String ghiChu;
 
     public Tau() {
     }
 
-    public Tau(String maTau, String tenTau, int soLuongToa) {
+    public Tau(String maTau, String tenTau, String trangThai, String ghiChu) {
         this.maTau = maTau;
         this.tenTau = tenTau;
-        this.soLuongToa = soLuongToa;
+        this.trangThai = trangThai;
+        this.ghiChu = ghiChu;
     }
 
     public String getMaTau() {
@@ -30,12 +32,20 @@ public class Tau {
         this.tenTau = tenTau;
     }
 
-    public int getSoLuongToa() {
-        return soLuongToa;
+    public String getTrangThai() {
+        return trangThai;
     }
 
-    public void setSoLuongToa(int soLuongToa) {
-        this.soLuongToa = soLuongToa;
+    public void setTrangThai(String trangThai) {
+        this.trangThai = trangThai;
+    }
+
+    public String getGhiChu() {
+        return ghiChu;
+    }
+
+    public void setGhiChu(String ghiChu) {
+        this.ghiChu = ghiChu;
     }
 
     @Override
