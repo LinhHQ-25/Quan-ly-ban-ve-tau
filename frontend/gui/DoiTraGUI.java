@@ -1,87 +1,62 @@
 package gui;
 
 import java.awt.*;
+import java.sql.*;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
-import java.util.LinkedHashMap;
-import java.util.Map;
 import javax.swing.*;
 import javax.swing.border.*;
-import javax.swing.event.ListSelectionEvent;
 import javax.swing.table.*;
 
+import connect_DB.Connect_DB;
+
 /**
- * DoiTraGUI – Màn hình tìm & chọn vé để Đổi hoặc Trả.
- * Flow: DoiTraGUI → DoiVeGUI → DoiVeGUI1
- *       DoiTraGUI → TraVeGUI  → TraVeGUI1
- *
- * Màn hình này chỉ chịu trách nhiệm:
- *   1. Hiển thị bảng danh sách vé (có thể lọc theo mã vé).
- *   2. Validate sơ bộ điều kiện nghiệp vụ.
- *   3. Truyền dữ liệu sang màn hình tiếp theo rồi navigate.
+ * DoiTraGUI – Tìm & chọn vé để Đổi hoặc Trả.
+ * Đã fix: Trả lại Table & nút tìm kiếm, thu nhỏ Table, mặc định bỏ trống bảng.
  */
 public final class DoiTraGUI extends JPanel {
 
-	// ── Constants ────────────────────────────────────────────────────────────
 	private static final Color BORDER = new Color(210, 215, 224);
+	private static final Color PRIMARY = new Color(37, 69, 121);
 	private static final DateTimeFormatter FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
 
-	// ── Dữ liệu giả ─────────────────────────────────────────────────────────
-	// maVe → [chuyenTau, gaDi, gaDen, loaiVe, ngayGioKH, soLuong, ghe, giaTien]
-	static final Map<String, String[]> FAKE_DATA = new LinkedHashMap<>();
-
-	public static Map<String, String[]> getFakeData() { return FAKE_DATA; }
-
-	static {
-		LocalDateTime kh1 = LocalDateTime.now().plusHours(30);
-		FAKE_DATA.put("27CT30", new String[]{"SE5", "Diêu Trì", "Sài Gòn", "Vé cá nhân", kh1.format(FMT), "01", "B05", "450000"});
-
-		LocalDateTime kh2 = LocalDateTime.now().plusHours(60);
-		FAKE_DATA.put("13HN05", new String[]{"SE1", "Hà Nội", "Đà Nẵng", "Vé cá nhân", kh2.format(FMT), "01", "A12", "320000"});
-
-		LocalDateTime kh3 = LocalDateTime.now().plusHours(80);
-		FAKE_DATA.put("08DN12", new String[]{"SE3", "Đà Nẵng", "Nha Trang", "Vé nhóm", kh3.format(FMT), "05", "C03", "610000"});
-
-		LocalDateTime kh4 = LocalDateTime.now().plusHours(10);
-		FAKE_DATA.put("21NT07", new String[]{"TN2", "Nha Trang", "TP.HCM", "Vé cá nhân", kh4.format(FMT), "01", "D08", "275000"});
-	}
-
-	// ── State ────────────────────────────────────────────────────────────────
 	private final AppFrame appFrame;
 	private DefaultTableModel tableModel;
 	private JTable table;
 	private JTextField txtSearch;
 
-	// ── Constructor ──────────────────────────────────────────────────────────
+	// Cache dữ liệu vé từ DB
+	private final java.util.Map<String, String[]> veCache = new java.util.LinkedHashMap<>();
+
 	public DoiTraGUI(AppFrame appFrame) {
 		this.appFrame = appFrame;
 		setLayout(new BorderLayout());
 		setBackground(GuiTheme.LIGHT_BG);
 
-		JPanel page = new JPanel();
-		page.setLayout(new BoxLayout(page, BoxLayout.Y_AXIS));
-		page.setOpaque(false);
-		page.setBorder(new EmptyBorder(
-				GuiTheme.PAGE_PAD_TOP, GuiTheme.PAGE_PAD_LEFT,
-				GuiTheme.PAGE_PAD_BOTTOM, GuiTheme.PAGE_PAD_LEFT));
+		JPanel pnlPage = new JPanel();
+		pnlPage.setOpaque(false);
+		pnlPage.setLayout(new BorderLayout(0, 12));
+		pnlPage.setBorder(new EmptyBorder(
+				0,
+				GuiTheme.PAGE_PAD_LEFT,
+				GuiTheme.PAGE_PAD_BOTTOM,
+				GuiTheme.PAGE_PAD_LEFT
+		));
 
-		page.add(buildNoteBox());
-		page.add(Box.createVerticalStrut(12));
-		page.add(buildSearchBar());
-		page.add(Box.createVerticalStrut(10));
-		page.add(buildTicketTable());
-		page.add(Box.createVerticalStrut(12));
-		page.add(buildButtonRow());
+		pnlPage.add(buildNoteBox(),    BorderLayout.NORTH);
+		pnlPage.add(buildCenter(),     BorderLayout.CENTER);
+		pnlPage.add(buildButtonRow(),  BorderLayout.SOUTH);
 
-		add(page, BorderLayout.CENTER);
-		reloadTable("");
+		add(pnlPage, BorderLayout.CENTER);
+
+		// KHÔNG GỌI loadDataFromDB("") ở đây nữa để mặc định BẢNG TRỐNG
 	}
 
 	// ══════════════════════════════════════════════════════════════════════
 	// UI BUILDERS
 	// ══════════════════════════════════════════════════════════════════════
-	/** Hộp vàng tóm tắt quy định */
+
 	private JPanel buildNoteBox() {
 		JPanel p = new JPanel() {
 			@Override protected void paintComponent(Graphics g) {
@@ -98,37 +73,34 @@ public final class DoiTraGUI extends JPanel {
 		p.setLayout(new BoxLayout(p, BoxLayout.Y_AXIS));
 		p.setBorder(new EmptyBorder(10, 14, 10, 14));
 
-		Color txtColor = new Color(120, 75, 0);
-		Font  bold  = GuiTheme.font("Segoe UI", Font.BOLD,  13);
-		Font  plain = GuiTheme.font("Segoe UI", Font.PLAIN, 13);
-		addNoteRow(p, "QUY ĐỊNH ĐỔI / TRẢ VÉ", bold,  txtColor);
+		Color c = new Color(120, 75, 0);
+		Font bold  = GuiTheme.font("Segoe UI", Font.BOLD,  13);
+		Font plain = GuiTheme.font("Segoe UI", Font.PLAIN, 13);
+		addNote(p, "QUY ĐỊNH ĐỔI / TRẢ VÉ", bold,  c);
 		p.add(Box.createVerticalStrut(4));
-		addNoteRow(p, "1. ĐỔI VÉ:", plain, txtColor);
-		addNoteRow(p, "	- Chỉ áp dụng vé cá nhân, trước giờ tàu ít nhất 24 giờ", plain, txtColor);
-		addNoteRow(p, "	- Phí: 30.000 đồng mỗi vé", plain, txtColor);
-		addNoteRow(p, "2. TRẢ VÉ", plain, txtColor);
-		addNoteRow(p, "	- Vé cá nhân: từ 48 giờ trở lên (10%), từ 12 đến dưới 48 giờ (20%), dưới 12 giờ: không hoàn", plain, txtColor);
-		addNoteRow(p, "	- Vé nhóm: từ 72 giờ trở lên (20%), từ 24 đến dưới 72 giờ (30%), dưới 24 giờ: không hoàn", plain, txtColor);
-		fixStretch(p);
+		addNote(p, "1. ĐỔI VÉ:", plain, c);
+		addNote(p, "\t- Chỉ áp dụng vé cá nhân, trước giờ tàu ít nhất 24 giờ. Phí: 30.000 đ / vé", plain, c);
+		addNote(p, "2. TRẢ VÉ:", plain, c);
+		addNote(p, "\t- Vé cá nhân: ≥ 48h (10%), 12–48h (20%), < 12h: không hoàn", plain, c);
+		addNote(p, "\t- Vé nhóm:    ≥ 72h (20%), 24–72h (30%), < 24h: không hoàn", plain, c);
 		return p;
 	}
 
-	private void addNoteRow(JPanel p, String text, Font font, Color color) {
+	private void addNote(JPanel p, String text, Font f, Color c) {
 		JLabel lb = new JLabel(text);
-		lb.setFont(font);
-		lb.setForeground(color);
-		lb.setAlignmentX(LEFT_ALIGNMENT);
+		lb.setFont(f); lb.setForeground(c); lb.setAlignmentX(LEFT_ALIGNMENT);
 		p.add(lb);
 	}
 
-	/** Thanh tìm kiếm */
-	private JPanel buildSearchBar() {
-		JPanel p = new JPanel(new GridBagLayout());
+	private JPanel buildCenter() {
+		JPanel p = new JPanel(new BorderLayout(0, 8));
 		p.setOpaque(false);
 
+		// Search bar
+		JPanel searchBar = new JPanel(new GridBagLayout());
+		searchBar.setOpaque(false);
 		GridBagConstraints gbc = new GridBagConstraints();
-		gbc.gridy  = 0;
-		gbc.insets = new Insets(0, 0, 0, 10);
+		gbc.gridy = 0; gbc.insets = new Insets(0, 0, 0, 10);
 
 		JLabel lb = new JLabel("Nhập mã vé cần đổi/trả:");
 		lb.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
@@ -138,29 +110,22 @@ public final class DoiTraGUI extends JPanel {
 		txtSearch.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
 
 		JButton btnSearch = buildNavyButton("Tìm kiếm", 110, 32);
-		btnSearch.addActionListener(e -> reloadTable(txtSearch.getText().trim()));
-		txtSearch.addActionListener(e -> reloadTable(txtSearch.getText().trim()));
+		// Khi nhấn Enter ở ô input hoặc nhấn nút Tìm Kiếm
+		btnSearch.addActionListener(e -> loadDataFromDB(txtSearch.getText().trim()));
+		txtSearch.addActionListener(e -> loadDataFromDB(txtSearch.getText().trim()));
 
 		gbc.gridx = 0; gbc.weightx = 0; gbc.fill = GridBagConstraints.NONE;
-		p.add(lb, gbc);
-
+		searchBar.add(lb, gbc);
 		gbc.gridx = 1; gbc.weightx = 1; gbc.fill = GridBagConstraints.HORIZONTAL;
-		p.add(wrapTextField(txtSearch), gbc);
-
+		searchBar.add(wrapTextField(txtSearch), gbc);
 		gbc.gridx = 2; gbc.weightx = 0; gbc.fill = GridBagConstraints.NONE;
-		p.add(btnSearch, gbc);
+		searchBar.add(btnSearch, gbc);
 
-		fixStretch(p);
-		return p;
-	}
-
-	/** Bảng danh sách vé */
-	private JPanel buildTicketTable() {
+		// Bảng vé
 		tableModel = new DefaultTableModel(
 				new Object[]{"Mã vé","Chuyến","Ga đi","Ga đến","Loại vé","Ngày/Giờ KH","SL","Ghế"}, 0) {
 			public boolean isCellEditable(int r, int c) { return false; }
 		};
-
 		table = new JTable(tableModel);
 		table.setRowHeight(28);
 		table.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 13));
@@ -170,7 +135,7 @@ public final class DoiTraGUI extends JPanel {
 		table.setSelectionForeground(GuiTheme.TEXT);
 		table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 		table.getTableHeader().setReorderingAllowed(false);
-		table.getTableHeader().setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 13));
+		table.getTableHeader().setFont(GuiTheme.font("Segoe UI", Font.BOLD, 13));
 		table.getTableHeader().setBackground(Color.WHITE);
 		table.getTableHeader().setForeground(GuiTheme.TEXT);
 		table.getTableHeader().setBorder(new LineBorder(BORDER, 1, true));
@@ -182,35 +147,110 @@ public final class DoiTraGUI extends JPanel {
 		JScrollPane scroll = new JScrollPane(table);
 		scroll.setBorder(new LineBorder(BORDER, 1, true));
 		scroll.getViewport().setBackground(Color.WHITE);
-		scroll.setPreferredSize(new Dimension(10000, 150));
+		// THU NHỎ TABLE LẠI (Chỉ cao 180px, đủ hiển thị khoảng 5-6 dòng)
+		scroll.setPreferredSize(new Dimension(0, 180));
 
-		JPanel p = new JPanel(new BorderLayout(0, 6));
-		p.setOpaque(false);
+		JPanel tablePanel = new JPanel(new BorderLayout(0, 6));
+		tablePanel.setOpaque(false);
+		tablePanel.add(buildSectionTitle("Danh sách vé"), BorderLayout.NORTH);
+		tablePanel.add(scroll, BorderLayout.CENTER);
 
-		JLabel lbTitle = new JLabel("Danh sách vé");
-		lbTitle.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 14));
-		lbTitle.setForeground(GuiTheme.TEXT);
-		p.add(lbTitle, BorderLayout.NORTH);
-		p.add(scroll,  BorderLayout.CENTER);
-		fixStretch(p);
+		p.add(searchBar, BorderLayout.NORTH);
+		p.add(tablePanel, BorderLayout.CENTER);
 		return p;
 	}
 
-	/** Hàng nút Đổi vé / Trả vé */
 	private JPanel buildButtonRow() {
-		JPanel p = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
+		JPanel p = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 6));
 		p.setOpaque(false);
+		p.setBorder(new MatteBorder(1, 0, 0, 0, BORDER));
 
 		JButton btnTra = buildNavyButton("Trả vé →", 120, 34);
 		JButton btnDoi = buildNavyButton("Đổi vé →", 120, 34);
 
-		btnDoi.addActionListener(e -> handleGoiDoiVe());
 		btnTra.addActionListener(e -> handleGoiTraVe());
+		btnDoi.addActionListener(e -> handleGoiDoiVe());
 
 		p.add(btnTra);
 		p.add(btnDoi);
-		fixStretch(p);
 		return p;
+	}
+
+	private JPanel buildSectionTitle(String title) {
+		JPanel pnl = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+		pnl.setOpaque(false);
+		pnl.setBorder(new EmptyBorder(4, 0, 4, 0));
+		JLabel lb = new JLabel(title);
+		lb.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 14));
+		lb.setForeground(Color.WHITE);
+		lb.setOpaque(true);
+		lb.setBackground(PRIMARY);
+		lb.setBorder(new EmptyBorder(5, 12, 5, 12));
+		pnl.add(lb);
+		return pnl;
+	}
+
+	// ══════════════════════════════════════════════════════════════════════
+	// DATA
+	// ══════════════════════════════════════════════════════════════════════
+
+	private void loadDataFromDB(String keyword) {
+		tableModel.setRowCount(0);
+		veCache.clear();
+
+		// Nếu để ô tìm kiếm trống -> Không load gì cả, hiển thị bảng trống
+		if (keyword == null || keyword.isEmpty()) {
+			return;
+		}
+
+		Connection conn = Connect_DB.getInstance().getConnection();
+		if (conn == null) return;
+
+		try {
+			String sql =
+					"SELECT v.maVe, t.tenTau, gDi.tenGa AS gaDi, gDen.tenGa AS gaDen, " +
+							"v.loaiVe, ct.thoiGianKhoiHanh, v.giaVe, v.maGhe " +
+							"FROM Ve v " +
+							"JOIN ChuyenTau ct ON v.maChuyen = ct.maChuyen " +
+							"JOIN Tau t ON ct.maTau = t.maTau " +
+							"JOIN Ga gDi ON ct.gaDi = gDi.maGa " +
+							"JOIN Ga gDen ON ct.gaDen = gDen.maGa " +
+							"WHERE v.maVe LIKE ? AND v.trangThaiVe = 'DA_THANH_TOAN' " +
+							"ORDER BY ct.thoiGianKhoiHanh";
+
+			PreparedStatement stmt = conn.prepareStatement(sql);
+			// Cho phép tìm kiếm tương đối chứa từ khóa (VD: nhập "001" sẽ ra "V001")
+			stmt.setString(1, "%" + keyword.toUpperCase() + "%");
+			ResultSet rs = stmt.executeQuery();
+
+			java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("dd/MM/yyyy HH:mm");
+			boolean found = false;
+
+			while (rs.next()) {
+				found = true;
+				String maVe    = rs.getString("maVe");
+				String tenTau  = rs.getString("tenTau");
+				String gaDi    = rs.getString("gaDi");
+				String gaDen   = rs.getString("gaDen");
+				String loaiVe  = rs.getString("loaiVe");
+				String maGhe   = rs.getString("maGhe");
+				String giaVe   = rs.getString("giaVe");
+
+				Timestamp ts = rs.getTimestamp("thoiGianKhoiHanh");
+				String ngayGio = ts != null ? sdf.format(ts) : "";
+				String soLuong = "1";
+
+				veCache.put(maVe, new String[]{tenTau, gaDi, gaDen, loaiVe, ngayGio, soLuong, maGhe, giaVe});
+				tableModel.addRow(new Object[]{maVe, tenTau, gaDi, gaDen, loaiVe, ngayGio, soLuong, maGhe});
+			}
+
+			if (!found) {
+				JOptionPane.showMessageDialog(this, "Không tìm thấy vé nào phù hợp hoặc vé chưa được thanh toán!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+			JOptionPane.showMessageDialog(this, "Lỗi truy vấn cơ sở dữ liệu!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+		}
 	}
 
 	// ══════════════════════════════════════════════════════════════════════
@@ -223,8 +263,7 @@ public final class DoiTraGUI extends JPanel {
 
 		if (laNhom(d)) { warn("Không áp dụng đổi vé đối với vé nhóm."); return; }
 		if (tinhGio(d) < 24) {
-			warn("Không thể đổi vé.\nYêu cầu đổi phải thực hiện trước giờ tàu ít nhất 24 giờ.\n"
-					+ "Hiện còn: " + tinhGio(d) + " giờ.");
+			warn("Không thể đổi vé.\nYêu cầu đổi phải trước giờ tàu ít nhất 24 giờ.\nHiện còn: " + tinhGio(d) + " giờ.");
 			return;
 		}
 		DoiVeGUI.setVeDuocChon(maVe, d);
@@ -233,35 +272,19 @@ public final class DoiTraGUI extends JPanel {
 
 	private void handleGoiTraVe() {
 		String[] d = getSelectedData(); if (d == null) return;
-		String maVe = getSelectedMaVe();
-		TraVeGUI.setVeDuocChon(maVe, d);
+		TraVeGUI.setVeDuocChon(getSelectedMaVe(), d);
 		appFrame.showCard("tra-ve");
 	}
-
-	/** Tải lại bảng theo từ khoá (rỗng = hiển thị tất cả) */
-	private void reloadTable(String keyword) {
-		tableModel.setRowCount(0);
-		String kw = keyword.toUpperCase();
-		for (Map.Entry<String, String[]> e : FAKE_DATA.entrySet()) {
-			String maVe = e.getKey();
-			String[] d  = e.getValue();
-			if (kw.isEmpty() || maVe.toUpperCase().contains(kw))
-				tableModel.addRow(new Object[]{maVe, d[0], d[1], d[2], d[3], d[4], d[5], d[6]});
-		}
-	}
-
-	// ── Helpers nghiệp vụ ───────────────────────────────────────────────────
 
 	private String getSelectedMaVe() {
 		int row = table.getSelectedRow();
 		return row < 0 ? null : (String) tableModel.getValueAt(row, 0);
 	}
 
-	/** Trả null và hiện cảnh báo nếu chưa chọn hàng */
 	private String[] getSelectedData() {
 		String maVe = getSelectedMaVe();
-		if (maVe == null) { warn("Vui lòng chọn một vé trong danh sách trước."); return null; }
-		return FAKE_DATA.get(maVe);
+		if (maVe == null) { warn("Vui lòng chọn một vé trong bảng danh sách trước!"); return null; }
+		return veCache.get(maVe);
 	}
 
 	private long tinhGio(String[] d) {
@@ -269,19 +292,13 @@ public final class DoiTraGUI extends JPanel {
 		catch (Exception ex) { return -1; }
 	}
 
-	private boolean laNhom(String[] d) {
-		return d[3].toLowerCase().contains("nhóm");
-	}
-
-	private void warn(String msg) {
-		JOptionPane.showMessageDialog(this, msg, "Không thể thực hiện", JOptionPane.WARNING_MESSAGE);
-	}
+	private boolean laNhom(String[] d) { return d[3].toLowerCase().contains("nhóm"); }
+	private void warn(String msg) { JOptionPane.showMessageDialog(this, msg, "Không thể thực hiện", JOptionPane.WARNING_MESSAGE); }
 
 	// ══════════════════════════════════════════════════════════════════════
 	// UI HELPERS
 	// ══════════════════════════════════════════════════════════════════════
 
-	/** TextField bọc trong panel bo góc */
 	private JPanel wrapTextField(JTextField tf) {
 		JPanel p = new JPanel(new BorderLayout()) {
 			@Override protected void paintComponent(Graphics g) {
@@ -297,8 +314,7 @@ public final class DoiTraGUI extends JPanel {
 		p.setOpaque(false);
 		p.setBorder(new EmptyBorder(5, 12, 5, 12));
 		p.setPreferredSize(new Dimension(200, 36));
-		tf.setOpaque(false);
-		tf.setBorder(null);
+		tf.setOpaque(false); tf.setBorder(null);
 		p.add(tf, BorderLayout.CENTER);
 		return p;
 	}
@@ -308,29 +324,20 @@ public final class DoiTraGUI extends JPanel {
 			@Override protected void paintComponent(Graphics g) {
 				Graphics2D g2 = (Graphics2D) g.create();
 				g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-				g2.setColor(getModel().isPressed()  ? GuiTheme.NAVY_DARK
-						: getModel().isRollover() ? GuiTheme.NAVY_HOVER
-						  : GuiTheme.NAVY);
+				g2.setColor(getModel().isPressed() ? GuiTheme.NAVY_DARK
+						: getModel().isRollover() ? GuiTheme.NAVY_HOVER : GuiTheme.NAVY);
 				g2.fillRoundRect(0, 0, getWidth(), getHeight(), 12, 12);
 				g2.setColor(Color.WHITE);
 				g2.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 13));
 				FontMetrics fm = g2.getFontMetrics();
-				String txt = getText();
-				g2.drawString(txt, (getWidth() - fm.stringWidth(txt)) / 2,
-						(getHeight() + fm.getAscent() - fm.getDescent()) / 2);
+				g2.drawString(getText(), (getWidth()-fm.stringWidth(getText()))/2,
+						(getHeight()+fm.getAscent()-fm.getDescent())/2);
 				g2.dispose();
 			}
 		};
 		btn.setPreferredSize(new Dimension(w, h));
-		btn.setContentAreaFilled(false);
-		btn.setBorderPainted(false);
-		btn.setFocusPainted(false);
-		btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+		btn.setContentAreaFilled(false); btn.setBorderPainted(false);
+		btn.setFocusPainted(false); btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
 		return btn;
-	}
-
-	private static void fixStretch(JPanel p) {
-		p.setAlignmentX(LEFT_ALIGNMENT);
-		p.setMaximumSize(new Dimension(Integer.MAX_VALUE, p.getPreferredSize().height + 20));
 	}
 }

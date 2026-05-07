@@ -7,9 +7,9 @@ import java.awt.*;
 /**
  * TraVeGUI1 – Màn hình xác nhận kết quả trả vé.
  * REDESIGN: Gộp + Highlight hoàn tiền
- *  - Banner "Tiền hoàn lại cho bạn" nổi bật màu xanh
- *  - Gộp 2 card (info + chi phí) thành 1 card "Thông tin vé + chi phí"
- *  - Bỏ ô trống dư
+ * - Banner "Tiền hoàn lại cho bạn" nổi bật màu xanh
+ * - Gộp 2 card (info + chi phí) thành 1 card "Thông tin vé + chi phí"
+ * - Padding đồng bộ với các GUI khác
  */
 public class TraVeGUI1 extends JPanel {
 
@@ -52,26 +52,37 @@ public class TraVeGUI1 extends JPanel {
         setLayout(new BorderLayout());
         setBackground(GuiTheme.LIGHT_BG);
 
-        JPanel page = new JPanel();
-        page.setLayout(new BoxLayout(page, BoxLayout.Y_AXIS));
-        page.setOpaque(false);
-        page.setBorder(new EmptyBorder(
-                GuiTheme.PAGE_PAD_TOP, GuiTheme.PAGE_PAD_LEFT,
-                GuiTheme.PAGE_PAD_BOTTOM, GuiTheme.PAGE_PAD_LEFT));
+        // ── ĐỒNG BỘ PADDING VỚI CÁC MÀN HÌNH KHÁC ──
+        JPanel pnlPage = new JPanel(new BorderLayout(0, 10));
+        pnlPage.setOpaque(false);
+        pnlPage.setBorder(new EmptyBorder(
+                0,
+                GuiTheme.PAGE_PAD_LEFT,
+                GuiTheme.PAGE_PAD_BOTTOM,
+                GuiTheme.PAGE_PAD_LEFT
+        ));
 
-        page.add(buildAlertBox());
-        page.add(Box.createVerticalStrut(10));
-        page.add(buildHoanBanner());
-        page.add(Box.createVerticalStrut(10));
-        page.add(buildMergedCard());
-        page.add(Box.createVerticalStrut(13));
-        page.add(buildButtonRow());
+        // Stack chứa các thông tin (căn giữa)
+        JPanel stack = new JPanel();
+        stack.setLayout(new BoxLayout(stack, BoxLayout.Y_AXIS));
+        stack.setOpaque(false);
 
-        JScrollPane outer = new JScrollPane(page);
+        stack.add(buildAlertBox());
+        stack.add(Box.createVerticalStrut(10));
+        stack.add(buildHoanBanner());
+        stack.add(Box.createVerticalStrut(10));
+        stack.add(buildMergedCard());
+
+        JScrollPane outer = new JScrollPane(stack);
         outer.setBorder(null);
         outer.getViewport().setOpaque(false);
         outer.setOpaque(false);
-        add(outer, BorderLayout.CENTER);
+
+        // Đẩy phần cuộn vào giữa, nút bấm xuống đáy
+        pnlPage.add(outer, BorderLayout.CENTER);
+        pnlPage.add(buildButtonRow(), BorderLayout.SOUTH);
+
+        add(pnlPage, BorderLayout.CENTER);
     }
 
     public void refresh() {
@@ -82,11 +93,21 @@ public class TraVeGUI1 extends JPanel {
         valNgayGio.setText(safe(s_data, 4));
         valLoai   .setText(safe(s_data, 3));
 
+        // ── ĐÃ SỬA LỖI TÍNH TIỀN ──
         long tongTien = 0;
-        try { tongTien = Long.parseLong(s_data[7]) * Long.parseLong(s_data[5]); }
-        catch (Exception ignored) {}
+        try {
+            // Lấy số lượng (xóa mọi ký tự không phải số)
+            long soLuong = Long.parseLong(s_data[5].replaceAll("[^0-9]", ""));
+
+            // Lấy đơn giá (cắt phần thập phân .00 trước, sau đó xóa ký tự rác)
+            String cleanGia = s_data[7].split("\\.")[0].replaceAll("[^0-9]", "");
+            long donGia = Long.parseLong(cleanGia);
+
+            tongTien = soLuong * donGia;
+        } catch (Exception ignored) {}
+
         valTongTien.setText(tongTien > 0 ? fmtTien(tongTien) : "—");
-        valPhi     .setText(s_phi.isEmpty()     ? "—" : s_phi);
+        valPhi     .setText(s_phi.isEmpty() ? "—" : s_phi);
 
         // Banner
         lbBannerHoan.setText(s_hoanLai.isEmpty() ? "—" : s_hoanLai);
@@ -100,7 +121,6 @@ public class TraVeGUI1 extends JPanel {
     // UI BUILDERS
     // ══════════════════════════════════════════════════════════════════════
 
-    /** Banner cảnh báo kiểm tra thông tin */
     private JPanel buildAlertBox() {
         JPanel p = new JPanel() {
             @Override protected void paintComponent(Graphics g) {
@@ -113,26 +133,26 @@ public class TraVeGUI1 extends JPanel {
                 g2.dispose();
             }
         };
+        // Thay BoxLayout.X_AXIS bằng BorderLayout để dễ căn giữa
+        p.setLayout(new BorderLayout());
         p.setOpaque(false);
-        p.setLayout(new BoxLayout(p, BoxLayout.X_AXIS));
-        p.setBorder(new EmptyBorder(10, 16, 10, 16));
+        p.setBorder(new EmptyBorder(12, 16, 12, 16));
+        p.setMaximumSize(new Dimension(Integer.MAX_VALUE, 45));
 
-        JLabel icon = new JLabel("ℹ");
-        icon.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 20));
-        icon.setForeground(OK_FG);
+        // Đã xóa biến 'icon' chứa ký tự "ℹ"
 
         JLabel msg = new JLabel("Vui lòng kiểm tra lại thông tin...");
-        msg.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 13));
+        msg.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 13)); // In đậm một chút cho đẹp
         msg.setForeground(OK_FG);
+        msg.setHorizontalAlignment(SwingConstants.CENTER); // Căn giữa nội dung
 
-        p.add(icon);
-        p.add(Box.createHorizontalStrut(10));
-        p.add(msg);
-        fixAlignAndMax(p);
+        p.add(msg, BorderLayout.CENTER);
+
+        // Không dùng fixAlignAndMax nữa vì BorderLayout đã tự lo việc dàn trang
+        p.setAlignmentX(LEFT_ALIGNMENT);
         return p;
     }
 
-    /** Banner nổi bật hiển thị tiền hoàn lại */
     private JPanel buildHoanBanner() {
         JPanel p = new JPanel() {
             @Override protected void paintComponent(Graphics g) {
@@ -174,7 +194,6 @@ public class TraVeGUI1 extends JPanel {
         return p;
     }
 
-    /** Card gộp: thông tin vé + chi phí (2 hàng x 4 cột) */
     private JPanel buildMergedCard() {
         JPanel card = buildCard("Thông tin vé + chi phí");
 
@@ -190,12 +209,11 @@ public class TraVeGUI1 extends JPanel {
         JPanel grid = new JPanel(new GridLayout(2, 4, 14, 10));
         grid.setOpaque(false);
 
-        // Hàng 1 – thông tin vé
         grid.add(infoCell("Mã vé",       valMaVe));
         grid.add(infoCell("Chuyến tàu",  valChuyen));
         grid.add(infoCell("Ga đi",       valGaDi));
         grid.add(infoCell("Ga đến",      valGaDen));
-        // Hàng 2 – thêm chi phí
+
         grid.add(infoCell("Ngày/Giờ KH", valNgayGio));
         grid.add(infoCell("Loại vé",     valLoai));
         grid.add(infoCell("Tổng tiền vé",valTongTien));
@@ -206,9 +224,10 @@ public class TraVeGUI1 extends JPanel {
     }
 
     private JPanel buildButtonRow() {
-        JPanel p = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
+        JPanel p = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 6));
         p.setOpaque(false);
-        fixAlignAndMax(p);
+        // Thêm MatteBorder phía trên giống màn hình khác
+        p.setBorder(new MatteBorder(1, 0, 0, 0, BORDER));
 
         JButton btnBack = makeSecondaryButton("← Quay lại", 130, 34);
         btnBack.addActionListener(e -> appFrame.showCard("tra-ve"));
@@ -226,14 +245,11 @@ public class TraVeGUI1 extends JPanel {
     // ══════════════════════════════════════════════════════════════════════
 
     private String buildSubText() {
-        // Phân tích phí% từ s_phi  (dạng "120.000 đ" hoặc "10%  (120.000 VNĐ)")
         StringBuilder sb = new StringBuilder();
         if (s_phi.contains("%")) {
-            // lấy phần trước dấu %
             int idx = s_phi.indexOf('%');
             if (idx > 0) {
                 String pct = s_phi.substring(0, idx).trim();
-                // lấy chữ số cuối
                 String digits = pct.replaceAll("[^0-9]", "");
                 if (!digits.isEmpty()) sb.append("Phí trả: ").append(digits).append("%");
             }
@@ -264,6 +280,8 @@ public class TraVeGUI1 extends JPanel {
                         "Tiền hoàn <b>" + s_hoanLai + "</b> sẽ được chuyển trong 3–5 ngày làm việc." +
                         "</div></html>",
                 "Hoàn tất", JOptionPane.PLAIN_MESSAGE);
+
+        // TODO: Cập nhật CSDL trạng thái vé thành "DA_HUY" và Insert vào DonDoiTraVe tại đây.
 
         appFrame.showCard("doi-tra");
     }
