@@ -196,10 +196,42 @@ public class DatVeGUI extends JPanel {
         	ngayVe = ngayDi;
         }
 
-        boolean coChuyen = checkChuyenTonTai(GA_DI_MAC_DINH, gaDen, ngayDi);
+        // Kiểm tra khứ hồi phải chọn ngày về
+        if (rbKhuHoi.isSelected() && dcNgayVe.getDate() == null) {
+            JOptionPane.showMessageDialog(this, "Vui lòng chọn Ngày về!", "Cảnh báo", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        // Kiểm tra chuyến đi
+        boolean coChuyenDi = checkChuyenTonTai(GA_DI_MAC_DINH, gaDen, ngayDi);
+
+        // Nếu khứ hồi, kiểm tra thêm chuyến về
+        if (rbKhuHoi.isSelected()) {
+            boolean coChuyenVe = checkChuyenTonTai(gaDen, GA_DI_MAC_DINH, ngayVe);
+            if (!coChuyenDi && !coChuyenVe) {
+                JOptionPane.showMessageDialog(this,
+                    "Không có chuyến tàu phù hợp cho cả chiều đi và chiều về!\n" +
+                    "Chiều đi: " + ngayDi + " từ " + GA_DI_MAC_DINH + " đến " + gaDen + "\n" +
+                    "Chiều về: " + ngayVe + " từ " + gaDen + " đến " + GA_DI_MAC_DINH,
+                    "Không có chuyến", JOptionPane.WARNING_MESSAGE);
+                return;
+            } else if (!coChuyenDi) {
+                JOptionPane.showMessageDialog(this,
+                    "Không có chuyến tàu phù hợp cho chiều đi!\n" +
+                    "Ngày " + ngayDi + " từ " + GA_DI_MAC_DINH + " đến " + gaDen,
+                    "Không có chuyến đi", JOptionPane.WARNING_MESSAGE);
+                return;
+            } else if (!coChuyenVe) {
+                JOptionPane.showMessageDialog(this,
+                    "Không có chuyến tàu phù hợp cho chiều về!\n" +
+                    "Ngày " + ngayVe + " từ " + gaDen + " đến " + GA_DI_MAC_DINH,
+                    "Không có chuyến về", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+        }
         
         JPanel nextPanel;
-        if (coChuyen) {
+        if (coChuyenDi) {
             // Mở trang kết quả có tàu
             nextPanel = new DatVeGUI1(
                 GA_DI_MAC_DINH, gaDen, loaiVe, ngayDi, ngayVe, getSoLuong(),
