@@ -245,6 +245,10 @@ INSERT INTO Ghe (maGhe, loaiGhe, maToaTau) VALUES
 ('G03', 'GHE_MEM', 'Toa01SE1'),
 ('G04', 'GHE_MEM', 'Toa01SE1'),
 ('G05', 'GHE_MEM', 'Toa01SE1'),
+('G06', 'GHE_MEM', 'Toa01SE1'),
+('G07', 'GHE_MEM', 'Toa01SE1'),
+('G08', 'GHE_MEM', 'Toa01SE1'),
+('G09', 'GHE_MEM', 'Toa01SE1'),
 ('G10', 'GIUONG_NAM', 'Toa02SE1'),
 ('G11', 'GIUONG_NAM', 'Toa02SE1'),
 ('G20', 'GHE_MEM', 'Toa01SE2');

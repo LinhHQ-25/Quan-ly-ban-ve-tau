@@ -112,30 +112,17 @@ public class AppFrame extends JFrame {
 		searchSubmenuPanel.setPreferredSize(new Dimension(GuiTheme.SIDEBAR_W, subH));
 		searchSubmenuPanel.setMinimumSize(new Dimension(GuiTheme.SIDEBAR_W, subH));
 		searchSubmenuPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, subH));
-
 		mkSub("tra-cuu-chuyen", "Danh sách chuyến đi", "/Images/DanhSach.png");
-		// TODO: thay "/Image/iconDanhSach.png" bằng icon thực tế
 		mkSub("tra-cuu-tau", "Tàu", "/Images/Tau.png");
-		// TODO: thay "/Image/iconTau.png" bằng icon thực tế
 		mkSub("tra-cuu-ve", "Vé", "/Images/Ve.png");
-		// TODO: thay "/Image/iconVe.png" bằng icon thực tế
 		mkSub("tra-cuu-khach", "Khách hàng", "/Images/KhachHang.png");
-		// TODO: thay "/Image/iconKhach.png" bằng icon thực tế
 		sb.add(searchSubmenuPanel);
-
 		sb.add(mkBtn("dat-ve", "Đặt vé tàu", "/Images/trainTicket.png", false));
-		// TODO: thay "/Image/iconDatVe.png" bằng icon thực tế
 		sb.add(mkBtn("doi-tra", "Đổi/Trả vé", "/Images/change.png", false));
-		// TODO: thay "/Image/iconDoiTra.png" bằng icon thực tế
 		sb.add(mkBtn("thong-ke", "Thống kê ca làm", "/Images/ThongKe.png", false));
-		// TODO: thay "/Image/iconThongKe.png" bằng icon thực tế
 		sb.add(mkBtn("ho-tro", "Hỗ trợ", "/Images/HoTro.png", false));
-		// TODO: thay "/Image/iconHoTro.png" bằng icon thực tế
-
 		sb.add(Box.createVerticalGlue());
 		sb.add(Box.createVerticalStrut(16));
-
-		// TODO: thay "/Image/iconDangXuat.png" bằng icon đăng xuất thực tế
 		SidebarButton logout = new SidebarButton("Đăng xuất", false, "/Images/DangXuat.png");
 		logout.addActionListener(e -> {
 			int choice = JOptionPane.showConfirmDialog(this, "Bạn có chắc chắn muốn đăng xuất?", "Xác nhận",
@@ -196,14 +183,10 @@ public class AppFrame extends JFrame {
 				header.setVisible(!isLogin);
 			}
 		}
-
-		// Chỉ cập nhật tiêu đề và menu nếu không phải trang login
 		if (!isLogin) {
 			updateTitle(card);
 			updateSidebarState(card);
 		}
-
-		// Gọi refresh() cho các màn hình cần nạp lại dữ liệu từ màn trước
 		if ("doi-ve".equals(card)       && doiVeGUI  != null) doiVeGUI .refresh();
 		if ("tra-ve".equals(card)       && traVeGUI  != null) traVeGUI .refresh();
 		if ("doi-ve-step-2".equals(card) && doiVeGUI1 != null) doiVeGUI1.refresh();
@@ -259,16 +242,12 @@ public class AppFrame extends JFrame {
 	private void updateSidebarState(String card) {
 		searchExpanded = isSearchCard(card);
 		searchSubmenuPanel.setVisible(searchExpanded);
-
-		// Tắt tất cả trước
 		routeButtons.forEach((r, b) -> b.setActive(false));
 		searchSubButtons.forEach((r, b) -> b.setActive(false));
 		searchMainButton.setActive(false);
-
 		if ("home".equals(card)) {
 			return;
 		}
-
 		if (isSearchCard(card)) {
 			searchMainButton.setActive(true);
 			searchSubmenuPanel.setVisible(true);
@@ -276,9 +255,14 @@ public class AppFrame extends JFrame {
 			if (sub != null)
 				sub.setActive(true);
 		} else {
-			SidebarButton btn = routeButtons.get(card);
-			if (btn != null)
+			String targetButtonKey = card;
+			if (card.startsWith("doi-ve") || card.startsWith("tra-ve")) {
+				targetButtonKey = "doi-tra";
+			}
+			SidebarButton btn = routeButtons.get(targetButtonKey);
+			if (btn != null) {
 				btn.setActive(true);
+			}
 		}
 	}
 
@@ -342,8 +326,6 @@ public class AppFrame extends JFrame {
 
 		topRow.add(headerTitle, BorderLayout.WEST);
 		topRow.add(profile, BorderLayout.EAST);
-
-		// Đường kẻ ngang dưới header
 		JSeparator sep = new JSeparator(SwingConstants.HORIZONTAL);
 		sep.setForeground(new Color(210, 215, 224));
 		sep.setBackground(Color.WHITE);

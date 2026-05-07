@@ -3,12 +3,10 @@ package gui;
 import javax.swing.*;
 import javax.swing.border.*;
 import java.awt.*;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import connect_DB.Connect_DB;
 
-/**
- * DoiVeGUI1 – Xác nhận đổi vé.
- * Đã fix: Bỏ icon, hiển thị đầy đủ chi tiết từng hàng (Mã, Chuyến, Toa, Ga, Loại, Ghế...)
- * và gióng thẳng hàng tuyệt đối bằng GridBagLayout.
- */
 public class DoiVeGUI1 extends JPanel {
 
     private static final Color BORDER    = new Color(210, 215, 224);
@@ -39,14 +37,10 @@ public class DoiVeGUI1 extends JPanel {
         setLayout(new BorderLayout());
         setBackground(GuiTheme.LIGHT_BG);
 
-        // ── Padding đồng bộ ──
         JPanel pnlPage = new JPanel(new BorderLayout(0, 10));
         pnlPage.setOpaque(false);
         pnlPage.setBorder(new EmptyBorder(
-                0,
-                GuiTheme.PAGE_PAD_LEFT,
-                GuiTheme.PAGE_PAD_BOTTOM,
-                GuiTheme.PAGE_PAD_LEFT
+                0, GuiTheme.PAGE_PAD_LEFT, GuiTheme.PAGE_PAD_BOTTOM, GuiTheme.PAGE_PAD_LEFT
         ));
 
         JPanel centerWrapper = new JPanel();
@@ -66,7 +60,6 @@ public class DoiVeGUI1 extends JPanel {
     public void refresh() {
         String oldGheStr = safe(s_data, 6);
 
-        // Cột Vé Cũ
         valMaVe    .setText(s_maVe.isEmpty() ? "—" : s_maVe);
         valChuyen  .setText(safe(s_data, 0));
         valToa     .setText(extractToa(oldGheStr));
@@ -76,7 +69,6 @@ public class DoiVeGUI1 extends JPanel {
         valGhe     .setText(extractGhe(oldGheStr));
         valNgayGio .setText(safe(s_data, 4));
 
-        // Cột Vé Mới (Giữ nguyên Mã vé, Ga, Loại vé)
         valMaVeMoi  .setText(s_maVe.isEmpty() ? "—" : s_maVe);
         valChuyenMoi.setText(s_chuyenMoi.isEmpty() ? "—" : s_chuyenMoi);
         valToaMoi   .setText(extractToa(s_gheMoi));
@@ -111,7 +103,6 @@ public class DoiVeGUI1 extends JPanel {
         p.setBorder(new EmptyBorder(12, 16, 12, 16));
         p.setMaximumSize(new Dimension(Integer.MAX_VALUE, 45));
 
-        // Bỏ Icon, chữ Căn giữa hoàn toàn
         JLabel msg = new JLabel("Thông tin hợp lệ. Lệ phí 30.000 đ / vé · Thu tại quầy.");
         msg.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 13));
         msg.setForeground(OK_FG);
@@ -124,7 +115,6 @@ public class DoiVeGUI1 extends JPanel {
     private JPanel buildCompareCard() {
         JPanel card = buildCard("So sánh chi tiết vé");
 
-        // Khởi tạo fields Cũ (Màu xám)
         valMaVe      = fieldLabel(GuiTheme.SUB_TEXT);
         valChuyen    = fieldLabel(GuiTheme.SUB_TEXT);
         valToa       = fieldLabel(GuiTheme.SUB_TEXT);
@@ -134,17 +124,15 @@ public class DoiVeGUI1 extends JPanel {
         valGhe       = fieldLabel(GuiTheme.SUB_TEXT);
         valNgayGio   = fieldLabel(GuiTheme.SUB_TEXT);
 
-        // Khởi tạo fields Mới (Màu xanh Navy cho phần bị thay đổi)
-        valMaVeMoi   = fieldLabel(GuiTheme.TEXT); // Mã giữ nguyên
+        valMaVeMoi   = fieldLabel(GuiTheme.TEXT);
         valChuyenMoi = fieldLabel(NEW_FG);
         valToaMoi    = fieldLabel(NEW_FG);
-        valGaDiMoi   = fieldLabel(GuiTheme.TEXT); // Ga giữ nguyên
-        valGaDenMoi  = fieldLabel(GuiTheme.TEXT); // Ga giữ nguyên
-        valLoaiMoi   = fieldLabel(GuiTheme.TEXT); // Loại giữ nguyên
+        valGaDiMoi   = fieldLabel(GuiTheme.TEXT);
+        valGaDenMoi  = fieldLabel(GuiTheme.TEXT);
+        valLoaiMoi   = fieldLabel(GuiTheme.TEXT);
         valGheMoi    = fieldLabel(NEW_FG);
         valNgayMoi   = fieldLabel(NEW_FG);
 
-        // Dùng GridBagLayout để căn chỉnh các cột thẳng tắp
         JPanel grid = new JPanel(new GridBagLayout());
         grid.setOpaque(false);
         grid.setBorder(new EmptyBorder(0, 0, 15, 0));
@@ -153,13 +141,11 @@ public class DoiVeGUI1 extends JPanel {
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.insets = new Insets(5, 8, 5, 8);
 
-        // Hàng Tiêu Đề
         gbc.gridy = 0;
         gbc.gridx = 1; gbc.weightx = 0.4; grid.add(headerLabel("VÉ HIỆN TẠI (CŨ)", GuiTheme.SUB_TEXT), gbc);
-        gbc.gridx = 2; gbc.weightx = 0.05; grid.add(new JLabel(""), gbc); // Cột chứa mũi tên
+        gbc.gridx = 2; gbc.weightx = 0.05; grid.add(new JLabel(""), gbc);
         gbc.gridx = 3; gbc.weightx = 0.4; grid.add(headerLabel("VÉ ĐỔI SANG (MỚI)", NEW_FG), gbc);
 
-        // Các Hàng Dữ Liệu Tách Rời (Ghi hết ra)
         addGridRow(grid, 1, "Mã vé",       valMaVe,    valMaVeMoi);
         addGridRow(grid, 2, "Chuyến tàu",  valChuyen,  valChuyenMoi);
         addGridRow(grid, 3, "Ga đi",       valGaDi,    valGaDiMoi);
@@ -168,7 +154,6 @@ public class DoiVeGUI1 extends JPanel {
         addGridRow(grid, 6, "Ghế",         valGhe,     valGheMoi);
         addGridRow(grid, 7, "Ngày/Giờ KH", valNgayGio, valNgayMoi);
 
-        // Khối chứa lệ phí & Tóm tắt thay đổi (Phần dưới cùng của Card)
         lbThayDoi = new JLabel("—");
         lbThayDoi.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 13));
         lbThayDoi.setForeground(NEW_FG);
@@ -199,7 +184,6 @@ public class DoiVeGUI1 extends JPanel {
 
         feeStrip.add(feeLeft); feeStrip.add(feeRight);
 
-        // Gộp Grid và FeeStrip vào Content
         JPanel content = new JPanel(new BorderLayout());
         content.setOpaque(false);
         content.add(grid, BorderLayout.CENTER);
@@ -215,18 +199,15 @@ public class DoiVeGUI1 extends JPanel {
         gbc.insets = new Insets(4, 8, 4, 8);
         gbc.gridy = y;
 
-        // Cột Tiêu đề dòng
         gbc.gridx = 0; gbc.weightx = 0.15;
         JLabel lblTitle = new JLabel(title);
         lblTitle.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 12));
         lblTitle.setForeground(GuiTheme.SUB_TEXT);
         grid.add(lblTitle, gbc);
 
-        // Cột Giá trị cũ
         gbc.gridx = 1; gbc.weightx = 0.4;
         grid.add(valOld, gbc);
 
-        // Cột Mũi tên →
         gbc.gridx = 2; gbc.weightx = 0.05;
         JLabel arrow = new JLabel("→");
         arrow.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 18));
@@ -234,7 +215,6 @@ public class DoiVeGUI1 extends JPanel {
         arrow.setHorizontalAlignment(SwingConstants.CENTER);
         grid.add(arrow, gbc);
 
-        // Cột Giá trị mới
         gbc.gridx = 3; gbc.weightx = 0.4;
         grid.add(valNew, gbc);
     }
@@ -245,7 +225,7 @@ public class DoiVeGUI1 extends JPanel {
         p.setBorder(new MatteBorder(1, 0, 0, 0, BORDER));
 
         JButton btnBack = makeSecondaryButton("← Quay lại", 130, 34);
-        btnBack.addActionListener(e -> appFrame.showCard("doi-ve"));
+        btnBack.addActionListener(e -> appFrame.showCard("doi-ve-step-2"));
 
         JButton btnConfirm = makeNavyButton("Xác nhận đổi vé", 160, 34);
         btnConfirm.addActionListener(e -> handleConfirm());
@@ -269,9 +249,9 @@ public class DoiVeGUI1 extends JPanel {
     private String extractGhe(String fullStr) {
         if (fullStr == null || fullStr.equals("—")) return "—";
         if (fullStr.contains("-")) {
-            return fullStr.split("-")[1].trim();
+            return fullStr.split("-")[1].trim(); // Tách chuẩn để lấy đúng "G01" cho DB
         }
-        return fullStr;
+        return fullStr.trim();
     }
 
     private String buildThayDoi() {
@@ -287,7 +267,7 @@ public class DoiVeGUI1 extends JPanel {
             if (sb.length() > 0) sb.append("  ·  ");
             sb.append("Ghế ").append(oldGhe).append(" → ").append(newGhe);
         }
-        return sb.length() > 0 ? sb.toString() : "Chỉ đổi lịch, không đổi số hiệu";
+        return sb.length() > 0 ? sb.toString() : "Chỉ đổi lịch, không đổi số hiệu tàu";
     }
 
     private void handleConfirm() {
@@ -300,15 +280,74 @@ public class DoiVeGUI1 extends JPanel {
                 "Xác nhận đổi vé", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
         if (ch != JOptionPane.OK_OPTION) return;
 
-        JOptionPane.showMessageDialog(this,
-                "<html><div style='text-align:center;padding:10px'>"
-                        + "<b style='font-size:16px;color:#1e7840'>✔  Đổi vé thành công!</b><br><br>"
-                        + "Mã vé <b>" + s_maVe + "</b> đã được áp dụng cho chuyến <b>" + s_chuyenMoi + "</b>.<br>"
-                        + "Ngày: <b>" + s_ngayMoi + "</b>  —  Ghế mới: <b>" + s_gheMoi + "</b><br><br>"
-                        + "Lệ phí <b>30.000 đ</b> sẽ thu khi đến quầy.</div></html>",
-                "Hoàn tất", JOptionPane.PLAIN_MESSAGE);
+        // ─── KẾT NỐI DATABASE VÀ CẬP NHẬT TRỰC TIẾP VÀO VÉ CŨ ───
+        boolean isSuccess = false;
 
-        appFrame.showCard("doi-tra");
+        String sqlUpdateVe =
+                "UPDATE Ve " +
+                        "SET maChuyen = (SELECT TOP 1 ct.maChuyen FROM ChuyenTau ct JOIN Tau t ON ct.maTau = t.maTau " +
+                        "                WHERE t.tenTau = ? AND FORMAT(ct.thoiGianKhoiHanh, 'dd/MM/yyyy HH:mm') = ?), " +
+                        "    maGhe = ? " +
+                        "WHERE maVe = ?";
+
+        try (Connection conn = Connect_DB.getInstance().getConnection();
+             PreparedStatement psUpdate = conn.prepareStatement(sqlUpdateVe)) {
+
+            psUpdate.setString(1, s_chuyenMoi);
+            psUpdate.setString(2, s_ngayMoi);
+            // ĐÃ FIX LỖI FOREIGN KEY: Sử dụng extractGhe() để bóc tách lấy đúng mã G01, G10...
+            psUpdate.setString(3, extractGhe(s_gheMoi));
+            psUpdate.setString(4, s_maVe);
+
+            int rowsAffected = psUpdate.executeUpdate();
+
+            if (rowsAffected == 0) {
+                String sqlFallback = "UPDATE Ve SET maChuyen = (SELECT TOP 1 ct.maChuyen FROM ChuyenTau ct JOIN Tau t ON ct.maTau = t.maTau WHERE t.tenTau = ?), maGhe = ? WHERE maVe = ?";
+                try (PreparedStatement psFb = conn.prepareStatement(sqlFallback)) {
+                    psFb.setString(1, s_chuyenMoi);
+                    psFb.setString(2, extractGhe(s_gheMoi));
+                    psFb.setString(3, s_maVe);
+                    rowsAffected = psFb.executeUpdate();
+                }
+            }
+
+            if (rowsAffected > 0) {
+                isSuccess = true;
+
+                // ĐÃ FIX: Lịch sự ghi thêm vào bảng DonDoiTraVe theo Database của bạn
+                try {
+                    String sqlInsert = "INSERT INTO DonDoiTraVe (maDon, ngayLap, loaiDon, tienBu, tienHoanTra, maVe) VALUES (?, GETDATE(), 'DON_DOI', 30000, 0, ?)";
+                    PreparedStatement psInsert = conn.prepareStatement(sqlInsert);
+                    psInsert.setString(1, "DD" + (System.currentTimeMillis() % 1000000)); // Render mã đơn ngẫu nhiên
+                    psInsert.setString(2, s_maVe);
+                    psInsert.executeUpdate();
+                } catch(Exception ignored) {}
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this,
+                    "Lỗi kết nối CSDL khi cập nhật đổi vé: " + e.getMessage(),
+                    "Lỗi Hệ Thống", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        // ─── HIỂN THỊ THÔNG BÁO NẾU THÀNH CÔNG ───
+        if (isSuccess) {
+            JOptionPane.showMessageDialog(this,
+                    "<html><div style='text-align:center;padding:10px'>"
+                            + "<b style='font-size:16px;color:#1e7840'>Đổi vé thành công!</b><br><br>"
+                            + "Mã vé <b>" + s_maVe + "</b> đã được cập nhật sang chuyến <b>" + s_chuyenMoi + "</b>.<br>"
+                            + "Ngày: <b>" + s_ngayMoi + "</b>  —  Ghế mới: <b>" + extractGhe(s_gheMoi) + "</b><br><br>"
+                            + "Lệ phí <b>30.000 đ</b> sẽ thu khi đến quầy.</div></html>",
+                    "Hoàn tất", JOptionPane.PLAIN_MESSAGE);
+
+            appFrame.showCard("doi-tra");
+        } else {
+            JOptionPane.showMessageDialog(this,
+                    "Lỗi: Không tìm thấy chuyến tàu khớp với thời gian trên hệ thống để cập nhật!\nVui lòng chọn lại chuyến.",
+                    "Cảnh báo", JOptionPane.WARNING_MESSAGE);
+        }
     }
 
     // ══════════════════════════════════════════════════════════════════════

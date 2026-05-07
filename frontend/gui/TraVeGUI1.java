@@ -3,6 +3,7 @@ package gui;
 import javax.swing.*;
 import javax.swing.border.*;
 import java.awt.*;
+import connect_DB.Connect_DB;
 
 /**
  * TraVeGUI1 – Màn hình xác nhận kết quả trả vé.
@@ -273,17 +274,50 @@ public class TraVeGUI1 extends JPanel {
 
         if (choice != JOptionPane.OK_OPTION) return;
 
-        JOptionPane.showMessageDialog(this,
-                "<html><div style='text-align:center;padding:8px'>" +
-                        "<b style='font-size:16px;color:#1e7840'>Trả vé thành công!</b><br><br>" +
-                        "Mã vé <b>" + s_maVe + "</b> đã được xử lý trả.<br>" +
-                        "Tiền hoàn <b>" + s_hoanLai + "</b> sẽ được chuyển trong 3–5 ngày làm việc." +
-                        "</div></html>",
-                "Hoàn tất", JOptionPane.PLAIN_MESSAGE);
+        // ─── THỰC THI CẬP NHẬT DATABASE ───
+        boolean isSuccess = false;
 
-        // TODO: Cập nhật CSDL trạng thái vé thành "DA_HUY" và Insert vào DonDoiTraVe tại đây.
+        // Cập nhật trạng thái vé thành DA_HUY
+        String sqlUpdateVe = "UPDATE Ve SET trangThaiVe = 'DA_HUY' WHERE maVe = ?";
 
-        appFrame.showCard("doi-tra");
+        try (java.sql.Connection conn = Connect_DB.getInstance().getConnection();
+             java.sql.PreparedStatement psUpdate = conn.prepareStatement(sqlUpdateVe)) {
+
+            psUpdate.setString(1, s_maVe);
+            int rowsAffected = psUpdate.executeUpdate();
+
+            if (rowsAffected > 0) {
+                isSuccess = true;
+
+                // (Tùy chọn) TODO: Nếu bạn có bảng DonDoiTraVe, bạn có thể thực hiện INSERT tại đây
+                // String sqlInsert = "INSERT INTO DonDoiTraVe (maVe, phiTra, tienHoan, ngayTra) VALUES (?, ?, ?, GETDATE())";
+                // try (PreparedStatement psInsert = conn.prepareStatement(sqlInsert)) { ... }
+            }
+
+        } catch (java.sql.SQLException e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this,
+                    "Lỗi kết nối CSDL khi cập nhật vé: " + e.getMessage(),
+                    "Lỗi Hệ Thống", JOptionPane.ERROR_MESSAGE);
+            return; // Dừng tiến trình nếu lỗi DB
+        }
+
+        // ─── HIỂN THỊ THÔNG BÁO NẾU UPDATE THÀNH CÔNG ───
+        if (isSuccess) {
+            JOptionPane.showMessageDialog(this,
+                    "<html><div style='text-align:center;padding:8px'>" +
+                            "<b style='font-size:16px;color:#1e7840'>Trả vé thành công!</b><br><br>" +
+                            "Mã vé <b>" + s_maVe + "</b> đã được hủy trên hệ thống.<br>" +
+                            "Tiền hoàn <b>" + s_hoanLai + "</b> sẽ được chuyển trong 3–5 ngày làm việc." +
+                            "</div></html>",
+                    "Hoàn tất", JOptionPane.PLAIN_MESSAGE);
+
+            appFrame.showCard("doi-tra");
+        } else {
+            JOptionPane.showMessageDialog(this,
+                    "Không tìm thấy mã vé " + s_maVe + " để hủy!",
+                    "Cảnh báo", JOptionPane.WARNING_MESSAGE);
+        }
     }
 
     // ══════════════════════════════════════════════════════════════════════
