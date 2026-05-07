@@ -4,8 +4,9 @@ import com.toedter.calendar.JDateChooser;
 
 import java.awt.*;
 import java.awt.event.*;
-import java.beans.PropertyChangeEvent;
-import java.beans.PropertyChangeListener;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.Arrays;
@@ -13,6 +14,8 @@ import java.util.List;
 import java.util.function.Consumer;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
+
+import connect_DB.Connect_DB;
 
 public class DatVeGUI extends JPanel {
 
@@ -69,9 +72,6 @@ public class DatVeGUI extends JPanel {
         add(buildRightPanel());
     }
 
-    // =====================================================
-    // PANEL TRÁI
-    // =====================================================
     private JPanel buildLeftPanel() {
         mapPanel = new MapPanel();
         mapPanel.setOnGaSelected(gaName -> {
@@ -81,9 +81,6 @@ public class DatVeGUI extends JPanel {
         return mapPanel;
     }
 
-    // =====================================================
-    // PANEL PHẢI
-    // =====================================================
     private JPanel buildRightPanel() {
         JPanel outer = new JPanel(new BorderLayout());
         outer.setBackground(new Color(242, 247, 252));
@@ -113,7 +110,7 @@ public class DatVeGUI extends JPanel {
         gaDenList = buildGaDenList();
         cbGaDen = new JComboBox<>(gaDenList);
         cbGaDen.setVisible(false);
-        cbGaDen.setSelectedIndex(0);
+        cbGaDen.setSelectedIndex(-1); 
         addRow(form, gbc, 2, "Ga đến:", buildGaDenAutocomplete(), 14);
 
         rbMotChieu = new JRadioButton("Một chiều", true);
@@ -141,7 +138,6 @@ public class DatVeGUI extends JPanel {
 
         addRow(form, gbc, 6, "Số lượng:", buildSoLuongPanel(), 10);
 
-        // ── NÚT TÌM CHUYẾN ──
         gbc.gridx = 0; gbc.gridy = 7; gbc.gridwidth = 2;
         gbc.anchor = GridBagConstraints.CENTER;
         gbc.insets = new Insets(20, 0, 0, 0);
@@ -157,52 +153,92 @@ public class DatVeGUI extends JPanel {
         return outer;
     }
 
-    // ── Chuyển sang DatVeGUI1 trong cùng content area ──
+    // --- HÀM KIỂM TRA DATABASE ---
+    private boolean checkChuyenTonTai(String tenGaDi, String tenGaDen, String ngayDiStr) {
+        String sql = "SELECT TOP 1 1 FROM ChuyenTau c " +
+                     "JOIN Ga gDi ON c.gaDi = gDi.maGa " +
+                     "JOIN Ga gDen ON c.gaDen = gDen.maGa " +
+                     "WHERE gDi.tenGa LIKE ? AND gDen.tenGa LIKE ? " +
+                     "AND CONVERT(VARCHAR, c.thoiGianKhoiHanh, 103) = ?";
+        try (Connection con = Connect_DB.getInstance().getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setNString(1, "%" + tenGaDi + "%");
+            ps.setNString(2, "%" + tenGaDen + "%");
+            ps.setString(3, ngayDiStr);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
     private void openKetQua() {
         String gaDen  = txtGaDen.getText().trim();
-        if (gaDen.isEmpty()) gaDen = gaDenList.length > 0 ? gaDenList[0] : "";
+        if (gaDen.isEmpty()) {
+        	JOptionPane.showMessageDialog(this, "Vui lòng chọn Ga đến!", "Cảnh báo", JOptionPane.WARNING_MESSAGE);
+        	return;
+        }
+        if (dcNgayDi.getDate() == null) {
+        	JOptionPane.showMessageDialog(this, "Vui lòng chọn Ngày đi!", "Cảnh báo", JOptionPane.WARNING_MESSAGE);
+        	return;
+        }
+        
         String loaiVe = rbMotChieu.isSelected() ? "Một chiều" : "Khứ hồi";
         SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
-        String ngayDi = dcNgayDi.getDate() != null ? sdf.format(dcNgayDi.getDate()) : "";
-        String ngayVe = (rbKhuHoi.isSelected() && dcNgayVe.getDate() != null)
-                        ? sdf.format(dcNgayVe.getDate()) : ngayDi;
+        String ngayDi = sdf.format(dcNgayDi.getDate());
+        
+        String ngayVe = "";
+        if (rbKhuHoi.isSelected() && dcNgayVe.getDate() != null) {
+        	ngayVe = sdf.format(dcNgayVe.getDate());
+        } else {
+        	ngayVe = ngayDi;
+        }
 
-        DatVeGUI1 panel1 = new DatVeGUI1(
-            GA_DI_MAC_DINH, gaDen, loaiVe, ngayDi, ngayVe, getSoLuong(),
-            () -> swapBack()   // callback "Quay lại" → về DatVeGUI
-        );
+        boolean coChuyen = checkChuyenTonTai(GA_DI_MAC_DINH, gaDen, ngayDi);
+        
+        JPanel nextPanel;
+        if (coChuyen) {
+            // Mở trang kết quả có tàu
+            nextPanel = new DatVeGUI1(
+                GA_DI_MAC_DINH, gaDen, loaiVe, ngayDi, ngayVe, getSoLuong(),
+                () -> swapBack()
+            );
+        } else {
+            // ĐÃ SỬA: Mở trang báo không có tàu bằng class DatVeGUI0
+            nextPanel = new DatVeGUI0(
+                GA_DI_MAC_DINH, gaDen, loaiVe, ngayDi, ngayVe, getSoLuong(),
+                () -> swapBack()
+            );
+        }
 
-        // Tìm container cha chứa DatVeGUI và swap
         Container parent = getParent();
         if (parent != null) {
             LayoutManager lm = parent.getLayout();
             if (lm instanceof CardLayout) {
-                // Nếu AppFrame dùng CardLayout: add panel mới rồi show
-                parent.add(panel1, "datveGUI1");
-                ((CardLayout) lm).show(parent, "datveGUI1");
+                parent.add(nextPanel, "datveGUI_next");
+                ((CardLayout) lm).show(parent, "datveGUI_next");
             } else {
-                // Fallback: remove DatVeGUI, add DatVeGUI1, revalidate
                 parent.remove(this);
-                parent.add(panel1, BorderLayout.CENTER);
+                parent.add(nextPanel, BorderLayout.CENTER);
                 parent.revalidate();
                 parent.repaint();
             }
         }
     }
 
-    // ── Quay lại DatVeGUI ──
     private void swapBack() {
         Container parent = getParent();
         if (parent == null) return;
         LayoutManager lm = parent.getLayout();
         if (lm instanceof CardLayout) {
-            ((CardLayout) lm).show(parent, "datveGUI");
+            ((CardLayout) lm).show(parent, "dat-ve");
         } else {
-            // Tìm DatVeGUI1 trong parent và thay bằng this
             for (Component c : parent.getComponents()) {
-                if (c instanceof DatVeGUI1) {
+                // ĐÃ SỬA: Dọn dẹp cả DatVeGUI1 và DatVeGUI0 để tránh rác
+                if (c instanceof DatVeGUI1 || c instanceof DatVeGUI0) {
                     parent.remove(c);
-                    break;
                 }
             }
             parent.add(this, BorderLayout.CENTER);
@@ -211,11 +247,8 @@ public class DatVeGUI extends JPanel {
         }
     }
 
-    // =====================================================
-    // GA ĐẾN — AUTOCOMPLETE
-    // =====================================================
     private JComponent buildGaDenAutocomplete() {
-        txtGaDen = new JTextField(gaDenList.length > 0 ? gaDenList[0] : "");
+        txtGaDen = new JTextField("");
         txtGaDen.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
         txtGaDen.setOpaque(false);
         txtGaDen.setBorder(null);
@@ -458,13 +491,10 @@ public class DatVeGUI extends JPanel {
         if (dcNgayDi != null && dcNgayVe != null) dcNgayVe.setDate(dcNgayDi.getDate());
     }
 
-    // =====================================================
-    // JDateChooser
-    // =====================================================
     private JDateChooser buildDateChooser(boolean enabled) {
         JDateChooser dc = new JDateChooser();
         dc.setDateFormatString("dd/MM/yyyy");
-        dc.setDate(new java.util.Date());
+        dc.setDate(null); // Đã sửa: Để trống ngày
         dc.setEnabled(enabled);
         dc.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
         dc.setBackground(enabled ? Color.WHITE : new Color(225, 235, 245));
@@ -493,9 +523,6 @@ public class DatVeGUI extends JPanel {
         return p;
     }
 
-    // =====================================================
-    // HELPERS
-    // =====================================================
     private String[] buildGaDenList() {
         List<String> list = new ArrayList<>();
         for (Object[] ga : GA_DATA)
@@ -551,9 +578,6 @@ public class DatVeGUI extends JPanel {
         if (dcNgayVe.getParent() != null) dcNgayVe.getParent().repaint();
     }
 
-    // =====================================================
-    // SỐ LƯỢNG
-    // =====================================================
     private JPanel buildSoLuongPanel() {
         JPanel wrapper = new JPanel(new BorderLayout()) {
             @Override protected void paintComponent(Graphics g) {
@@ -656,9 +680,6 @@ public class DatVeGUI extends JPanel {
         return btn;
     }
 
-    // =====================================================
-    // INNER CLASS: MapPanel
-    // =====================================================
     private class MapPanel extends JPanel {
         private String   selectedGaDen = null;
         private String   hoveredGa     = null;
