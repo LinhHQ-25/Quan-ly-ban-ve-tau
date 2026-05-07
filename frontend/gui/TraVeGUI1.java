@@ -14,7 +14,7 @@ public class TraVeGUI1 extends JPanel {
     private static final Color HOAN_BORDER  = new Color(134, 239, 172);
     private static final int   FIELD_H      = 28;
 
-    // ── Dữ liệu tĩnh ──────────────────────────────────────────────────────
+    // ── Dữ liệu tĩnh
     private static String   s_maVe    = "";
     private static String[] s_data    = new String[0];
     private static String   s_phi     = "";
@@ -26,25 +26,17 @@ public class TraVeGUI1 extends JPanel {
         s_phi     = phi;
         s_hoanLai = hoanLai;
     }
-
     // ── State ──────────────────────────────────────────────────────────────
     private final AppFrame appFrame;
-
-    // Banner highlight
     private JLabel lbBannerHoan;
     private JLabel lbBannerSub;
-
-    // Fields trong card gộp
     private JLabel valMaVe, valChuyen, valGaDi, valGaDen,
             valNgayGio, valLoai, valTongTien, valPhi;
-
     // ── Constructor ────────────────────────────────────────────────────────
     public TraVeGUI1(AppFrame appFrame) {
         this.appFrame = appFrame;
         setLayout(new BorderLayout());
         setBackground(GuiTheme.LIGHT_BG);
-
-        // ── ĐỒNG BỘ PADDING VỚI CÁC MÀN HÌNH KHÁC ──
         JPanel pnlPage = new JPanel(new BorderLayout(0, 10));
         pnlPage.setOpaque(false);
         pnlPage.setBorder(new EmptyBorder(
@@ -53,30 +45,22 @@ public class TraVeGUI1 extends JPanel {
                 GuiTheme.PAGE_PAD_BOTTOM,
                 GuiTheme.PAGE_PAD_LEFT
         ));
-
-        // Stack chứa các thông tin (căn giữa)
         JPanel stack = new JPanel();
         stack.setLayout(new BoxLayout(stack, BoxLayout.Y_AXIS));
         stack.setOpaque(false);
-
         stack.add(buildAlertBox());
         stack.add(Box.createVerticalStrut(10));
         stack.add(buildHoanBanner());
         stack.add(Box.createVerticalStrut(10));
         stack.add(buildMergedCard());
-
         JScrollPane outer = new JScrollPane(stack);
         outer.setBorder(null);
         outer.getViewport().setOpaque(false);
         outer.setOpaque(false);
-
-        // Đẩy phần cuộn vào giữa, nút bấm xuống đáy
         pnlPage.add(outer, BorderLayout.CENTER);
         pnlPage.add(buildButtonRow(), BorderLayout.SOUTH);
-
         add(pnlPage, BorderLayout.CENTER);
     }
-
     public void refresh() {
         valMaVe   .setText(s_maVe.isEmpty() ? "—" : s_maVe);
         valChuyen .setText(safe(s_data, 0));
@@ -84,35 +68,21 @@ public class TraVeGUI1 extends JPanel {
         valGaDen  .setText(safe(s_data, 2));
         valNgayGio.setText(safe(s_data, 4));
         valLoai   .setText(safe(s_data, 3));
-
-        // ── ĐÃ SỬA LỖI TÍNH TIỀN ──
         long tongTien = 0;
         try {
-            // Lấy số lượng (xóa mọi ký tự không phải số)
             long soLuong = Long.parseLong(s_data[5].replaceAll("[^0-9]", ""));
-
-            // Lấy đơn giá (cắt phần thập phân .00 trước, sau đó xóa ký tự rác)
             String cleanGia = s_data[7].split("\\.")[0].replaceAll("[^0-9]", "");
             long donGia = Long.parseLong(cleanGia);
-
             tongTien = soLuong * donGia;
         } catch (Exception ignored) {}
-
         valTongTien.setText(tongTien > 0 ? fmtTien(tongTien) : "—");
         valPhi     .setText(s_phi.isEmpty() ? "—" : s_phi);
-
-        // Banner
         lbBannerHoan.setText(s_hoanLai.isEmpty() ? "—" : s_hoanLai);
         lbBannerSub .setText(buildSubText());
-
         revalidate();
         repaint();
     }
-
-    // ══════════════════════════════════════════════════════════════════════
     // UI BUILDERS
-    // ══════════════════════════════════════════════════════════════════════
-
     private JPanel buildAlertBox() {
         JPanel p = new JPanel() {
             @Override protected void paintComponent(Graphics g) {
@@ -125,22 +95,15 @@ public class TraVeGUI1 extends JPanel {
                 g2.dispose();
             }
         };
-        // Thay BoxLayout.X_AXIS bằng BorderLayout để dễ căn giữa
         p.setLayout(new BorderLayout());
         p.setOpaque(false);
         p.setBorder(new EmptyBorder(12, 16, 12, 16));
         p.setMaximumSize(new Dimension(Integer.MAX_VALUE, 45));
-
-        // Đã xóa biến 'icon' chứa ký tự "ℹ"
-
         JLabel msg = new JLabel("Vui lòng kiểm tra lại thông tin...");
-        msg.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 13)); // In đậm một chút cho đẹp
+        msg.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 13));
         msg.setForeground(OK_FG);
-        msg.setHorizontalAlignment(SwingConstants.CENTER); // Căn giữa nội dung
-
+        msg.setHorizontalAlignment(SwingConstants.CENTER);
         p.add(msg, BorderLayout.CENTER);
-
-        // Không dùng fixAlignAndMax nữa vì BorderLayout đã tự lo việc dàn trang
         p.setAlignmentX(LEFT_ALIGNMENT);
         return p;
     }
@@ -160,23 +123,19 @@ public class TraVeGUI1 extends JPanel {
         p.setOpaque(false);
         p.setLayout(new BoxLayout(p, BoxLayout.Y_AXIS));
         p.setBorder(new EmptyBorder(16, 20, 16, 20));
-
         JLabel lbTitle = new JLabel("Tiền hoàn lại cho bạn");
         lbTitle.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 13));
         lbTitle.setForeground(OK_FG);
         lbTitle.setAlignmentX(CENTER_ALIGNMENT);
-
         lbBannerHoan = new JLabel("—");
         lbBannerHoan.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 28));
         lbBannerHoan.setForeground(OK_FG);
         lbBannerHoan.setAlignmentX(CENTER_ALIGNMENT);
         lbBannerHoan.setHorizontalAlignment(SwingConstants.CENTER);
-
         lbBannerSub = new JLabel(" ");
         lbBannerSub.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 12));
         lbBannerSub.setForeground(new Color(60, 150, 90));
         lbBannerSub.setAlignmentX(CENTER_ALIGNMENT);
-
         p.add(lbTitle);
         p.add(Box.createVerticalStrut(4));
         p.add(lbBannerHoan);
@@ -188,7 +147,6 @@ public class TraVeGUI1 extends JPanel {
 
     private JPanel buildMergedCard() {
         JPanel card = buildCard("Thông tin vé + chi phí");
-
         valMaVe    = infoLabel(GuiTheme.TEXT);
         valChuyen  = infoLabel(GuiTheme.TEXT);
         valGaDi    = infoLabel(GuiTheme.TEXT);
@@ -197,20 +155,16 @@ public class TraVeGUI1 extends JPanel {
         valLoai    = infoLabel(GuiTheme.TEXT);
         valTongTien= infoLabel(GuiTheme.TEXT);
         valPhi     = infoLabel(new Color(160, 100, 0));
-
         JPanel grid = new JPanel(new GridLayout(2, 4, 14, 10));
         grid.setOpaque(false);
-
         grid.add(infoCell("Mã vé",       valMaVe));
         grid.add(infoCell("Chuyến tàu",  valChuyen));
         grid.add(infoCell("Ga đi",       valGaDi));
         grid.add(infoCell("Ga đến",      valGaDen));
-
         grid.add(infoCell("Ngày/Giờ KH", valNgayGio));
         grid.add(infoCell("Loại vé",     valLoai));
         grid.add(infoCell("Tổng tiền vé",valTongTien));
         grid.add(infoCell("Phí trả vé",  valPhi));
-
         card.add(grid, BorderLayout.CENTER);
         return card;
     }
@@ -218,24 +172,16 @@ public class TraVeGUI1 extends JPanel {
     private JPanel buildButtonRow() {
         JPanel p = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 6));
         p.setOpaque(false);
-        // Thêm MatteBorder phía trên giống màn hình khác
         p.setBorder(new MatteBorder(1, 0, 0, 0, BORDER));
-
         JButton btnBack = makeSecondaryButton("← Quay lại", 130, 34);
         btnBack.addActionListener(e -> appFrame.showCard("tra-ve"));
-
         JButton btnDone = makeNavyButton("Xác nhận trả vé", 150, 34);
         btnDone.addActionListener(e -> handleDone());
-
         p.add(btnBack);
         p.add(btnDone);
         return p;
     }
-
-    // ══════════════════════════════════════════════════════════════════════
     // LOGIC
-    // ══════════════════════════════════════════════════════════════════════
-
     private String buildSubText() {
         StringBuilder sb = new StringBuilder();
         if (s_phi.contains("%")) {
@@ -251,7 +197,6 @@ public class TraVeGUI1 extends JPanel {
         sb.append("  ·  Chuyển trong 3–5 ngày làm việc");
         return sb.toString();
     }
-
     private void handleDone() {
         int choice = JOptionPane.showConfirmDialog(this,
                 "<html><div style='padding:6px'>" +
@@ -262,15 +207,11 @@ public class TraVeGUI1 extends JPanel {
                         "</div></html>",
                 "Xác nhận trả vé",
                 JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
-
         if (choice != JOptionPane.OK_OPTION) return;
-
         // ─── THỰC THI CẬP NHẬT DATABASE ───
         boolean isSuccess = false;
-
         // Cập nhật trạng thái vé thành DA_HUY
         String sqlUpdateVe = "UPDATE Ve SET trangThaiVe = 'DA_HUY' WHERE maVe = ?";
-
         try (java.sql.Connection conn = Connect_DB.getInstance().getConnection();
              java.sql.PreparedStatement psUpdate = conn.prepareStatement(sqlUpdateVe)) {
 
@@ -279,20 +220,14 @@ public class TraVeGUI1 extends JPanel {
 
             if (rowsAffected > 0) {
                 isSuccess = true;
-
-                // (Tùy chọn) TODO: Nếu bạn có bảng DonDoiTraVe, bạn có thể thực hiện INSERT tại đây
-                // String sqlInsert = "INSERT INTO DonDoiTraVe (maVe, phiTra, tienHoan, ngayTra) VALUES (?, ?, ?, GETDATE())";
-                // try (PreparedStatement psInsert = conn.prepareStatement(sqlInsert)) { ... }
             }
-
         } catch (java.sql.SQLException e) {
             e.printStackTrace();
             JOptionPane.showMessageDialog(this,
                     "Lỗi kết nối CSDL khi cập nhật vé: " + e.getMessage(),
                     "Lỗi Hệ Thống", JOptionPane.ERROR_MESSAGE);
-            return; // Dừng tiến trình nếu lỗi DB
+            return; 
         }
-
         // ─── HIỂN THỊ THÔNG BÁO NẾU UPDATE THÀNH CÔNG ───
         if (isSuccess) {
             JOptionPane.showMessageDialog(this,
@@ -310,11 +245,7 @@ public class TraVeGUI1 extends JPanel {
                     "Cảnh báo", JOptionPane.WARNING_MESSAGE);
         }
     }
-
-    // ══════════════════════════════════════════════════════════════════════
     // UI HELPERS
-    // ══════════════════════════════════════════════════════════════════════
-
     private JLabel infoLabel(Color color) {
         JLabel lb = new JLabel("—");
         lb.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 13));
