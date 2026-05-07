@@ -5,16 +5,7 @@ import javax.swing.border.*;
 import java.awt.*;
 import connect_DB.Connect_DB;
 
-/**
- * TraVeGUI1 – Màn hình xác nhận kết quả trả vé.
- * REDESIGN: Gộp + Highlight hoàn tiền
- * - Banner "Tiền hoàn lại cho bạn" nổi bật màu xanh
- * - Gộp 2 card (info + chi phí) thành 1 card "Thông tin vé + chi phí"
- * - Padding đồng bộ với các GUI khác
- */
 public class TraVeGUI1 extends JPanel {
-
-    // ── Constants ──────────────────────────────────────────────────────────
     private static final Color BORDER       = new Color(210, 215, 224);
     private static final Color OK_FG        = new Color(30, 120, 60);
     private static final Color OK_BG        = new Color(236, 252, 240);

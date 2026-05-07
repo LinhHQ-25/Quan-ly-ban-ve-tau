@@ -12,12 +12,7 @@ import java.util.*;
 
 import connect_DB.Connect_DB;
 
-/**
- * DoiVeGUI – Bước 2 flow đổi vé: xem vé hiện tại + chọn chuyến/toa/ghế mới.
- * Đã chuẩn hóa: Bỏ icon, sửa lỗi parse tiền vé, tối ưu SQL với bảng ToaTau, Ghe.
- */
 public class DoiVeGUI extends JPanel {
-
     private static final Color BORDER      = new Color(210, 215, 224);
     private static final Color WARN_FG     = new Color(180, 60, 0);
     private static final Color OK_FG       = new Color(30, 120, 60);
@@ -29,16 +24,12 @@ public class DoiVeGUI extends JPanel {
     private static final Color SEAT_SEL    = new Color(100, 180, 255);
     private static final int   FIELD_H     = 28;
     private static final DateTimeFormatter FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
-
-    // ── Dữ liệu vé nhận từ DoiTraGUI ────────────────────────────────────────
     private static String   s_maVe = "";
     private static String[] s_data = new String[0];
-
     public static void setVeDuocChon(String maVe, String[] data) {
         s_maVe = maVe;
         s_data = data.clone();
     }
-
     // ── Danh sách chuyến từ DB: [maChuyen, tenTau, thoiGianKH, thoiGianDen] ──
     private final java.util.List<String[]> chuyenList = new ArrayList<>();
 
@@ -46,8 +37,6 @@ public class DoiVeGUI extends JPanel {
     private int chuyenIdx = 0, toaIdx = 0;
     private final Set<Integer> gheChon = new LinkedHashSet<>();
     private int toaCount = 10;
-
-    // Widgets
     private JTextField tfMaVe, tfChuyen, tfGaDi, tfGaDen, tfNgayGio, tfLoai, tfGhe, tfSoLuong, tfGia;
     private JLabel lbTrangThai;
     private JPanel pnlChuyenTable;
@@ -62,21 +51,15 @@ public class DoiVeGUI extends JPanel {
         this.appFrame = appFrame;
         setLayout(new BorderLayout());
         setBackground(GuiTheme.LIGHT_BG);
-
         loadChuyenFromDB();
-
-        // ── Padding chuẩn hóa ──
         JPanel pnlPage = new JPanel(new BorderLayout(0, 10));
         pnlPage.setOpaque(false);
         pnlPage.setBorder(new EmptyBorder(
                 0, GuiTheme.PAGE_PAD_LEFT, GuiTheme.PAGE_PAD_BOTTOM, GuiTheme.PAGE_PAD_LEFT
         ));
-
-        // Stack các card dọc
         JPanel stack = new JPanel();
         stack.setLayout(new BoxLayout(stack, BoxLayout.Y_AXIS));
         stack.setOpaque(false);
-
         stack.add(buildCurrentInfoCard());
         stack.add(Box.createVerticalStrut(10));
         stack.add(buildChuyenCard());
@@ -84,19 +67,15 @@ public class DoiVeGUI extends JPanel {
         stack.add(buildToaStepperCard());
         stack.add(Box.createVerticalStrut(8));
         stack.add(buildGheCard());
-
         JScrollPane outer = new JScrollPane(stack);
         outer.setBorder(null);
         outer.getViewport().setOpaque(false);
         outer.setOpaque(false);
-
         pnlPage.add(outer,          BorderLayout.CENTER);
         pnlPage.add(buildBottomBar(), BorderLayout.SOUTH);
-
         add(pnlPage, BorderLayout.CENTER);
         refresh();
     }
-
     public void refresh() {
         fillCurrentInfo();
         validateDoiVe();
@@ -107,11 +86,7 @@ public class DoiVeGUI extends JPanel {
         refreshGhe();
         updateBottomBar();
     }
-
-    // ══════════════════════════════════════════════════════════════════════
     // DATA LAYER (TƯƠNG TÁC SQL CHUẨN)
-    // ══════════════════════════════════════════════════════════════════════
-
     private void loadChuyenFromDB() {
         chuyenList.clear();
         String sql = "SELECT ct.maChuyen, t.tenTau, ct.thoiGianKhoiHanh, ct.thoiGianDuKien " +
@@ -121,7 +96,6 @@ public class DoiVeGUI extends JPanel {
         try (Connection conn = Connect_DB.getInstance().getConnection();
              PreparedStatement ps = conn.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
-
             java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("dd/MM/yyyy HH:mm");
             while (rs.next()) {
                 Timestamp kh = rs.getTimestamp("thoiGianKhoiHanh");
@@ -144,32 +118,25 @@ public class DoiVeGUI extends JPanel {
         String sql = "SELECT COUNT(*) FROM ToaTau tt " +
                 "JOIN ChuyenTau ct ON tt.maTau = ct.maTau " +
                 "WHERE ct.maChuyen = ?";
-
         try (Connection conn = Connect_DB.getInstance().getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
-
             ps.setString(1, chuyenList.get(ci)[0]);
             ResultSet rs = ps.executeQuery();
             if (rs.next()) count = rs.getInt(1);
-
         } catch (SQLException e) { e.printStackTrace(); }
         return Math.max(count, 1);
     }
-
     private Set<Integer> gheDaDatFromDB(int ci, int ti) {
         Set<Integer> result = new LinkedHashSet<>();
         if (ci < 0 || ci >= chuyenList.size()) return result;
-
         String sql = "SELECT v.maGhe FROM Ve v " +
                 "JOIN Ghe g ON v.maGhe = g.maGhe " +
                 "JOIN ToaTau tt ON g.maToaTau = tt.maToaTau " +
                 "JOIN ChuyenTau ct ON tt.maTau = ct.maTau " +
                 "WHERE ct.maChuyen = ? AND tt.soToa = ? " +
                 "AND v.trangThaiVe IN ('CHO_THANH_TOAN', 'DA_THANH_TOAN')";
-
         try (Connection conn = Connect_DB.getInstance().getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
-
             ps.setString(1, chuyenList.get(ci)[0]);
             ps.setInt(2, ti + 1);
             ResultSet rs = ps.executeQuery();
@@ -185,20 +152,14 @@ public class DoiVeGUI extends JPanel {
         }
         return result;
     }
-
-    // ══════════════════════════════════════════════════════════════════════
     // UI BUILDERS
-    // ══════════════════════════════════════════════════════════════════════
-
     private JPanel buildCurrentInfoCard() {
         JPanel card = buildWhiteCard("Thông tin vé hiện tại");
-
         tfMaVe = readField(); tfChuyen  = readField();
         tfGaDi = readField(); tfGaDen   = readField();
         tfNgayGio = readField(); tfLoai = readField();
         tfGhe  = readField(); tfSoLuong = readField();
         tfGia  = readField();
-
         JPanel grid = new JPanel(new GridLayout(2, 4, 12, 8));
         grid.setOpaque(false);
         grid.add(fieldBox("Mã vé",       tfMaVe));
@@ -209,15 +170,12 @@ public class DoiVeGUI extends JPanel {
         grid.add(fieldBox("Loại vé",     tfLoai));
         grid.add(fieldBox("Số ghế",      tfGhe));
         grid.add(fieldBox("Số lượng",    tfSoLuong));
-
         JPanel row3 = new JPanel(new GridLayout(1, 4, 12, 0));
         row3.setOpaque(false);
         row3.add(fieldBox("Đơn giá", tfGia));
-
         lbTrangThai = new JLabel("—");
         lbTrangThai.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 13));
         lbTrangThai.setForeground(GuiTheme.SUB_TEXT);
-
         JPanel ttCell = new JPanel();
         ttCell.setLayout(new BoxLayout(ttCell, BoxLayout.Y_AXIS));
         ttCell.setOpaque(false);
@@ -231,21 +189,18 @@ public class DoiVeGUI extends JPanel {
         ttCell.add(lbTrangThai);
         row3.add(ttCell);
         row3.add(new JLabel()); row3.add(new JLabel());
-
         JPanel content = new JPanel();
         content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
         content.setOpaque(false);
         content.add(grid);
         content.add(Box.createVerticalStrut(8));
         content.add(row3);
-
         card.add(content, BorderLayout.CENTER);
         return card;
     }
 
     private JPanel buildChuyenCard() {
         JPanel card = buildWhiteCard("Chọn chuyến tàu mới");
-
         JPanel header = new JPanel(new GridLayout(1, 4, 0, 0));
         header.setBackground(NAVY);
         header.setBorder(new EmptyBorder(6, 10, 6, 10));
@@ -253,26 +208,21 @@ public class DoiVeGUI extends JPanel {
             JLabel l = new JLabel(col);
             l.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 12));
             l.setForeground(Color.WHITE);
-            header.add(l);
-        }
-
+            header.add(l);}
         pnlChuyenTable = new JPanel();
         pnlChuyenTable.setLayout(new BoxLayout(pnlChuyenTable, BoxLayout.Y_AXIS));
         pnlChuyenTable.setBackground(Color.WHITE);
-
         JScrollPane scroll = new JScrollPane(pnlChuyenTable,
                 JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
                 JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
         scroll.setBorder(null);
         scroll.setPreferredSize(new Dimension(0, 160));
         scroll.getVerticalScrollBar().setUnitIncrement(16);
-
         JPanel wrap = new JPanel(new BorderLayout());
         wrap.setOpaque(false);
         wrap.setBorder(new LineBorder(BORDER, 1, false));
         wrap.add(header, BorderLayout.NORTH);
         wrap.add(scroll,  BorderLayout.CENTER);
-
         card.add(wrap, BorderLayout.CENTER);
         return card;
     }
@@ -293,7 +243,6 @@ public class DoiVeGUI extends JPanel {
     private JPanel buildChuyenRow(int ci) {
         boolean sel = (ci == chuyenIdx);
         String[] ch = chuyenList.get(ci);
-
         String tgHanhTrinh = "--";
         try {
             LocalDateTime di  = LocalDateTime.parse(ch[2], FMT);
@@ -301,7 +250,6 @@ public class DoiVeGUI extends JPanel {
             long mins = ChronoUnit.MINUTES.between(di, den);
             tgHanhTrinh = (mins / 60) + "h " + (mins % 60) + "m";
         } catch (Exception ignored) {}
-
         final String tg = tgHanhTrinh;
         final int idx = ci;
 
@@ -317,7 +265,6 @@ public class DoiVeGUI extends JPanel {
                 new EmptyBorder(8, 10, 8, 10)));
         row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 42));
         row.setCursor(new Cursor(Cursor.HAND_CURSOR));
-
         JPanel badgeCol = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
         badgeCol.setOpaque(false);
         JLabel badge = new JLabel(ch[1]);
@@ -327,14 +274,12 @@ public class DoiVeGUI extends JPanel {
         badge.setBackground(sel ? ACCENT : ACCENT_LITE);
         badge.setBorder(new EmptyBorder(2, 8, 2, 8));
         badgeCol.add(badge);
-
         row.add(badgeCol);
         row.add(rowLabel(ch[2], sel));
         row.add(rowLabel(ch[3], sel));
         JLabel lTG = rowLabel(tg, sel);
         lTG.setForeground(sel ? ACCENT : GuiTheme.SUB_TEXT);
         row.add(lTG);
-
         MouseAdapter ma = new MouseAdapter() {
             public void mouseClicked(MouseEvent e) {
                 chuyenIdx = idx; toaIdx = 0; gheChon.clear();
@@ -346,7 +291,6 @@ public class DoiVeGUI extends JPanel {
         for (Component c : row.getComponents()) c.addMouseListener(ma);
         return row;
     }
-
     private JLabel rowLabel(String text, boolean sel) {
         JLabel l = new JLabel(text);
         l.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 12));
@@ -356,7 +300,6 @@ public class DoiVeGUI extends JPanel {
 
     private JPanel buildToaStepperCard() {
         JPanel card = buildWhiteCard("Chọn toa");
-
         JPanel stepper = new JPanel();
         stepper.setLayout(new BoxLayout(stepper, BoxLayout.X_AXIS));
         stepper.setOpaque(false);
@@ -599,7 +542,6 @@ public class DoiVeGUI extends JPanel {
             if (gheSb.length() > 0) gheSb.append(", ");
             gheSb.append(tenToa).append(" - G").append(String.format("%02d", g));
         }
-
         // Truyền vào DoiVeGUI1
         DoiVeGUI1.setDonDoi(s_maVe, s_data, chuyenMoi, ngayMoi, gheSb.toString());
         appFrame.showCard("doi-ve-step-2");
