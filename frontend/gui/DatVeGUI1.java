@@ -39,7 +39,10 @@ public class DatVeGUI1 extends JPanel {
 
 	// Trạng thái đang xem chiều đi hay chiều về
 	private boolean dangXemChieuVe = false;
-
+	// Dùng để lưu mốc thời gian (lọc tự động ẩn các chuyến mâu thuẫn)
+    private LocalDateTime selectedArrivalDi = null;
+    private LocalDateTime selectedDepartVe = null;
+    private final DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
 	// Lưu trạng thái riêng cho mỗi chiều
 	private int trangDi = 0, chuyenIdxDi = -1, toaIdxDi = -1;
 	private final Set<Integer> gheChonDi = new LinkedHashSet<>();
@@ -148,55 +151,49 @@ public class DatVeGUI1 extends JPanel {
 	}
 	
 	private void applyFilter(String khungGio) {
-		String[][] currentFull = dangXemChieuVe ? CHUYEN_FULL_VE : CHUYEN_FULL;
-		String currentNgay = dangXemChieuVe ? ngayVe : ngayDi;
+        String[][] dataToFilter = dangXemChieuVe ? CHUYEN_FULL_VE : CHUYEN_FULL;
+        String[][] result; 
 
-	    if (currentFull == null || currentFull.length == 0 || currentFull[0][0].equals("Không có chuyến")) {
-	        if (dangXemChieuVe) CHUYEN_FILTERED_VE = currentFull;
-	        else CHUYEN_FILTERED = currentFull;
-	    } else if (khungGio.equals("Tất cả")) {
-	        if (dangXemChieuVe) CHUYEN_FILTERED_VE = currentFull;
-	        else CHUYEN_FILTERED = currentFull;
-	    } else {
-	        List<String[]> filteredList = new ArrayList<>();
-	        for (String[] ch : currentFull) {
-	            try {
-	                String timeStr = ch[1];
-	                int hour = Integer.parseInt(timeStr.substring(11, 13));
-	                boolean match = false;
-	                
-	                switch (khungGio) {
-	                    case "Sáng":  match = (hour >= 4 && hour < 12); break;   
-	                    case "Trưa":  match = (hour >= 12 && hour < 14); break;  
-	                    case "Chiều": match = (hour >= 14 && hour < 18); break;  
-	                    case "Tối":   match = (hour >= 18 || hour < 4); break;   
-	                }
-	                if (match) filteredList.add(ch);
-	            } catch (Exception ex) {
-	                ex.printStackTrace();
-	            }
-	        }
-	        
-	        if (filteredList.isEmpty()) {
-	        	String[][] empty = new String[][] { { "Không có chuyến", "--:--", "--:--", currentNgay, currentNgay, "" } };
-	            if (dangXemChieuVe) CHUYEN_FILTERED_VE = empty;
-	            else CHUYEN_FILTERED = empty;
-	        } else {
-	        	String[][] arr = filteredList.toArray(new String[0][]);
-	            if (dangXemChieuVe) CHUYEN_FILTERED_VE = arr;
-	            else CHUYEN_FILTERED = arr;
-	        }
-	    }
-	    
-	    trang = 0;
-	    chuyenIdx = -1;
-	    toaIdx = -1;
-	    gheChon.clear();
-	    
-	    refreshChuyen();
-	    refreshToaGhe();
-	    updateActionBtn();
-	}
+        if (dataToFilter == null || dataToFilter.length == 0 || dataToFilter[0][0].equals("Không có chuyến")) {
+            result = dataToFilter;
+        } else {
+            List<String[]> filteredList = new ArrayList<>();
+            for (String[] ch : dataToFilter) {
+                try {
+                    LocalDateTime tgDi = LocalDateTime.parse(ch[1], fmt);
+                    // CHỈ LỌC CHIỀU VỀ THEO CHIỀU ĐI (Chiều đi là mốc cố định)
+                    if (dangXemChieuVe && selectedArrivalDi != null) {
+                        if (tgDi.isBefore(selectedArrivalDi)) continue; 
+                    }
+
+                    boolean match = false;
+                    if (khungGio.equals("Tất cả")) match = true;
+                    else {
+                        int hour = tgDi.getHour();
+                        switch (khungGio) {
+                            case "Sáng":  match = (hour >= 4 && hour < 12); break;   
+                            case "Trưa":  match = (hour >= 12 && hour < 14); break;  
+                            case "Chiều": match = (hour >= 14 && hour < 18); break;  
+                            case "Tối":   match = (hour >= 18 || hour < 4); break;   
+                        }
+                    }
+                    if (match) filteredList.add(ch);
+                } catch (Exception ex) { ex.printStackTrace(); }
+            }
+            if (filteredList.isEmpty()) {
+                String ngay = dangXemChieuVe ? ngayVe : ngayDi;
+                result = new String[][] { { "Không có chuyến", "--:--", "--:--", ngay, ngay, "" } };
+            } else result = filteredList.toArray(new String[0][]);
+        }
+        
+        if (dangXemChieuVe) CHUYEN_FILTERED_VE = result;
+        else CHUYEN_FILTERED = result;
+
+        // KHÔNG reset chỉ số ở đây nữa để giữ nguyên trạng thái khi chuyển tab
+        refreshChuyen(); 
+        refreshToaGhe(); 
+        updateActionBtn();
+    }
 
 	private String[] buildToaList(int ci) {
 		String[][] filtered = dangXemChieuVe ? CHUYEN_FILTERED_VE : CHUYEN_FILTERED;
@@ -222,37 +219,41 @@ public class DatVeGUI1 extends JPanel {
 	}
 
 	private Set<Integer> gheDaDat(int ci, int ti) {
-		Set<Integer> booked = new LinkedHashSet<>();
-		String[][] filtered = dangXemChieuVe ? CHUYEN_FILTERED_VE : CHUYEN_FILTERED;
-		if (filtered == null || filtered.length == 0 || filtered[0][0].equals("Không có chuyến") || ci == -1 || ti == -1) return booked;
+	    Set<Integer> booked = new LinkedHashSet<>();
+	    
+	    // ĐÃ SỬA: Lấy đúng mảng dữ liệu của chiều đang xem
+	    String[][] filtered = dangXemChieuVe ? CHUYEN_FILTERED_VE : CHUYEN_FILTERED;
+	    
+	    if (filtered == null || ci == -1 || ti == -1 || filtered[0][0].equals("Không có chuyến")) {
+	        return booked;
+	    }
+	    
+	    String maChuyen = filtered[ci][5];
+	    String[] toaList = buildToaList(ci);
+	    String maToa = toaList[ti];
 
-		String[] toaList = buildToaList(ci);
-		if (toaList.length == 0 || ti >= toaList.length) return booked;
-
-		String maChuyen = filtered[ci].length > 5 ? filtered[ci][5] : "";
-		String maToa = toaList[ti];
-
-		String sql = "SELECT g.maGhe FROM Ve v " +
-					 "JOIN Ghe g ON v.maGhe = g.maGhe " +
-					 "WHERE v.maChuyen = ? AND g.maToaTau = ? " +
-					 "AND v.trangThaiVe IN ('DA_THANH_TOAN', 'CHO_THANH_TOAN')";
-
-		try (Connection con = Connect_DB.getInstance().getConnection();
-			 PreparedStatement ps = con.prepareStatement(sql)) {
-			ps.setString(1, maChuyen);
-			ps.setString(2, maToa);
-			ResultSet rs = ps.executeQuery();
-			while (rs.next()) {
-				String maGhe = rs.getString("maGhe");
-				String soGheStr = maGhe.replaceAll("\\D+", ""); 
-				if (!soGheStr.isEmpty()) {
-					booked.add(Integer.parseInt(soGheStr));
-				}
-			}
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-		return booked;
+	    String sql = "SELECT g.maGhe FROM Ve v " +
+	                 "JOIN Ghe g ON v.maGhe = g.maGhe " +
+	                 "WHERE v.maChuyen = ? AND g.maToaTau = ? " +
+	                 "AND v.trangThaiVe IN ('DA_THANH_TOAN', 'CHO_THANH_TOAN')";
+	                 
+	    try (Connection con = Connect_DB.getInstance().getConnection(); 
+	         PreparedStatement ps = con.prepareStatement(sql)) {
+	        
+	        ps.setString(1, maChuyen); 
+	        ps.setString(2, maToa);
+	        ResultSet rs = ps.executeQuery();
+	        
+	        while (rs.next()) {
+	            String fullMaGhe = rs.getString("maGhe"); 
+	            String soGheStr = fullMaGhe.substring(2, 4);
+	            
+	            if (!soGheStr.isEmpty()) {
+	                booked.add(Integer.parseInt(soGheStr)); 
+	            }
+	        }
+	    } catch (Exception e) { e.printStackTrace(); }
+	    return booked;
 	}
 
 	private JPanel buildTopBar() {
@@ -314,21 +315,17 @@ public class DatVeGUI1 extends JPanel {
 	    
 	    // CẬP NHẬT: Nút Làm mới giờ sẽ cập nhật CSDL và reset trang
 	    btnLamMoi.addActionListener(e -> { 
-	    	if (!dangXemChieuVe) {
-		    	CHUYEN_FULL = loadChuyenFromDB(gaDi, gaDen, ngayDi);
-				if (CHUYEN_FULL == null || CHUYEN_FULL.length == 0) {
-					CHUYEN_FULL = new String[][] { { "Không có chuyến", "--:--", "--:--", ngayDi, ngayDi, "" } };
-				}
-	    	} else {
-		    	CHUYEN_FULL_VE = loadChuyenFromDB(gaDen, gaDi, ngayVe);
-				if (CHUYEN_FULL_VE == null || CHUYEN_FULL_VE.length == 0) {
-					CHUYEN_FULL_VE = new String[][] { { "Không có chuyến", "--:--", "--:--", ngayVe, ngayVe, "" } };
-				}
-	    	}
-			if (cbKhungGio != null) {
-				cbKhungGio.setSelectedIndex(0); // Trigger applyFilter("Tất cả")
-			}
-	    });
+            CHUYEN_FULL = loadChuyenFromDB(gaDi, gaDen, ngayDi);
+            if (!motChieu) {
+                CHUYEN_FULL_VE = loadChuyenFromDB(gaDen, gaDi, ngayVe);
+                // Xóa mốc thời gian khi làm mới để hiện lại tất cả chuyến
+                selectedArrivalDi = null;
+                selectedDepartVe = null;
+            }
+            if (cbKhungGio != null) {
+                cbKhungGio.setSelectedIndex(0);
+            }
+        });
 
 	    buttonPanel.add(btnChieuToggle);
 	    buttonPanel.add(btnLamMoi);
@@ -472,7 +469,11 @@ public class DatVeGUI1 extends JPanel {
 	    cbKhungGio.setFont(new Font("Segoe UI", Font.PLAIN, 13));
 	    cbKhungGio.setBackground(Color.WHITE);
 	    cbKhungGio.setPreferredSize(new Dimension(110, 26));
-	    cbKhungGio.addActionListener(e -> applyFilter((String) cbKhungGio.getSelectedItem()));
+	    cbKhungGio.addActionListener(e -> {
+	        // Chỉ reset khi người dùng chủ động đổi khung giờ
+	        trang = 0; chuyenIdx = -1; toaIdx = -1; gheChon.clear();
+	        applyFilter((String) cbKhungGio.getSelectedItem());
+	    });
 	    
 	    pnlFilter.add(lblFilter);
 	    pnlFilter.add(cbKhungGio);
@@ -608,9 +609,25 @@ public class DatVeGUI1 extends JPanel {
 	            addMouseListener(new MouseAdapter() {
 	                @Override public void mouseEntered(MouseEvent e) { isHover = true; repaint(); }
 	                @Override public void mouseExited(MouseEvent e) { isHover = false; repaint(); }
-	                @Override public void mouseClicked(MouseEvent e) {
-	                    chuyenIdx = ci; toaIdx = -1; gheChon.clear();
-	                    refreshChuyen(); refreshToaGhe(); updateActionBtn();
+	                @Override 
+	                public void mouseClicked(MouseEvent e) { 
+	                    // LƯU LẠI THỜI GIAN CỦA CHUYẾN ĐƯỢC CHỌN ĐỂ LÀM MỐC LỌC
+	                    if (!motChieu) {
+	                        try {
+	                            if (!dangXemChieuVe) {
+	                                selectedArrivalDi = LocalDateTime.parse(ch[2], fmt);
+	                            } else {
+	                                selectedDepartVe = LocalDateTime.parse(ch[1], fmt);
+	                            }
+	                        } catch (Exception ex) { ex.printStackTrace(); }
+	                    }
+
+	                    chuyenIdx = ci; 
+	                    toaIdx = -1; 
+	                    gheChon.clear(); 
+	                    refreshChuyen(); 
+	                    refreshToaGhe(); 
+	                    updateActionBtn(); 
 	                }
 	            });
 	        }
@@ -653,7 +670,7 @@ public class DatVeGUI1 extends JPanel {
 	    };
 	    card.setOpaque(false);
 
-	    JLabel badge = new JLabel(ch[0], SwingConstants.CENTER) {
+	    JLabel badge = new JLabel(ch[5], SwingConstants.CENTER) {
 	        @Override protected void paintComponent(Graphics g) {
 	            Graphics2D g2 = (Graphics2D) g.create();
 	            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
@@ -663,7 +680,7 @@ public class DatVeGUI1 extends JPanel {
 	        }
 	    };
 	    badge.setFont(new Font("Segoe UI", Font.BOLD, 11));
-	    badge.setPreferredSize(new Dimension(55, 22));
+	    badge.setBorder(new EmptyBorder(4, 8, 4, 8));
 	    
 	    JPanel badgeWrap = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 4));
 	    badgeWrap.setOpaque(false);
@@ -868,67 +885,57 @@ public class DatVeGUI1 extends JPanel {
 	}
 
 	private void switchToChieuVe() {
-		// Lưu trạng thái chiều đi
-		trangDi = trang;
-		chuyenIdxDi = chuyenIdx;
-		toaIdxDi = toaIdx;
-		gheChonDi.clear(); gheChonDi.addAll(gheChon);
+        // 1. Lưu lại những gì đang làm ở Chiều Đi
+        trangDi = trang; 
+        chuyenIdxDi = chuyenIdx; 
+        toaIdxDi = toaIdx;
+        gheChonDi.clear(); 
+        gheChonDi.addAll(gheChon);
 
-		// Chuyển sang chiều về
-		dangXemChieuVe = true;
-		trang = trangVe;
-		chuyenIdx = chuyenIdxVe;
-		toaIdx = toaIdxVe;
-		gheChon.clear(); gheChon.addAll(gheChonVe);
+        // 2. Chuyển trạng thái và nạp lại dữ liệu Chiều Về
+        dangXemChieuVe = true;
+        applyFilter(cbKhungGio.getSelectedItem().toString()); // Cập nhật danh sách chuyến về dựa trên chiều đi
+        
+        // 3. Khôi phục các mốc đã chọn của Chiều Về
+        trang = trangVe; 
+        chuyenIdx = chuyenIdxVe; 
+        toaIdx = toaIdxVe;
+        gheChon.clear(); 
+        gheChon.addAll(gheChonVe);
 
-		// Cập nhật tiêu đề
-		if (lblChieuHeader != null) {
-			lblChieuHeader.setText("Chiều về : Ngày " + ngayVe + " từ " + gaDen + " đến " + gaDi);
-		}
-		// Đổi nút
-		if (btnChieuToggle != null) {
-			btnChieuToggle.setText("Chiều đi");
-		}
-		// Reset filter combo
-		if (cbKhungGio != null) cbKhungGio.setSelectedIndex(0);
+        lblChieuHeader.setText("Chiều về : Ngày " + ngayVe + " từ " + gaDen + " đến " + gaDi);
+        btnChieuToggle.setText("Chiều đi");
+        refreshChuyen(); 
+        refreshToaGhe(); 
+        updateActionBtn(); 
+        updateGheDaChon();
+    }
 
-		refreshChuyen();
-		refreshToaGhe();
-		updateActionBtn();
-		updateGheDaChon();
-	}
+    private void switchToChieuDi() {
+        // 1. Lưu lại những gì đang làm ở Chiều Về
+        trangVe = trang; 
+        chuyenIdxVe = chuyenIdx;
+        toaIdxVe = toaIdx;
+        gheChonVe.clear(); 
+        gheChonVe.addAll(gheChon);
 
-	private void switchToChieuDi() {
-		// Lưu trạng thái chiều về
-		trangVe = trang;
-		chuyenIdxVe = chuyenIdx;
-		toaIdxVe = toaIdx;
-		gheChonVe.clear(); gheChonVe.addAll(gheChon);
+        // 2. Chuyển trạng thái (Chiều đi không bị lọc theo chiều về nên không cần gọi applyFilter)
+        dangXemChieuVe = false;
+        
+        // 3. Khôi phục lại y xì trạng thái Chiều Đi lúc nãy
+        trang = trangDi; 
+        chuyenIdx = chuyenIdxDi;
+        toaIdx = toaIdxDi;
+        gheChon.clear(); 
+        gheChon.addAll(gheChonDi);
 
-		// Chuyển về chiều đi
-		dangXemChieuVe = false;
-		trang = trangDi;
-		chuyenIdx = chuyenIdxDi;
-		toaIdx = toaIdxDi;
-		gheChon.clear(); gheChon.addAll(gheChonDi);
-
-		// Cập nhật tiêu đề
-		if (lblChieuHeader != null) {
-			lblChieuHeader.setText("Chiều đi : Ngày " + ngayDi + " từ " + gaDi + " đến " + gaDen);
-		}
-		// Đổi nút
-		if (btnChieuToggle != null) {
-			btnChieuToggle.setText("Chiều về");
-		}
-		// Reset filter combo
-		if (cbKhungGio != null) cbKhungGio.setSelectedIndex(0);
-
-		refreshChuyen();
-		refreshToaGhe();
-		updateActionBtn();
-		updateGheDaChon();
-	}
-
+        lblChieuHeader.setText("Chiều đi : Ngày " + ngayDi + " từ " + gaDi + " đến " + gaDen);
+        btnChieuToggle.setText("Chiều về");
+        refreshChuyen(); 
+        refreshToaGhe(); 
+        updateActionBtn(); 
+        updateGheDaChon();
+    }
 	private JPanel buildToaIcon(String maToa, boolean sel, int ti) {
 		JPanel p = new JPanel(new BorderLayout(0, 0)) {
 			@Override

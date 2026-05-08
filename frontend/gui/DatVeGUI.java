@@ -185,6 +185,11 @@ public class DatVeGUI extends JPanel {
         	return;
         }
         
+        if (rbKhuHoi.isSelected() && dcNgayVe.getDate() == null) {
+        	JOptionPane.showMessageDialog(this, "Vui lòng chọn Ngày về!", "Cảnh báo", JOptionPane.WARNING_MESSAGE);
+        	return;
+        }
+
         String loaiVe = rbMotChieu.isSelected() ? "Một chiều" : "Khứ hồi";
         SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
         String ngayDi = sdf.format(dcNgayDi.getDate());
@@ -196,51 +201,26 @@ public class DatVeGUI extends JPanel {
         	ngayVe = ngayDi;
         }
 
-        // Kiểm tra khứ hồi phải chọn ngày về
-        if (rbKhuHoi.isSelected() && dcNgayVe.getDate() == null) {
-            JOptionPane.showMessageDialog(this, "Vui lòng chọn Ngày về!", "Cảnh báo", JOptionPane.WARNING_MESSAGE);
-            return;
-        }
-
         // Kiểm tra chuyến đi
         boolean coChuyenDi = checkChuyenTonTai(GA_DI_MAC_DINH, gaDen, ngayDi);
+        // Kiểm tra chuyến về (chỉ khi khứ hồi)
+        boolean coChuyenVe = !rbKhuHoi.isSelected() || checkChuyenTonTai(gaDen, GA_DI_MAC_DINH, ngayVe);
 
-        // Nếu khứ hồi, kiểm tra thêm chuyến về
-        if (rbKhuHoi.isSelected()) {
-            boolean coChuyenVe = checkChuyenTonTai(gaDen, GA_DI_MAC_DINH, ngayVe);
-            if (!coChuyenDi && !coChuyenVe) {
-                JOptionPane.showMessageDialog(this,
-                    "Không có chuyến tàu phù hợp cho cả chiều đi và chiều về!\n" +
-                    "Chiều đi: " + ngayDi + " từ " + GA_DI_MAC_DINH + " đến " + gaDen + "\n" +
-                    "Chiều về: " + ngayVe + " từ " + gaDen + " đến " + GA_DI_MAC_DINH,
-                    "Không có chuyến", JOptionPane.WARNING_MESSAGE);
-                return;
-            } else if (!coChuyenDi) {
-                JOptionPane.showMessageDialog(this,
-                    "Không có chuyến tàu phù hợp cho chiều đi!\n" +
-                    "Ngày " + ngayDi + " từ " + GA_DI_MAC_DINH + " đến " + gaDen,
-                    "Không có chuyến đi", JOptionPane.WARNING_MESSAGE);
-                return;
-            } else if (!coChuyenVe) {
-                JOptionPane.showMessageDialog(this,
-                    "Không có chuyến tàu phù hợp cho chiều về!\n" +
-                    "Ngày " + ngayVe + " từ " + gaDen + " đến " + GA_DI_MAC_DINH,
-                    "Không có chuyến về", JOptionPane.WARNING_MESSAGE);
-                return;
-            }
-        }
-        
         JPanel nextPanel;
-        if (coChuyenDi) {
-            // Mở trang kết quả có tàu
+        if (coChuyenDi && coChuyenVe) {
+            // Cả hai chiều đều có chuyến -> vào trang chọn ghế
             nextPanel = new DatVeGUI1(
                 GA_DI_MAC_DINH, gaDen, loaiVe, ngayDi, ngayVe, getSoLuong(),
                 () -> swapBack()
             );
         } else {
-            // ĐÃ SỬA: Mở trang báo không có tàu bằng class DatVeGUI0
+            // Một trong hai (hoặc cả hai) không có chuyến -> vào DatVeGUI0
+            // Nếu chiều đi lỗi thì hiện thông tin chiều đi, ngược lại hiện chiều về
+            String ngayHienThi  = coChuyenDi ? ngayVe  : ngayDi;
+            String gaDiHienThi  = coChuyenDi ? gaDen   : GA_DI_MAC_DINH;
+            String gaDenHienThi = coChuyenDi ? GA_DI_MAC_DINH : gaDen;
             nextPanel = new DatVeGUI0(
-                GA_DI_MAC_DINH, gaDen, loaiVe, ngayDi, ngayVe, getSoLuong(),
+                gaDiHienThi, gaDenHienThi, loaiVe, ngayHienThi, ngayVe, getSoLuong(),
                 () -> swapBack()
             );
         }

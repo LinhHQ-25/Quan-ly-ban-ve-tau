@@ -23,7 +23,6 @@ public class Connect_DB {
         try {
             Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
         } catch (ClassNotFoundException e) {
-            System.err.println("Không tìm thấy SQL Server JDBC Driver!");
             e.printStackTrace();
         }
     }
@@ -61,10 +60,8 @@ public class Connect_DB {
             // Kiểm tra và tạo mới nếu cần
             if (con == null || con.isClosed()) {
                 con = DriverManager.getConnection(URL, USER, PASSWORD);
-                System.out.println("Đã tạo kết nối mới!");
             }
         } catch (SQLException e) {
-            System.err.println("Lỗi khi lấy connection:");
             e.printStackTrace();
         }
         return con;
@@ -78,10 +75,8 @@ public class Connect_DB {
             if (con != null && !con.isClosed()) {
                 con.close();
                 con = null; // Set về null sau khi đóng
-                System.out.println("Đã đóng kết nối SQL Server.");
             }
         } catch (SQLException e) {
-            System.err.println("❌ Lỗi khi đóng connection:");
             e.printStackTrace();
         }
     }
@@ -106,14 +101,7 @@ public class Connect_DB {
         
         // Test lấy connection
         Connection connection = connectDB.getConnection();
-        
-        if (connection != null) {
-            System.out.println("kết nối thành công");
-    
-        } else {
-            System.out.println("kết nối thất bại");
-        }
-        
+
         // Đóng kết nối
         connectDB.disconnect();
     }
