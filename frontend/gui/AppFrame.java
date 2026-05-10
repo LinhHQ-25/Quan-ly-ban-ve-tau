@@ -43,9 +43,11 @@ public class AppFrame extends JFrame {
 	public AppFrame() {
 		setTitle("Quản lý bán vé tàu");
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		setSize(1100, 700);
-		setLocationRelativeTo(null);
-		setMinimumSize(new Dimension(1000, 600));
+		setSize(1366, 768); 
+		setMinimumSize(new Dimension(1366, 768)); 
+		setExtendedState(JFrame.MAXIMIZED_BOTH); 
+		
+		setLocationRelativeTo(null); 
 
 		try {
 			UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());

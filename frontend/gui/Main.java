@@ -11,5 +11,6 @@ public class Main {
             AppFrame frame = new AppFrame();
             frame.setVisible(true);
         });
+        
     }
 }
