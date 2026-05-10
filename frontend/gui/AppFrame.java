@@ -360,7 +360,15 @@ public class AppFrame extends JFrame {
 		contentCards.add(doiVeGUI1, "doi-ve-step-2");
 	}
 
-	public void onLoginSuccess() {
-		showCard("home");
+	public void onLoginSuccess(boolean isAdmin) {
+		if (isAdmin) {
+			// Mở giao diện dành cho Quản lý
+			AppFrameManager managerFrame = new AppFrameManager();
+			managerFrame.setVisible(true);
+			this.dispose(); // Đóng giao diện đăng nhập hiện tại
+		} else {
+			// Hiển thị giao diện Nhân viên như cũ
+			showCard("home");
+		}
 	}
 }
