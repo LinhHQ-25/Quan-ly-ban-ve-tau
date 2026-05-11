@@ -425,26 +425,30 @@ public class DoiVeGUI extends JPanel {
         bar.setBackground(Color.WHITE);
         bar.setBorder(BorderFactory.createCompoundBorder(
                 new MatteBorder(1, 0, 0, 0, BORDER),
-                new EmptyBorder(6, 0, 6, 0)));
-        bar.setMaximumSize(new Dimension(Integer.MAX_VALUE, 52));
+                new EmptyBorder(6, 10, 6, 10)));
+        bar.setMaximumSize(new Dimension(Integer.MAX_VALUE, 55)); // Tăng nhẹ max size
 
-        JButton btnBack = makeOutlineBtn("← Quay lại");
-        btnBack.addActionListener(e -> appFrame.showCard("doi-tra"));
-        JPanel left = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
-        left.setBackground(Color.WHITE);
-        left.add(btnBack);
-
+        // Đẩy dòng chữ cảnh báo (Warning) sang lề trái
         lbWarning = new JLabel(" ");
-        lbWarning.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 12));
+        lbWarning.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 13)); // Cập nhật size 13
         lbWarning.setForeground(WARN_FG);
 
-        btnTiepTuc = makeNavyBtn("Tiếp tục →", 140, 32);
+        JPanel left = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 10));
+        left.setBackground(Color.WHITE);
+        left.add(lbWarning);
+
+        // Tạo 2 nút bấm chuẩn kích thước 130x38
+        JButton btnBack = makeOutlineBtn("Quay lại", 130, 38);
+        btnBack.addActionListener(e -> appFrame.showCard("doi-tra"));
+
+        btnTiepTuc = makeNavyBtn("Tiếp tục", 130, 38);
         btnTiepTuc.setEnabled(false);
         btnTiepTuc.addActionListener(e -> handleTiepTuc());
 
-        JPanel right = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
+        // Gom 2 nút bấm vào chung lề phải, cách nhau 15px
+        JPanel right = new JPanel(new FlowLayout(FlowLayout.RIGHT, 15, 0));
         right.setBackground(Color.WHITE);
-        right.add(lbWarning);
+        right.add(btnBack);
         right.add(btnTiepTuc);
 
         bar.add(left,  BorderLayout.WEST);
@@ -651,48 +655,62 @@ public class DoiVeGUI extends JPanel {
         return p;
     }
 
-    private JButton makeOutlineBtn(String text) {
+    private JButton makeOutlineBtn(String text, int w, int h) {
         JButton b = new JButton(text) {
             @Override protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                 g2.setColor(getModel().isPressed() ? new Color(198,215,242)
                         : getModel().isRollover() ? new Color(212,228,250) : new Color(226,236,252));
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
-                g2.setColor(NAVY); g2.drawRoundRect(0, 0, getWidth()-1, getHeight()-1, 8, 8);
-                g2.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 13)); g2.setColor(NAVY);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 12, 12); // Đổi góc bo thành 12
+                g2.setColor(NAVY);
+                g2.drawRoundRect(0, 0, getWidth()-1, getHeight()-1, 12, 12); // Đổi góc bo thành 12
+
+                // Đồng bộ font 14 giống makeNavyBtn
+                g2.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
+
                 FontMetrics fm = g2.getFontMetrics();
-                g2.drawString(getText(), (getWidth()-fm.stringWidth(getText()))/2,
+                String txt = getText();
+                g2.drawString(txt, (getWidth()-fm.stringWidth(txt))/2,
                         (getHeight()+fm.getAscent()-fm.getDescent())/2);
                 g2.dispose();
             }
         };
-        b.setPreferredSize(new Dimension(110, 30));
-        b.setContentAreaFilled(false); b.setBorderPainted(false);
-        b.setFocusPainted(false); b.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        b.setPreferredSize(new Dimension(w, h)); // Sử dụng tham số w, h
+        b.setContentAreaFilled(false);
+        b.setBorderPainted(false);
+        b.setFocusPainted(false);
+        b.setCursor(new Cursor(Cursor.HAND_CURSOR));
         return b;
     }
 
     private JButton makeNavyBtn(String text, int w, int h) {
-        JButton b = new JButton(text) {
+        JButton btn = new JButton(text) {
             @Override protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                Color bg = !isEnabled() ? new Color(180,190,205)
-                        : getModel().isPressed() ? GuiTheme.NAVY_DARK
-                          : getModel().isRollover() ? GuiTheme.NAVY_HOVER : GuiTheme.NAVY;
-                g2.setColor(bg); g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
+                g2.setColor(getModel().isPressed() ? GuiTheme.NAVY_DARK
+                        : getModel().isRollover() ? GuiTheme.NAVY_HOVER : GuiTheme.NAVY);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 12, 12);
                 g2.setColor(Color.WHITE);
-                g2.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 13));
+
+                // Cập nhật font size lên 14 theo mẫu
+                g2.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
+
                 FontMetrics fm = g2.getFontMetrics();
-                g2.drawString(getText(), (getWidth()-fm.stringWidth(getText()))/2,
-                        (getHeight()+fm.getAscent()-fm.getDescent())/2);
+                // Lấy chuỗi text ra biến riêng theo mẫu buildTimButton
+                String txt = getText();
+                g2.drawString(txt, (getWidth() - fm.stringWidth(txt)) / 2,
+                        (getHeight() + fm.getAscent() - fm.getDescent()) / 2);
                 g2.dispose();
             }
         };
-        b.setPreferredSize(new Dimension(w, h));
-        b.setContentAreaFilled(false); b.setBorderPainted(false);
-        b.setFocusPainted(false); b.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        return b;
+        // Giữ lại tham số w, h để dùng chung cho các nút có kích thước khác nhau
+        btn.setPreferredSize(new Dimension(w, h));
+        btn.setContentAreaFilled(false);
+        btn.setBorderPainted(false);
+        btn.setFocusPainted(false);
+        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        return btn;
     }
 }
