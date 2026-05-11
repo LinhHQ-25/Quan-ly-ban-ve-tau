@@ -55,7 +55,7 @@ public class Connect_DB {
      * Lấy Connection hiện tại (tự động tạo mới nếu chưa có hoặc đã đóng)
      * @return Connection object
      */
-    public Connection getConnection() {
+    public static Connection getConnection() {
         try {
             // Kiểm tra và tạo mới nếu cần
             if (con == null || con.isClosed()) {
