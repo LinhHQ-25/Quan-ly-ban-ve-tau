@@ -3,6 +3,7 @@ package dao;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import connect_DB.Connect_DB;
@@ -113,5 +114,58 @@ public class VeDAO implements DAO<Ve, String> {
             e.printStackTrace();
         }
         return false;
+    }
+    private static String getHourCondition(String ca) {
+        return ca.equalsIgnoreCase("Sáng")
+                ? " AND CAST(ngayMua AS TIME) BETWEEN '00:00:00' AND '11:59:59'"
+                : " AND CAST(ngayMua AS TIME) BETWEEN '12:00:00' AND '23:59:59'";
+    }
+
+    public static long getTongDoanhThuTheoCa(java.time.LocalDate ngay, String ca) throws SQLException {
+        String sql = "SELECT ISNULL(SUM(giaVe), 0) FROM Ve " +
+                "WHERE CAST(ngayMua AS DATE) = ? " +
+                "AND trangThaiVe = 'DA_THANH_TOAN'" + getHourCondition(ca);
+        try (Connection con = Connect_DB.getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setDate(1, java.sql.Date.valueOf(ngay));
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? rs.getLong(1) : 0L;
+            }
+        }
+    }
+
+    public static int getSoLuongVeTheoCa(java.time.LocalDate ngay, String ca, String trangThai) throws SQLException {
+        String sql = "SELECT COUNT(*) FROM Ve " +
+                "WHERE CAST(ngayMua AS DATE) = ? AND trangThaiVe = ?" + getHourCondition(ca);
+        try (Connection con = Connect_DB.getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setDate(1, java.sql.Date.valueOf(ngay));
+            ps.setString(2, trangThai);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? rs.getInt(1) : 0;
+            }
+        }
+    }
+
+    public static int[] getSoGheTheoLoaiTheoCa(java.time.LocalDate ngay, String ca) throws SQLException {
+        int[] result = {0, 0, 0};
+        String sql = "SELECT g.loaiGhe, COUNT(*) as sl FROM Ve v " +
+                "JOIN Ghe g ON v.maGhe = g.maGhe " +
+                "WHERE CAST(v.ngayMua AS DATE) = ? " +
+                "AND v.trangThaiVe = 'DA_THANH_TOAN'" + getHourCondition(ca) +
+                " GROUP BY g.loaiGhe";
+        try (Connection con = Connect_DB.getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setDate(1, java.sql.Date.valueOf(ngay));
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    String loai = rs.getString("loaiGhe");
+                    if (loai.equals("GHE_CUNG")) result[0] = rs.getInt("sl");
+                    else if (loai.equals("GIUONG_NAM")) result[1] = rs.getInt("sl");
+                    else if (loai.equals("GHE_MEM")) result[2] = rs.getInt("sl");
+                }
+            }
+        }
+        return result;
     }
 }

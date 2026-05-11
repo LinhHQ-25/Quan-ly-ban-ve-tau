@@ -3,6 +3,7 @@ package dao;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import connect_DB.Connect_DB;
@@ -101,5 +102,39 @@ public class HoaDonDAO implements DAO<HoaDon, String> {
             e.printStackTrace();
         }
         return false;
+    }
+    public static List<Object[]> getDanhSachHoaDonTheoCa(java.time.LocalDate ngay, String ca) throws SQLException {
+        String timeCondition = ca.equalsIgnoreCase("Sáng")
+                ? " BETWEEN '00:00:00' AND '11:59:59'"
+                : " BETWEEN '12:00:00' AND '23:59:59'";
+
+        String sql = "SELECT h.maHoaDon, " +
+                "       CONVERT(varchar, h.ngayLapHD, 108) AS gioBan, " + // Lấy cả giờ để kiểm tra
+                "       k.hoTenKH, " +
+                "       (SELECT COUNT(*) FROM Ve v WHERE v.maKH = h.maKH AND CAST(v.ngayMua AS DATE) = CAST(h.ngayLapHD AS DATE)) AS soGhe, " +
+                "       h.tongTien " +
+                "FROM HoaDon h " +
+                "JOIN KhachHang k ON h.maKH = k.maKH " +
+                "WHERE CAST(h.ngayLapHD AS DATE) = ? " +
+                "AND CAST(h.ngayLapHD AS TIME)" + timeCondition +
+                " ORDER BY h.ngayLapHD DESC";
+
+        List<Object[]> rows = new ArrayList<>();
+        try (Connection con = Connect_DB.getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setDate(1, java.sql.Date.valueOf(ngay));
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    rows.add(new Object[]{
+                            rs.getString("maHoaDon"),
+                            rs.getString("gioBan"), // Hiển thị giờ bán cho đúng tính chất thống kê ca
+                            rs.getString("hoTenKH"),
+                            rs.getInt("soGhe"),
+                            rs.getDouble("tongTien")
+                    });
+                }
+            }
+        }
+        return rows;
     }
 }

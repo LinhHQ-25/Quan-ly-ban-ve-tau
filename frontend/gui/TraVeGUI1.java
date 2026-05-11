@@ -226,7 +226,7 @@ public class TraVeGUI1 extends JPanel {
             JOptionPane.showMessageDialog(this,
                     "Lỗi kết nối CSDL khi cập nhật vé: " + e.getMessage(),
                     "Lỗi Hệ Thống", JOptionPane.ERROR_MESSAGE);
-            return; 
+            return;
         }
         // ─── HIỂN THỊ THÔNG BÁO NẾU UPDATE THÀNH CÔNG ───
         if (isSuccess) {
