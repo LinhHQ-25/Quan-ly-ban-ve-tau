@@ -18,7 +18,7 @@ public final class GuiTheme {
     public static final Color ACCENT = new Color(96, 145, 214);
 
     // Màu cho thanh tìm kiếm
-    public static final Color SEARCH_FIELD_BG = new Color(220, 235, 248);
+    public static final Color SEARCH_FIELD_BG = Color.WHITE;
     public static final Color SEARCH_FIELD_BORDER = new Color(186, 209, 231);
     public static final Color SEARCH_FIELD_TEXT = new Color(50, 50, 50);
 

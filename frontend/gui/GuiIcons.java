@@ -32,6 +32,11 @@ final class GuiIcons {
         else if (key.contains("statistics")) glyph = "▥";
         else if (key.contains("help")) glyph = "?";
         else if (key.contains("logout")) glyph = "↪";
+        else if (key.contains("reset")) glyph = "↺";
+        else if (key.contains("add")) glyph = "+";
+        else if (key.contains("edit")) glyph = "✎";
+        else if (key.contains("delete")) glyph = "✖";
+        else if (key.contains("filter")) glyph = "⧨";
         else glyph = "•";
         return new GlyphIcon(width, height, glyph);
     }

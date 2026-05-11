@@ -103,11 +103,11 @@ public class LoginPanel extends JPanel {
         btnLogin.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 18));
         btnLogin.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        // Sự kiện click
+     // Sự kiện click nút Đăng nhập
         btnLogin.addActionListener(e -> {
-            parent.onLoginSuccess();
+            boolean isAdmin = chkAdmin.isSelected(); // Lấy trạng thái check
+            parent.onLoginSuccess(isAdmin);          // Truyền qua hàm xử lý
         });
-
         // --- Quên mật khẩu ---
         JLabel lblForgot = new JLabel("Quên mật khẩu!");
         lblForgot.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 13));

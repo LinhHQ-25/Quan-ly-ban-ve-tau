@@ -19,6 +19,7 @@ import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.time.ZoneId;
 
+import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
@@ -43,7 +44,7 @@ import dao.KhachHangDAO;
 import entity.KhachHang;
 
 final class KhachHangGUI extends JPanel {
-    private static final Color BORDER = new Color(210, 215, 224);
+    private static final Color BORDER = GuiTheme.SEARCH_FIELD_BORDER;
     private static final Color PRIMARY = new Color(71, 71, 156);
 
     private DefaultTableModel tblModel;
@@ -79,21 +80,23 @@ final class KhachHangGUI extends JPanel {
     }
 
     private JPanel buildFilterPanel() {
-        JPanel pnlOuter = new JPanel(new BorderLayout(20, 0));
-        pnlOuter.setOpaque(false);
+        RoundedShadowPanel pnlOuter = new RoundedShadowPanel();
+        pnlOuter.setLayout(new BorderLayout(0, 5));
+        
+        // Tiêu đề
+        JLabel lblTitle = new JLabel("Thông tin tra cứu");
+        lblTitle.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 15));
+        lblTitle.setForeground(GuiTheme.TEXT);
+        lblTitle.setBorder(new EmptyBorder(10, 15, 0, 15));
+        lblTitle.setIcon(GuiIcons.loadIcon(KhachHangGUI.class, "filter", 18, 18));
+        lblTitle.setIconTextGap(8);
+        pnlOuter.add(lblTitle, BorderLayout.NORTH);
+
         JPanel pnlGrid = new JPanel(new GridBagLayout());
         pnlGrid.setOpaque(false);
-        pnlGrid.setBorder(javax.swing.BorderFactory.createTitledBorder(
-            javax.swing.BorderFactory.createLineBorder(GuiTheme.SEARCH_FIELD_BORDER, 1, true),
-            "Thông tin khách hàng",
-            javax.swing.border.TitledBorder.LEFT,
-            javax.swing.border.TitledBorder.TOP,
-            GuiTheme.font("Segoe UI", Font.BOLD, 13),
-            PRIMARY
-        ));
 
         GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(10, 15, 10, 15);
+        gbc.insets = new Insets(6, 12, 6, 12);
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.weightx = 1.0;
         gbc.gridy = 0;
@@ -117,78 +120,70 @@ final class KhachHangGUI extends JPanel {
         txtEmail = buildTextField();
         gbc.gridx = 1; pnlGrid.add(buildField("Email:", txtEmail), gbc);
         
-        cboDoiTuong = buildCombo("", "DUOI_6_TUOI", "TU_6_TOI_DUOI_10", "TU_60_TRO_LEN", "SINH_VIEN", "NGUOI_LON");
+        cboDoiTuong = buildCombo("", "Dưới 6 tuổi", "Từ 6 đến dưới 10 tuổi", "Từ 60 tuổi trở lên", "Sinh viên", "Người lớn");
         gbc.gridx = 2; pnlGrid.add(buildField("Đối tượng:", cboDoiTuong), gbc);
         
         pnlOuter.add(pnlGrid, BorderLayout.CENTER);
         
         JPanel pnlAction = buildSearchBlock();
-        pnlAction.setBorder(javax.swing.BorderFactory.createTitledBorder(
-            javax.swing.BorderFactory.createLineBorder(GuiTheme.SEARCH_FIELD_BORDER, 1, true),
-            "Tra cứu",
-            javax.swing.border.TitledBorder.CENTER,
-            javax.swing.border.TitledBorder.TOP,
-            GuiTheme.font("Segoe UI", Font.BOLD, 13),
-            PRIMARY
-        ));
+        pnlAction.setOpaque(false);
+        pnlOuter.add(pnlAction, BorderLayout.SOUTH);
         
-        JPanel pnlActionWrapper = new JPanel(new GridBagLayout());
-        pnlActionWrapper.setOpaque(false);
-        pnlActionWrapper.add(pnlAction);
-        
-        pnlOuter.add(pnlActionWrapper, BorderLayout.EAST);
         return pnlOuter;
     }
 
     private JPanel buildField(String label, Component comp) {
-        JPanel pnlField = new JPanel(new BorderLayout(0, 6));
+        JPanel pnlField = new JPanel(new BorderLayout(8, 0));
         pnlField.setOpaque(false);
         JLabel lbField = new JLabel(label);
-        lbField.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
-        lbField.setForeground(PRIMARY);
-        pnlField.add(lbField, BorderLayout.NORTH);
+        lbField.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 12));
+        lbField.setForeground(GuiTheme.NAVY);
+        lbField.setPreferredSize(new Dimension(100, 26)); // Fixed width for alignment
+        pnlField.add(lbField, BorderLayout.WEST);
         pnlField.add(comp, BorderLayout.CENTER);
         return pnlField;
     }
 
     private JTextField buildTextField() {
         JTextField txtField = new JTextField();
-        txtField.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
+        txtField.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 13));
         txtField.setBackground(GuiTheme.SEARCH_FIELD_BG);
-        txtField.setForeground(PRIMARY);
-        txtField.setBorder(new LineBorder(GuiTheme.SEARCH_FIELD_BORDER, 1, true));
-        txtField.setPreferredSize(new Dimension(160, 28));
+        txtField.setForeground(GuiTheme.TEXT);
+        txtField.setBorder(BorderFactory.createCompoundBorder(
+            new LineBorder(GuiTheme.SEARCH_FIELD_BORDER, 1, true),
+            new EmptyBorder(2, 6, 2, 6)
+        ));
+        txtField.setPreferredSize(new Dimension(130, 26));
         return txtField;
     }
 
     private JComboBox<String> buildCombo(String... values) {
         JComboBox<String> cmb = new JComboBox<>(values);
-        cmb.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
+        cmb.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 13));
         cmb.setBackground(GuiTheme.SEARCH_FIELD_BG);
-        cmb.setForeground(PRIMARY);
+        cmb.setForeground(GuiTheme.TEXT);
         cmb.setBorder(new LineBorder(GuiTheme.SEARCH_FIELD_BORDER, 1, true));
-        cmb.setPreferredSize(new Dimension(160, 28));
+        cmb.setPreferredSize(new Dimension(130, 26));
         return cmb;
     }
 
     private JDateChooser buildDateField() {
         JDateChooser dc = new JDateChooser();
         dc.setDateFormatString("dd/MM/yyyy");
-        dc.setPreferredSize(new Dimension(160, 28));
-        dc.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
+        dc.setPreferredSize(new Dimension(130, 26));
+        dc.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 13));
         dc.setBackground(GuiTheme.SEARCH_FIELD_BG);
         dc.setBorder(new LineBorder(GuiTheme.SEARCH_FIELD_BORDER, 1, true));
         return dc;
     }
 
     private JPanel buildSearchBlock() {
-        JPanel pnlButtons = new JPanel();
+        JPanel pnlButtons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 15, 10));
         pnlButtons.setOpaque(false);
-        pnlButtons.setLayout(new BoxLayout(pnlButtons, BoxLayout.Y_AXIS));
-        pnlButtons.setBorder(new EmptyBorder(10, 15, 10, 15));
+        pnlButtons.setBorder(new EmptyBorder(0, 0, 5, 0));
 
         JButton btnSearch = buildNavyButton("Tìm kiếm", GuiTheme.NAVY, GuiTheme.NAVY_HOVER);
-        JButton btnReset = buildNavyButton("Xóa trắng", new Color(110, 125, 156), new Color(130, 145, 176));
+        JButton btnReset = buildNavyButton("Xóa trắng", GuiTheme.NAVY, GuiTheme.NAVY_HOVER);
 
         btnSearch.addActionListener(e -> loadDataToTable());
 
@@ -203,9 +198,8 @@ final class KhachHangGUI extends JPanel {
             loadDataToTable();
         });
 
-        pnlButtons.add(btnReset);
-        pnlButtons.add(Box.createVerticalStrut(8));
         pnlButtons.add(btnSearch);
+        pnlButtons.add(btnReset);
         return pnlButtons;
     }
 
@@ -235,19 +229,25 @@ final class KhachHangGUI extends JPanel {
                 g2.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING, java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
                 g2.setColor(getModel().isPressed() ? baseColor.darker()
                     : getModel().isRollover() ? hoverColor : baseColor);
-                g2.fillRoundRect(0,0,getWidth(),getHeight(),10,10);
-                g2.setColor(Color.WHITE);
-                g2.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 13));
-                java.awt.FontMetrics fm = g2.getFontMetrics();
-                g2.drawString(text,(getWidth()-fm.stringWidth(text))/2,
-                    (getHeight()+fm.getAscent()-fm.getDescent())/2);
+                g2.fillRoundRect(0,0,getWidth(),getHeight(),8,8);
                 g2.dispose();
+                super.paintComponent(g);
             }
         };
-        btn.setPreferredSize(new Dimension(115, 32));
-        btn.setMaximumSize(new Dimension(115, 32));
+        btn.setPreferredSize(new Dimension(130, 36));
+        btn.setMaximumSize(new Dimension(130, 36));
+        btn.setForeground(Color.WHITE);
+        btn.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 13));
         btn.setContentAreaFilled(false); btn.setBorderPainted(false); btn.setFocusPainted(false);
         btn.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+        btn.setIconTextGap(8);
+        
+        if (text.contains("Tìm kiếm")) btn.setIcon(GuiIcons.loadIcon(KhachHangGUI.class, "search", 16, 16));
+        else if (text.contains("Xóa trắng")) btn.setIcon(GuiIcons.loadIcon(KhachHangGUI.class, "reset", 16, 16));
+        else if (text.contains("Thêm")) btn.setIcon(GuiIcons.loadIcon(KhachHangGUI.class, "add", 16, 16));
+        else if (text.contains("Cập nhật")) btn.setIcon(GuiIcons.loadIcon(KhachHangGUI.class, "edit", 16, 16));
+        else if (text.contains("Xóa bỏ")) btn.setIcon(GuiIcons.loadIcon(KhachHangGUI.class, "delete", 16, 16));
+        
         return btn;
     }
 
@@ -282,7 +282,10 @@ final class KhachHangGUI extends JPanel {
 
         DefaultTableCellRenderer center = new DefaultTableCellRenderer();
         center.setHorizontalAlignment(SwingConstants.CENTER);
-        tblData.getColumnModel().getColumn(0).setCellRenderer(center);
+        for (int i = 0; i < tblData.getColumnCount(); i++) {
+            tblData.getColumnModel().getColumn(i).setCellRenderer(center);
+        }
+        ((DefaultTableCellRenderer)tblData.getTableHeader().getDefaultRenderer()).setHorizontalAlignment(SwingConstants.CENTER);
         
         JScrollPane spnScroll = new JScrollPane(tblData);
         spnScroll.setBorder(new LineBorder(BORDER, 1, true));
@@ -355,7 +358,7 @@ final class KhachHangGUI extends JPanel {
                 KhachHang temp = new KhachHang();
                 temp.setNamSinh(birth);
                 temp.setLaSinhVien(laSV);
-                String doiTuong = temp.xacDinhLoaiKhachHang().toString();
+                String doiTuong = translateDoiTuong(temp.xacDinhLoaiKhachHang().toString());
 
                 tblModel.addRow(new Object[] {
                     stt++,
@@ -370,6 +373,18 @@ final class KhachHangGUI extends JPanel {
             }
         } catch (SQLException e) {
             e.printStackTrace();
+        }
+    }
+
+    private String translateDoiTuong(String value) {
+        if (value == null) return "";
+        switch (value) {
+            case "DUOI_6_TUOI": return "Dưới 6 tuổi";
+            case "TU_6_TOI_DUOI_10": return "Từ 6 đến dưới 10 tuổi";
+            case "TU_60_TRO_LEN": return "Từ 60 tuổi trở lên";
+            case "SINH_VIEN": return "Sinh viên";
+            case "NGUOI_LON": return "Người lớn";
+            default: return value;
         }
     }
 
@@ -426,7 +441,7 @@ final class KhachHangGUI extends JPanel {
         }
         
         String dt = (String) cboDoiTuong.getSelectedItem();
-        boolean laSV = "SINH_VIEN".equals(dt);
+        boolean laSV = "Sinh viên".equals(dt);
 
         if (ma.isEmpty() || ten.isEmpty()) {
             JOptionPane.showMessageDialog(this, "Vui lòng nhập Mã và Tên khách hàng!");

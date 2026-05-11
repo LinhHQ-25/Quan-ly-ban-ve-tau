@@ -43,9 +43,11 @@ public class AppFrame extends JFrame {
 	public AppFrame() {
 		setTitle("Quản lý bán vé tàu");
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		setSize(1100, 700);
-		setLocationRelativeTo(null);
-		setMinimumSize(new Dimension(1000, 600));
+		setSize(1366, 768); 
+		setMinimumSize(new Dimension(1366, 768)); 
+		setExtendedState(JFrame.MAXIMIZED_BOTH); 
+		
+		setLocationRelativeTo(null); 
 
 		try {
 			UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
@@ -358,7 +360,15 @@ public class AppFrame extends JFrame {
 		contentCards.add(doiVeGUI1, "doi-ve-step-2");
 	}
 
-	public void onLoginSuccess() {
-		showCard("home");
+	public void onLoginSuccess(boolean isAdmin) {
+		if (isAdmin) {
+			// Mở giao diện dành cho Quản lý
+			AppFrameManager managerFrame = new AppFrameManager();
+			managerFrame.setVisible(true);
+			this.dispose(); // Đóng giao diện đăng nhập hiện tại
+		} else {
+			// Hiển thị giao diện Nhân viên như cũ
+			showCard("home");
+		}
 	}
 }
