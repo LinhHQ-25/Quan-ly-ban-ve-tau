@@ -161,6 +161,7 @@ public final class DoiTraGUI extends JPanel {
 	}
 	// DATA
 	// DATA
+	// DATA
 	private void loadDataFromDB(String keyword) {
 		// Xóa dữ liệu cũ trên bảng và cache
 		tableModel.setRowCount(0);
@@ -178,7 +179,7 @@ public final class DoiTraGUI extends JPanel {
 						"JOIN Ga gDi ON ct.gaDi = gDi.maGa " +
 						"JOIN Ga gDen ON ct.gaDen = gDen.maGa " +
 						"WHERE v.maVe LIKE ? AND v.trangThaiVe = 'DA_THANH_TOAN' " +
-						"ORDER BY ct.thoiGianKhoiHanh DESC"; // Sắp xếp giảm dần để vé mới mua lên đầu (Tùy chọn)
+						"ORDER BY ct.thoiGianKhoiHanh DESC";
 
 		try (Connection conn = Connect_DB.getInstance().getConnection();
 		     PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -196,7 +197,19 @@ public final class DoiTraGUI extends JPanel {
 					String tenTau  = rs.getString("tenTau");
 					String gaDi    = rs.getString("gaDi");
 					String gaDen   = rs.getString("gaDen");
-					String loaiVe  = rs.getString("loaiVe");
+
+					// --- XỬ LÝ FORMAT LOẠI VÉ TẠI ĐÂY ---
+					String rawLoaiVe = rs.getString("loaiVe");
+					String loaiVe = rawLoaiVe; // Mặc định giữ nguyên chuỗi gốc
+					if (rawLoaiVe != null) {
+						if (rawLoaiVe.equalsIgnoreCase("MOT_CHIEU")) {
+							loaiVe = "Một chiều";
+						} else if (rawLoaiVe.equalsIgnoreCase("KHU_HOI")) {
+							loaiVe = "Khứ hồi";
+						}
+					}
+					// ------------------------------------
+
 					String maGhe   = rs.getString("maGhe");
 					String giaVe   = rs.getString("giaVe");
 
@@ -204,6 +217,7 @@ public final class DoiTraGUI extends JPanel {
 					String ngayGio = ts != null ? sdf.format(ts) : "";
 					String soLuong = "1";
 
+					// Lưu 'loaiVe' đã được format vào cache và table
 					veCache.put(maVe, new String[]{tenTau, gaDi, gaDen, loaiVe, ngayGio, soLuong, maGhe, giaVe});
 					tableModel.addRow(new Object[]{maVe, tenTau, gaDi, gaDen, loaiVe, ngayGio, soLuong, maGhe});
 				}
