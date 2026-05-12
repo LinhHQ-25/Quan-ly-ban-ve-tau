@@ -35,11 +35,81 @@ final class TauGUI extends JPanel {
         ));
 
         pnlPage.add(buildFilterPanel(), BorderLayout.NORTH);
-        pnlPage.add(buildTablePanel(), BorderLayout.CENTER);
+        
+        JPanel pnlCenter = new JPanel(new BorderLayout(0, 12));
+        pnlCenter.setOpaque(false);
+        pnlCenter.add(buildIdleTrainsSection(), BorderLayout.NORTH);
+        pnlCenter.add(buildTablePanel(), BorderLayout.CENTER);
+        
+        pnlPage.add(pnlCenter, BorderLayout.CENTER);
 
         add(pnlPage, BorderLayout.CENTER);
         
         loadDataToTable();
+        loadIdleTrains();
+    }
+
+    private JPanel pnlIdleCards;
+    private JPanel buildIdleTrainsSection() {
+        JPanel pnl = new JPanel(new BorderLayout(0, 8));
+        pnl.setOpaque(false);
+        
+        JPanel pnlTitle = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        pnlTitle.setOpaque(false);
+        JLabel lbl = new JLabel("Tàu tại ga (Đang rãnh)");
+        lbl.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 14));
+        lbl.setForeground(GuiTheme.TEXT);
+        pnlTitle.add(lbl);
+        pnl.add(pnlTitle, BorderLayout.NORTH);
+
+        pnlIdleCards = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 5));
+        pnlIdleCards.setOpaque(false);
+        
+        JScrollPane scroll = new JScrollPane(pnlIdleCards);
+        scroll.setBorder(null);
+        scroll.setOpaque(false);
+        scroll.getViewport().setOpaque(false);
+        scroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+        scroll.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_NEVER);
+        scroll.setPreferredSize(new Dimension(0, 160));
+        scroll.getHorizontalScrollBar().setUnitIncrement(15);
+        
+        pnl.add(scroll, BorderLayout.CENTER);
+        return pnl;
+    }
+
+    private void loadIdleTrains() {
+        if (pnlIdleCards == null) return;
+        pnlIdleCards.removeAll();
+        
+        try (Connection conn = Connect_DB.getInstance().getConnection()) {
+            // Lấy các tàu không có chuyến nào trong tương lai
+            String sql = "SELECT t.* FROM Tau t WHERE t.trangThai = N'Đang hoạt động' " +
+                         "AND NOT EXISTS (SELECT 1 FROM ChuyenTau ct JOIN ChiTietChuyenTau cct ON ct.maChuyenTau = cct.maChuyenTau " +
+                         "WHERE ct.maTau = t.maTau AND cct.thoiGianKhoiHanh > GETDATE())";
+            
+            try (Statement stmt = conn.createStatement(); ResultSet rs = stmt.executeQuery(sql)) {
+                boolean hasIdle = false;
+                while (rs.next()) {
+                    hasIdle = true;
+                    pnlIdleCards.add(new TrainCard(
+                        rs.getString("maTau"),
+                        rs.getString("tenTau"),
+                        rs.getInt("soToa"),
+                        rs.getInt("tongSoGhe")
+                    ));
+                }
+                if (!hasIdle) {
+                    JLabel lbl = new JLabel("Hiện không có tàu nào đang rãnh.");
+                    lbl.setFont(GuiTheme.font("Segoe UI", Font.ITALIC, 13));
+                    lbl.setForeground(GuiTheme.SUB_TEXT);
+                    pnlIdleCards.add(lbl);
+                }
+            }
+        } catch (SQLException e) { e.printStackTrace(); }
+        
+        pnlIdleCards.revalidate();
+        pnlIdleCards.repaint();
     }
 
     private JPanel buildFilterPanel() {
@@ -308,6 +378,66 @@ final class TauGUI extends JPanel {
             g2.drawRoundRect(1, 1, getWidth() - 3, getHeight() - 3, arc, arc);
             g2.dispose();
             super.paintComponent(g);
+        }
+    }
+
+    private final class TrainCard extends JPanel {
+        TrainCard(String id, String name, int toa, int ghe) {
+            setPreferredSize(new Dimension(180, 140));
+            setBackground(Color.WHITE);
+            setLayout(new BorderLayout());
+            setBorder(new LineBorder(new Color(230, 233, 238), 1, true));
+
+            JPanel pnlInfo = new JPanel();
+            pnlInfo.setLayout(new BoxLayout(pnlInfo, BoxLayout.Y_AXIS));
+            pnlInfo.setOpaque(false);
+            pnlInfo.setBorder(new EmptyBorder(12, 12, 12, 12));
+
+            JLabel lblId = new JLabel(id);
+            lblId.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 14));
+            lblId.setForeground(GuiTheme.NAVY);
+
+            JLabel lblName = new JLabel(name);
+            lblName.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 12));
+            lblName.setForeground(GuiTheme.TEXT);
+
+            JLabel lblDetails = new JLabel(toa + " Toa | " + ghe + " Ghế");
+            lblDetails.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 11));
+            lblDetails.setForeground(GuiTheme.SUB_TEXT);
+
+            pnlInfo.add(lblId);
+            pnlInfo.add(Box.createVerticalStrut(4));
+            pnlInfo.add(lblName);
+            pnlInfo.add(Box.createVerticalStrut(8));
+            pnlInfo.add(lblDetails);
+
+            JButton btnAction = new JButton("Điều động") {
+                @Override protected void paintComponent(Graphics g) {
+                    Graphics2D g2 = (Graphics2D) g.create();
+                    g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                    g2.setColor(getModel().isRollover() ? GuiTheme.NAVY_HOVER : GuiTheme.NAVY);
+                    g2.fillRoundRect(0,0,getWidth(),getHeight(),8,8);
+                    g2.dispose();
+                    super.paintComponent(g);
+                }
+            };
+            btnAction.setForeground(Color.WHITE);
+            btnAction.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 10));
+            btnAction.setPreferredSize(new Dimension(0, 28));
+            btnAction.setContentAreaFilled(false); btnAction.setBorderPainted(false); btnAction.setFocusPainted(false);
+            btnAction.setCursor(new Cursor(Cursor.HAND_CURSOR));
+            btnAction.addActionListener(e -> JOptionPane.showMessageDialog(this, "Chức năng điều động tàu " + id + " đang được phát triển!"));
+
+            add(pnlInfo, BorderLayout.CENTER);
+            add(btnAction, BorderLayout.SOUTH);
+        }
+
+        @Override protected void paintComponent(Graphics g) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setColor(getBackground());
+            g2.fillRoundRect(0,0,getWidth(),getHeight(),12,12);
+            g2.dispose();
         }
     }
 }

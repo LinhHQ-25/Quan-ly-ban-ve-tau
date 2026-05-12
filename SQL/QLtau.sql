@@ -152,69 +152,89 @@ INSERT [dbo].[Ga] ([maGa], [tenGa], [diaChi], [tinhThanh]) VALUES
 ('LONGTHANH', N'Long Thành', N'Đồng Nai', N'Đồng Nai'),
 ('THUTHIEM', N'Thủ Thiêm', N'TP. HCM', N'TP. HCM');
 
+-- 132 ga, 100 tau, 7 ngay * 22 ga * 2 chuyen = 308 chuyen/ngay
 DECLARE @t INT = 1;
-WHILE @t <= 30
+WHILE @t <= 100
 BEGIN
-    DECLARE @trangThaiT NVARCHAR(50) = CASE WHEN ABS(CHECKSUM(NEWID())) % 5 = 0 THEN N'Bảo trì' ELSE N'Đang hoạt động' END;
-    DECLARE @ghiChuT NVARCHAR(255) = CASE WHEN @trangThaiT = N'Bảo trì' THEN 
-        CASE ABS(CHECKSUM(NEWID())) % 3 
-            WHEN 0 THEN N'Định kỳ' 
-            WHEN 1 THEN N'Hỏng điều hòa' 
-            ELSE N'Kiểm tra định kỳ bánh tàu' 
-        END 
-        ELSE N'Sẵn sàng phục vụ' END;
-    DECLARE @soToaT INT = ABS(CHECKSUM(NEWID())) % 6 + 10;
-    INSERT [dbo].[Tau] ([maTau], [tenTau], [soToa], [tongSoGhe], [trangThai], [ghiChu])
-    VALUES ('SEVN' + RIGHT('0' + CAST(@t AS VARCHAR), 2), N'Tàu SE ' + CAST(@t AS VARCHAR), @soToaT, @soToaT * 20, @trangThaiT, @ghiChuT);
-    SET @t = @t + 1;
-END
-
-DECLARE @i INT = 1;
-WHILE @i <= 30
-BEGIN
-    DECLARE @maTau VARCHAR(20) = 'SEVN' + RIGHT('0' + CAST(@i AS VARCHAR), 2);
-    DECLARE @toaMax INT = (SELECT soToa FROM Tau WHERE maTau = @maTau);
+    DECLARE @trangThaiT NVARCHAR(50) = CASE WHEN @t % 10 = 0 THEN N'Bảo trì' ELSE N'Đang hoạt động' END;
+    DECLARE @ghiChuT NVARCHAR(255) = CASE WHEN @trangThaiT = N'Bảo trì' THEN N'Kiểm tra định kỳ hệ thống phanh' ELSE N'Sẵn sàng phục vụ' END;
+    INSERT [dbo].[Tau] ([maTau], [tenTau], [soToa], [tongSoGhe], [trangThai], [ghiChu]) 
+    VALUES ('SEVN' + RIGHT('00' + CAST(@t AS VARCHAR), 3), N'Tàu SE ' + CAST(@t AS VARCHAR), 12, 240, @trangThaiT, @ghiChuT);
+    
     DECLARE @toa INT = 1;
-    WHILE @toa <= @toaMax
+    WHILE @toa <= 12
     BEGIN
-        DECLARE @maT VARCHAR(20) = 'T' + RIGHT('0' + CAST(@toa AS VARCHAR), 2) + @maTau;
-        DECLARE @slG INT = ABS(CHECKSUM(NEWID())) % 15 + 14;
+        DECLARE @maT VARCHAR(20) = 'T' + RIGHT('0' + CAST(@toa AS VARCHAR), 2) + 'SEVN' + RIGHT('00' + CAST(@t AS VARCHAR), 3);
+        DECLARE @slG INT = 20;
         INSERT [dbo].[ToaTau] ([maToaTau], [soToa], [soLuongGhe], [loaiToa], [heSoLoaiToa], [maTau]) 
-        VALUES (@maT, @toa, @slG, CASE WHEN @toa <= 3 THEN 'TOA_THUONG' ELSE 'TOA_VIP' END, CASE WHEN @toa <= 3 THEN 1.0 ELSE 1.5 END, @maTau);
+        VALUES (@maT, @toa, @slG, CASE WHEN @toa <= 4 THEN 'TOA_THUONG' ELSE 'TOA_VIP' END, CASE WHEN @toa <= 4 THEN 1.0 ELSE 1.5 END, 'SEVN' + RIGHT('00' + CAST(@t AS VARCHAR), 3));
         DECLARE @g INT = 1;
         WHILE @g <= @slG
         BEGIN
             INSERT [dbo].[Ghe] ([maGhe], [soGhe], [loaiGhe], [maToaTau])
-            VALUES ('G' + RIGHT('0' + CAST(@g AS VARCHAR), 2) + @maT, CAST(@g AS VARCHAR), CASE WHEN @toa <= 2 THEN N'Ghế cứng' WHEN @toa = 3 THEN N'Giường nằm' ELSE N'Ghế mềm' END, @maT);
+            VALUES ('G' + RIGHT('0' + CAST(@g AS VARCHAR), 2) + @maT, CAST(@g AS VARCHAR), CASE WHEN @toa <= 4 THEN N'Ghế cứng' WHEN @toa <= 8 THEN N'Giường nằm' ELSE N'Ghế mềm' END, @maT);
             SET @g = @g + 1;
         END
         SET @toa = @toa + 1;
     END
-    SET @i = @i + 1;
+    SET @t = @t + 1;
 END
 
 DECLARE @gaDen VARCHAR(20), @tripIdx INT = 1;
-DECLARE curGaDen CURSOR FOR SELECT maGa FROM Ga WHERE maGa <> 'DIEUTRI';
-OPEN curGaDen; FETCH NEXT FROM curGaDen INTO @gaDen;
-WHILE @@FETCH_STATUS = 0
+DECLARE @dayOffset INT = 0;
+
+WHILE @dayOffset < 7
 BEGIN
-    DECLARE @dayOffset INT = 0;
-    WHILE @dayOffset < 7
+    DECLARE @gaIdx INT = 0;
+    DECLARE curGa CURSOR FOR SELECT maGa FROM Ga WHERE maGa <> 'DIEUTRI';
+    OPEN curGa; FETCH NEXT FROM curGa INTO @gaDen;
+    
+    WHILE @@FETCH_STATUS = 0
     BEGIN
-        DECLARE @hIdx INT = 1;
-        WHILE @hIdx <= 4
+        -- Mỗi ga đến có 2 chuyến/ngày (Sáng và Chiều)
+        DECLARE @slot INT = 1;
+        WHILE @slot <= 2
         BEGIN
-            DECLARE @maCT VARCHAR(20) = 'CT' + RIGHT('000' + CAST(@tripIdx AS VARCHAR), 3);
-            INSERT [dbo].[ChuyenTau] ([maChuyenTau], [ghiChu], [maTau], [trangThai]) VALUES (@maCT, N'Chuyến đi ' + @gaDen, 'SEVN' + RIGHT('0' + CAST(((@tripIdx-1) % 30) + 1 AS VARCHAR), 2), 'CHUAN_BI');
-            DECLARE @dep DATETIME = DATEADD(HOUR, CASE WHEN @hIdx=1 THEN 8 WHEN @hIdx=2 THEN 12 WHEN @hIdx=3 THEN 18 ELSE 22 END, CAST(CAST(DATEADD(DAY, @dayOffset, GETDATE()) AS DATE) AS DATETIME));
-            INSERT [dbo].[ChiTietChuyenTau] ([maChuyenTau], [thoiGianKhoiHanh], [thoiGianDuKien], [maGaDi], [maGaDen]) VALUES (@maCT, @dep, DATEADD(HOUR, 12, @dep), 'DIEUTRI', @gaDen);
-            SET @tripIdx = @tripIdx + 1; SET @hIdx = @hIdx + 1;
+            -- Phân bổ tàu từ 100 tàu (bỏ qua tàu bảo trì)
+            DECLARE @tIdx INT = ((@dayOffset * 44) + (@gaIdx * 2) + @slot) % 100 + 1;
+            IF @tIdx % 10 = 0 SET @tIdx = @tIdx - 1; -- Tránh tàu bảo trì
+            DECLARE @trainID VARCHAR(20) = 'SEVN' + RIGHT('00' + CAST(@tIdx AS VARCHAR), 3);
+
+            -- Tính thời gian chạy (2h - 14h)
+            DECLARE @gaPos INT = (SELECT COUNT(*) FROM Ga g2 WHERE g2.maGa < @gaDen); 
+            DECLARE @duration INT = ABS(@gaPos - 15) * 1 + 2;
+
+            -- CHUYẾN ĐI
+            DECLARE @maCT_Di VARCHAR(20) = 'CT' + RIGHT('0000' + CAST(@tripIdx AS VARCHAR), 4);
+            INSERT [dbo].[ChuyenTau] ([maChuyenTau], [ghiChu], [maTau], [trangThai]) VALUES (@maCT_Di, N'Đi ' + @gaDen, @trainID, 'CHUAN_BI');
+            
+            DECLARE @dep_Time_Di INT = CASE WHEN @slot = 1 THEN 5 ELSE 13 END + (@gaIdx % 3);
+            DECLARE @dep_Di DATETIME = DATEADD(HOUR, @dep_Time_Di, CAST(CAST(DATEADD(DAY, @dayOffset, GETDATE()) AS DATE) AS DATETIME));
+            DECLARE @arr_Di DATETIME = DATEADD(HOUR, @duration, @dep_Di);
+            
+            INSERT [dbo].[ChiTietChuyenTau] ([maChuyenTau], [thoiGianKhoiHanh], [thoiGianDuKien], [maGaDi], [maGaDen]) 
+            VALUES (@maCT_Di, @dep_Di, @arr_Di, 'DIEUTRI', @gaDen);
+            SET @tripIdx = @tripIdx + 1;
+
+            -- CHUYẾN VỀ: Nghỉ 5 tiếng rồi về
+            DECLARE @maCT_Ve VARCHAR(20) = 'CT' + RIGHT('0000' + CAST(@tripIdx AS VARCHAR), 4);
+            INSERT [dbo].[ChuyenTau] ([maChuyenTau], [ghiChu], [maTau], [trangThai]) VALUES (@maCT_Ve, N'Về Diêu Trì từ ' + @gaDen, @trainID, 'CHUAN_BI');
+            
+            DECLARE @dep_Ve DATETIME = DATEADD(HOUR, 5, @arr_Di); -- Nghỉ 5 tiếng
+            DECLARE @arr_Ve DATETIME = DATEADD(HOUR, @duration, @dep_Ve);
+            
+            INSERT [dbo].[ChiTietChuyenTau] ([maChuyenTau], [thoiGianKhoiHanh], [thoiGianDuKien], [maGaDi], [maGaDen]) 
+            VALUES (@maCT_Ve, @dep_Ve, @arr_Ve, @gaDen, 'DIEUTRI');
+            SET @tripIdx = @tripIdx + 1;
+
+            SET @slot = @slot + 1;
         END
-        SET @dayOffset = @dayOffset + 1;
+        SET @gaIdx = @gaIdx + 1;
+        FETCH NEXT FROM curGa INTO @gaDen;
     END
-    FETCH NEXT FROM curGaDen INTO @gaDen;
+    CLOSE curGa; DEALLOCATE curGa;
+    SET @dayOffset = @dayOffset + 1;
 END
-CLOSE curGaDen; DEALLOCATE curGaDen;
 
 INSERT [dbo].[KhachHang] ([maKH], [hoTenKH], [cccd], [sdt], [email], [namSinh], [laSinhVien]) VALUES 
 ('KH001', N'Nguyễn Văn Nam', '052095000121', '0912345678', 'nam.nv@gmail.com', '1990-01-01', 0),
@@ -240,22 +260,30 @@ INSERT [dbo].[KhuyenMai] ([maKhuyenMai], [tenKhuyenMai], [trangThai], [moTaChiTi
 ('KM002', N'Giảm giá người cao tuổi', 1, N'Giảm 15% cho người trên 60 tuổi', 0.15, 'TU_60_TRO_LEN', '2024-01-01', '2025-12-31');
 
 DECLARE @v INT = 1;
-WHILE @v <= 100
+WHILE @v <= 150
 BEGIN
-    DECLARE @maHD VARCHAR(20) = 'HD' + RIGHT('000' + CAST(@v AS VARCHAR), 3), @tauID VARCHAR(20) = 'SEVN' + RIGHT('0' + CAST(((@v-1) % 30) + 1 AS VARCHAR), 2);
+    DECLARE @maHD VARCHAR(20) = 'HD' + RIGHT('000' + CAST(@v AS VARCHAR), 3);
+    
+    -- Lấy ngẫu nhiên một chuyến tàu đã tồn tại để tránh NULL
+    DECLARE @maCT VARCHAR(20) = (SELECT TOP 1 maChuyenTau FROM ChuyenTau ORDER BY NEWID());
+    DECLARE @tauID VARCHAR(20) = (SELECT maTau FROM ChuyenTau WHERE maChuyenTau = @maCT);
+    
+    -- Lấy ngẫu nhiên một ghế thuộc về tàu đó
+    DECLARE @mG VARCHAR(20) = (
+        SELECT TOP 1 g.maGhe 
+        FROM Ghe g 
+        JOIN ToaTau t ON g.maToaTau = t.maToaTau 
+        WHERE t.maTau = @tauID 
+        ORDER BY NEWID()
+    );
+    
     DECLARE @khIdx INT = (@v % 15) + 1;
     DECLARE @statusVe NVARCHAR(50) = CASE @v % 3 WHEN 0 THEN N'Đã thanh toán' WHEN 1 THEN N'Đã hủy' ELSE N'Chưa thanh toán' END;
     DECLARE @lv NVARCHAR(50) = CASE @v % 2 WHEN 0 THEN N'Một chiều' ELSE N'Khứ hồi' END;
-    
-    -- Randomize car (1-10) and seat (1-14) to get variety in seat types
-    DECLARE @randToa INT = (ABS(CHECKSUM(NEWID())) % 10) + 1;
-    DECLARE @randGhe INT = (ABS(CHECKSUM(NEWID())) % 14) + 1;
-    DECLARE @maToaV VARCHAR(20) = 'T' + RIGHT('0' + CAST(@randToa AS VARCHAR), 2) + @tauID;
-    DECLARE @mG VARCHAR(20) = 'G' + RIGHT('0' + CAST(@randGhe AS VARCHAR), 2) + @maToaV;
 
     INSERT [dbo].[HoaDon] ([maHoaDon], [maNV], [maKH], [tongTien], [tienNhan], [phuongThucThanhToan]) VALUES (@maHD, 'NV001', 'KH' + RIGHT('000' + CAST(@khIdx AS VARCHAR), 3), 500000, 500000, 'TIEN_MAT');
     INSERT [dbo].[Ve] ([maVe], [loaiVe], [trangThaiVe], [giaVe], [maGhe], [maHoaDon], [maChuyenTau], [maKH], [maKhuyenMai]) 
-    VALUES ('VE' + RIGHT('000' + CAST(@v AS VARCHAR), 3), @lv, @statusVe, 500000, @mG, @maHD, 'CT' + RIGHT('000' + CAST(((@v-1) % 588) + 1 AS VARCHAR), 3), 'KH' + RIGHT('000' + CAST(@khIdx AS VARCHAR), 3), NULL);
+    VALUES ('VE' + RIGHT('000' + CAST(@v AS VARCHAR), 3), @lv, @statusVe, 500000, @mG, @maHD, @maCT, 'KH' + RIGHT('000' + CAST(@khIdx AS VARCHAR), 3), NULL);
     SET @v = @v + 1;
 END
 GO
