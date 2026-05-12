@@ -18,12 +18,14 @@ public class tauDAO implements DAO<Tau, String> {
              PreparedStatement ps = con.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
             while (rs.next()) {
-                list.add(new Tau(
-                    rs.getString("maTau"), 
-                    rs.getString("tenTau"), 
-                    rs.getString("trangThai"), 
-                    rs.getString("ghiChu")
-                ));
+                Tau t = new Tau();
+                t.setMaTau(rs.getString("maTau"));
+                t.setTenTau(rs.getString("tenTau"));
+                t.setTrangThai(rs.getString("trangThai"));
+                t.setGhiChu(rs.getString("ghiChu"));
+                t.setSoToa(rs.getInt("soToa"));
+                t.setTongSoGhe(rs.getInt("tongSoGhe"));
+                list.add(t);
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -39,12 +41,14 @@ public class tauDAO implements DAO<Tau, String> {
             ps.setString(1, id);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
-                    return new Tau(
-                        rs.getString("maTau"), 
-                        rs.getString("tenTau"), 
-                        rs.getString("trangThai"), 
-                        rs.getString("ghiChu")
-                    );
+                    Tau t = new Tau();
+                    t.setMaTau(rs.getString("maTau"));
+                    t.setTenTau(rs.getString("tenTau"));
+                    t.setTrangThai(rs.getString("trangThai"));
+                    t.setGhiChu(rs.getString("ghiChu"));
+                    t.setSoToa(rs.getInt("soToa"));
+                    t.setTongSoGhe(rs.getInt("tongSoGhe"));
+                    return t;
                 }
             }
         } catch (Exception e) {
@@ -55,13 +59,15 @@ public class tauDAO implements DAO<Tau, String> {
 
     @Override
     public boolean insert(Tau entity) {
-        String sql = "INSERT INTO Tau (maTau, tenTau, trangThai, ghiChu) VALUES (?, ?, ?, ?)";
+        String sql = "INSERT INTO Tau (maTau, tenTau, trangThai, ghiChu, soToa, tongSoGhe) VALUES (?, ?, ?, ?, ?, ?)";
         try (Connection con = Connect_DB.getInstance().getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setString(1, entity.getMaTau());
             ps.setString(2, entity.getTenTau());
             ps.setString(3, entity.getTrangThai());
             ps.setString(4, entity.getGhiChu());
+            ps.setInt(5, entity.getSoToa());
+            ps.setInt(6, entity.getTongSoGhe());
             return ps.executeUpdate() > 0;
         } catch (Exception e) {
             e.printStackTrace();
@@ -71,13 +77,15 @@ public class tauDAO implements DAO<Tau, String> {
 
     @Override
     public boolean update(Tau entity) {
-        String sql = "UPDATE Tau SET tenTau = ?, trangThai = ?, ghiChu = ? WHERE maTau = ?";
+        String sql = "UPDATE Tau SET tenTau = ?, trangThai = ?, ghiChu = ?, soToa = ?, tongSoGhe = ? WHERE maTau = ?";
         try (Connection con = Connect_DB.getInstance().getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setString(1, entity.getTenTau());
             ps.setString(2, entity.getTrangThai());
             ps.setString(3, entity.getGhiChu());
-            ps.setString(4, entity.getMaTau());
+            ps.setInt(4, entity.getSoToa());
+            ps.setInt(5, entity.getTongSoGhe());
+            ps.setString(6, entity.getMaTau());
             return ps.executeUpdate() > 0;
         } catch (Exception e) {
             e.printStackTrace();

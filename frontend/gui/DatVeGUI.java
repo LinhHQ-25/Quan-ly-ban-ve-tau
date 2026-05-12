@@ -156,10 +156,11 @@ public class DatVeGUI extends JPanel {
     // --- HÀM KIỂM TRA DATABASE ---
     private boolean checkChuyenTonTai(String tenGaDi, String tenGaDen, String ngayDiStr) {
         String sql = "SELECT TOP 1 1 FROM ChuyenTau c " +
-                     "JOIN Ga gDi ON c.gaDi = gDi.maGa " +
-                     "JOIN Ga gDen ON c.gaDen = gDen.maGa " +
+                     "JOIN ChiTietChuyenTau dt ON c.maChuyenTau = dt.maChuyenTau " +
+                     "JOIN Ga gDi ON dt.maGaDi = gDi.maGa " +
+                     "JOIN Ga gDen ON dt.maGaDen = gDen.maGa " +
                      "WHERE gDi.tenGa LIKE ? AND gDen.tenGa LIKE ? " +
-                     "AND CONVERT(VARCHAR, c.thoiGianKhoiHanh, 103) = ?";
+                     "AND CONVERT(VARCHAR, dt.thoiGianKhoiHanh, 103) = ?";
         try (Connection con = Connect_DB.getInstance().getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setNString(1, "%" + tenGaDi + "%");

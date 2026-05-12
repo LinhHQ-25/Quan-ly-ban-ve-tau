@@ -12,12 +12,12 @@ public class ChiTietChuyenTau {
     public ChiTietChuyenTau() {
     }
 
-    public ChiTietChuyenTau(LocalDateTime thoiGianKhoiHanh, LocalDateTime thoiGianDuKien, ChuyenTau chuyenTau, Ga gaDen, Ga gaDi) {
+    public ChiTietChuyenTau(LocalDateTime thoiGianKhoiHanh, LocalDateTime thoiGianDuKien, ChuyenTau chuyenTau, Ga gaDi, Ga gaDen) {
         this.thoiGianKhoiHanh = thoiGianKhoiHanh;
         this.thoiGianDuKien = thoiGianDuKien;
         this.chuyenTau = chuyenTau;
-        this.gaDen = gaDen;
         this.gaDi = gaDi;
+        this.gaDen = gaDen;
     }
 
     public LocalDateTime getThoiGianKhoiHanh() {
@@ -43,6 +43,11 @@ public class ChiTietChuyenTau {
     public void setChuyenTau(ChuyenTau chuyenTau) {
         this.chuyenTau = chuyenTau;
     }
+    
+    // Helper để lấy mã Chuyến tàu
+    public String getMaChuyenTau() {
+        return chuyenTau != null ? chuyenTau.getMaChuyenTau() : null;
+    }
 
     public Ga getGaDen() {
         return gaDen;
@@ -59,9 +64,13 @@ public class ChiTietChuyenTau {
     public void setGaDi(Ga gaDi) {
         this.gaDi = gaDi;
     }
-
-    @Override
-    public String toString() {
-        return chuyenTau.getMaChuyen() + " (" + gaDi.getTenGa() + " - " + gaDen.getTenGa() + ")";
+    
+    // Helper để lấy mã ga
+    public String getMaGaDi() {
+        return gaDi != null ? gaDi.getMaGa() : null;
+    }
+    
+    public String getMaGaDen() {
+        return gaDen != null ? gaDen.getMaGa() : null;
     }
 }

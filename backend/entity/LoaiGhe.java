@@ -1,5 +1,18 @@
 package entity;
 
 public enum LoaiGhe {
-    GIUONG_NAM, GHE_MEM, GHE_CUNG
+    GHE_MEM("Ghế mềm"),
+    GHE_CUNG("Ghế cứng"),
+    GIUONG_NAM("Giường nằm");
+
+    private final String moTa;
+
+    LoaiGhe(String moTa) {
+        this.moTa = moTa;
+    }
+
+    @Override
+    public String toString() {
+        return moTa;
+    }
 }

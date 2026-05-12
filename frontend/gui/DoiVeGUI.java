@@ -89,9 +89,11 @@ public class DoiVeGUI extends JPanel {
     // DATA LAYER (TƯƠNG TÁC SQL CHUẨN)
     private void loadChuyenFromDB() {
         chuyenList.clear();
-        String sql = "SELECT ct.maChuyen, t.tenTau, ct.thoiGianKhoiHanh, ct.thoiGianDuKien " +
-                "FROM ChuyenTau ct JOIN Tau t ON ct.maTau = t.maTau " +
-                "ORDER BY ct.thoiGianKhoiHanh";
+        String sql = "SELECT ct.maChuyenTau, t.tenTau, dt.thoiGianKhoiHanh, dt.thoiGianDuKien " +
+                "FROM ChuyenTau ct " +
+                "JOIN ChiTietChuyenTau dt ON ct.maChuyenTau = dt.maChuyenTau " +
+                "JOIN Tau t ON ct.maTau = t.maTau " +
+                "ORDER BY dt.thoiGianKhoiHanh";
 
         try (Connection conn = Connect_DB.getInstance().getConnection();
              PreparedStatement ps = conn.prepareStatement(sql);
@@ -101,7 +103,7 @@ public class DoiVeGUI extends JPanel {
                 Timestamp kh = rs.getTimestamp("thoiGianKhoiHanh");
                 Timestamp dd = rs.getTimestamp("thoiGianDuKien");
                 chuyenList.add(new String[]{
-                        rs.getString("maChuyen"),
+                        rs.getString("maChuyenTau"),
                         rs.getString("tenTau"),
                         kh != null ? sdf.format(kh) : "",
                         dd != null ? sdf.format(dd) : ""
@@ -117,7 +119,7 @@ public class DoiVeGUI extends JPanel {
         int count = 0;
         String sql = "SELECT COUNT(*) FROM ToaTau tt " +
                 "JOIN ChuyenTau ct ON tt.maTau = ct.maTau " +
-                "WHERE ct.maChuyen = ?";
+                "WHERE ct.maChuyenTau = ?";
         try (Connection conn = Connect_DB.getInstance().getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, chuyenList.get(ci)[0]);
@@ -130,10 +132,11 @@ public class DoiVeGUI extends JPanel {
         Set<Integer> result = new LinkedHashSet<>();
         if (ci < 0 || ci >= chuyenList.size()) return result;
         String sql = "SELECT v.maGhe FROM Ve v " +
+                "JOIN ChiTietChuyenTau dt ON v.maChuyenTau = dt.maChuyenTau " +
+                "JOIN ChuyenTau ct ON dt.maChuyenTau = ct.maChuyenTau " +
                 "JOIN Ghe g ON v.maGhe = g.maGhe " +
                 "JOIN ToaTau tt ON g.maToaTau = tt.maToaTau " +
-                "JOIN ChuyenTau ct ON tt.maTau = ct.maTau " +
-                "WHERE ct.maChuyen = ? AND tt.soToa = ? " +
+                "WHERE ct.maChuyenTau = ? AND tt.soToa = ? " +
                 "AND v.trangThaiVe IN ('CHO_THANH_TOAN', 'DA_THANH_TOAN')";
         try (Connection conn = Connect_DB.getInstance().getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {

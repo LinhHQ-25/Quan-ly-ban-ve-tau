@@ -57,14 +57,11 @@ public class Connect_DB {
      */
     public static Connection getConnection() {
         try {
-            // Kiểm tra và tạo mới nếu cần
-            if (con == null || con.isClosed()) {
-                con = DriverManager.getConnection(URL, USER, PASSWORD);
-            }
+            return DriverManager.getConnection(URL, USER, PASSWORD);
         } catch (SQLException e) {
             e.printStackTrace();
+            return null;
         }
-        return con;
     }
 
     /**

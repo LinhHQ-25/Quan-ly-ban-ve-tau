@@ -163,14 +163,15 @@ public final class DoiTraGUI extends JPanel {
 		try {
 			String sql =
 					"SELECT v.maVe, t.tenTau, gDi.tenGa AS gaDi, gDen.tenGa AS gaDen, " +
-							"v.loaiVe, ct.thoiGianKhoiHanh, v.giaVe, v.maGhe " +
+							"v.loaiVe, dt.thoiGianKhoiHanh, v.giaVe, v.maGhe " +
 							"FROM Ve v " +
-							"JOIN ChuyenTau ct ON v.maChuyen = ct.maChuyen " +
+							"JOIN ChiTietChuyenTau dt ON v.maChuyenTau = dt.maChuyenTau " +
+							"JOIN ChuyenTau ct ON dt.maChuyenTau = ct.maChuyenTau " +
 							"JOIN Tau t ON ct.maTau = t.maTau " +
-							"JOIN Ga gDi ON ct.gaDi = gDi.maGa " +
-							"JOIN Ga gDen ON ct.gaDen = gDen.maGa " +
-							"WHERE v.maVe LIKE ? AND v.trangThaiVe = 'DA_THANH_TOAN' " +
-							"ORDER BY ct.thoiGianKhoiHanh";
+							"JOIN Ga gDi ON dt.maGaDi = gDi.maGa " +
+							"JOIN Ga gDen ON dt.maGaDen = gDen.maGa " +
+							"WHERE v.maVe LIKE ? AND v.trangThaiVe = N'Đã thanh toán' " +
+							"ORDER BY dt.thoiGianKhoiHanh";
 			PreparedStatement stmt = conn.prepareStatement(sql);
 			// Cho phép tìm kiếm tương đối chứa từ khóa (VD: nhập "001" sẽ ra "V001")
 			stmt.setString(1, "%" + keyword.toUpperCase() + "%");

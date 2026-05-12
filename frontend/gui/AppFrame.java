@@ -6,6 +6,7 @@ import java.awt.Color;
 import java.awt.Component;
 import java.awt.Cursor;
 import java.awt.Dimension;
+import java.awt.FlowLayout;
 import java.awt.Font;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -326,8 +327,13 @@ public class AppFrame extends JFrame {
 			}
 		});
 
+		JPanel rightContent = new JPanel(new FlowLayout(FlowLayout.RIGHT, 25, 0));
+		rightContent.setOpaque(false);
+		rightContent.add(new DigitalClockWidget());
+		rightContent.add(profile);
+
 		topRow.add(headerTitle, BorderLayout.WEST);
-		topRow.add(profile, BorderLayout.EAST);
+		topRow.add(rightContent, BorderLayout.EAST);
 		JSeparator sep = new JSeparator(SwingConstants.HORIZONTAL);
 		sep.setForeground(new Color(210, 215, 224));
 		sep.setBackground(Color.WHITE);

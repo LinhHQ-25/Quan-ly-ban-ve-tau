@@ -7,17 +7,19 @@ public class HoaDon {
     private LocalDateTime ngayLapHD;
     private NhanVien nhanVien;
     private KhachHang khachHang;
+    private double tongTien; // Thêm trường tổng tiền
     private double tienNhan;
     private PhuongThucThanhToan phuongThucThanhToan;
 
     public HoaDon() {
     }
 
-    public HoaDon(String maHoaDon, LocalDateTime ngayLapHD, NhanVien nhanVien, KhachHang khachHang, double tienNhan, PhuongThucThanhToan phuongThucThanhToan) {
+    public HoaDon(String maHoaDon, LocalDateTime ngayLapHD, NhanVien nhanVien, KhachHang khachHang, double tongTien, double tienNhan, PhuongThucThanhToan phuongThucThanhToan) {
         this.maHoaDon = maHoaDon;
         this.ngayLapHD = ngayLapHD;
         this.nhanVien = nhanVien;
         this.khachHang = khachHang;
+        this.tongTien = tongTien;
         this.tienNhan = tienNhan;
         this.phuongThucThanhToan = phuongThucThanhToan;
     }
@@ -54,6 +56,14 @@ public class HoaDon {
         this.khachHang = khachHang;
     }
 
+    public double getTongTien() {
+        return tongTien;
+    }
+
+    public void setTongTien(double tongTien) {
+        this.tongTien = tongTien;
+    }
+
     public double getTienNhan() {
         return tienNhan;
     }
@@ -70,12 +80,8 @@ public class HoaDon {
         this.phuongThucThanhToan = phuongThucThanhToan;
     }
 
-    public double tinhTongTien() {
-        return 0;
-    }
-
     public double tinhTienThua() {
-        return tienNhan - tinhTongTien();
+        return tienNhan - tongTien;
     }
 
     @Override
