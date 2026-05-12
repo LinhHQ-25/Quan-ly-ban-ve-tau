@@ -35,6 +35,7 @@ public final class DoiTraGUI extends JPanel {
 		pnlPage.add(buildCenter(),     BorderLayout.CENTER);
 		pnlPage.add(buildButtonRow(),  BorderLayout.SOUTH);
 		add(pnlPage, BorderLayout.CENTER);
+		loadDataFromDB("");
 	}
 	// UI BUILDERS
 	private JPanel buildNoteBox() {
@@ -83,7 +84,7 @@ public final class DoiTraGUI extends JPanel {
 		lb.setForeground(GuiTheme.TEXT);
 		txtSearch = new JTextField();
 		txtSearch.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
-		JButton btnSearch = buildNavyButton("Tìm kiếm", 110, 32);
+		JButton btnSearch = buildNavyButton("Tìm kiếm", 130, 38);
 		btnSearch.addActionListener(e -> loadDataFromDB(txtSearch.getText().trim()));
 		txtSearch.addActionListener(e -> loadDataFromDB(txtSearch.getText().trim()));
 		gbc.gridx = 0; gbc.weightx = 0; gbc.fill = GridBagConstraints.NONE;
@@ -126,15 +127,22 @@ public final class DoiTraGUI extends JPanel {
 	}
 
 	private JPanel buildButtonRow() {
-		JPanel p = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 6));
+		// FlowLayout căn phải, khoảng cách chiều ngang giữa các nút là 15px (tùy chỉnh), chiều dọc 10px
+		JPanel p = new JPanel(new FlowLayout(FlowLayout.RIGHT, 15, 10));
 		p.setOpaque(false);
-		p.setBorder(new MatteBorder(1, 0, 0, 0, BORDER));
-		JButton btnTra = buildNavyButton("Trả vé →", 120, 34);
-		JButton btnDoi = buildNavyButton("Đổi vé →", 120, 34);
+		p.setBorder(new MatteBorder(1, 0, 0, 0, BORDER)); // Viền mờ ở trên cùng tạo đường phân cách
+
+		// Tạo 2 nút với hàm buildNavyButton đã được làm mới ở trên
+		JButton btnTra = buildNavyButton("Trả vé", 130, 38);
+		JButton btnDoi = buildNavyButton("Đổi vé", 130, 38);
+
+		// Gắn sự kiện
 		btnTra.addActionListener(e -> handleGoiTraVe());
 		btnDoi.addActionListener(e -> handleGoiDoiVe());
+
 		p.add(btnTra);
 		p.add(btnDoi);
+
 		return p;
 	}
 
@@ -152,7 +160,10 @@ public final class DoiTraGUI extends JPanel {
 		return pnl;
 	}
 	// DATA
+	// DATA
+	// DATA
 	private void loadDataFromDB(String keyword) {
+		// Xóa dữ liệu cũ trên bảng và cache
 		tableModel.setRowCount(0);
 		veCache.clear();
 		if (keyword == null || keyword.isEmpty()) {
@@ -198,7 +209,8 @@ public final class DoiTraGUI extends JPanel {
 			}
 		} catch (SQLException e) {
 			e.printStackTrace();
-			JOptionPane.showMessageDialog(this, "Lỗi truy vấn cơ sở dữ liệu!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+			JOptionPane.showMessageDialog(this, "Lỗi truy vấn cơ sở dữ liệu: " + e.getMessage(),
+					"Lỗi", JOptionPane.ERROR_MESSAGE);
 		}
 	}
 	// LOGIC
@@ -253,6 +265,9 @@ public final class DoiTraGUI extends JPanel {
 		p.add(tf, BorderLayout.CENTER);
 		return p;
 	}
+	// UI HELPERS
+	// ... (Giữ nguyên hàm wrapTextField) ...
+
 	private JButton buildNavyButton(String text, int w, int h) {
 		JButton btn = new JButton(text) {
 			@Override protected void paintComponent(Graphics g) {
@@ -262,16 +277,24 @@ public final class DoiTraGUI extends JPanel {
 						: getModel().isRollover() ? GuiTheme.NAVY_HOVER : GuiTheme.NAVY);
 				g2.fillRoundRect(0, 0, getWidth(), getHeight(), 12, 12);
 				g2.setColor(Color.WHITE);
-				g2.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 13));
+
+				// Cập nhật font size lên 14 theo mẫu
+				g2.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
+
 				FontMetrics fm = g2.getFontMetrics();
-				g2.drawString(getText(), (getWidth()-fm.stringWidth(getText()))/2,
-						(getHeight()+fm.getAscent()-fm.getDescent())/2);
+				// Lấy chuỗi text ra biến riêng theo mẫu buildTimButton
+				String txt = getText();
+				g2.drawString(txt, (getWidth() - fm.stringWidth(txt)) / 2,
+						(getHeight() + fm.getAscent() - fm.getDescent()) / 2);
 				g2.dispose();
 			}
 		};
+		// Giữ lại tham số w, h để dùng chung cho các nút có kích thước khác nhau
 		btn.setPreferredSize(new Dimension(w, h));
-		btn.setContentAreaFilled(false); btn.setBorderPainted(false);
-		btn.setFocusPainted(false); btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+		btn.setContentAreaFilled(false);
+		btn.setBorderPainted(false);
+		btn.setFocusPainted(false);
+		btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
 		return btn;
 	}
 }
