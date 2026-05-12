@@ -7,6 +7,7 @@ import java.awt.Component;
 import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.Font;
+import java.awt.Graphics;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -15,12 +16,12 @@ import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JSeparator;
 import javax.swing.SwingConstants;
 import javax.swing.UIManager;
 import javax.swing.border.EmptyBorder;
-import javax.swing.JOptionPane;
 
 public class AppFrame extends JFrame {
 	private final CardLayout cardLayout = new CardLayout();
@@ -28,7 +29,7 @@ public class AppFrame extends JFrame {
 	private final Map<String, SidebarButton> routeButtons = new LinkedHashMap<>();
 	private final Map<String, SidebarButton> searchSubButtons = new LinkedHashMap<>();
 	private final JLabel headerTitle = new JLabel("THÔNG TIN CÁ NHÂN");
-
+	private LoadingPanel loadingPanel;
 	// References để gọi refresh() khi navigate
 	private DoiVeGUI  doiVeGUI;
 	private TraVeGUI  traVeGUI;
@@ -339,6 +340,14 @@ public class AppFrame extends JFrame {
 
 	private void registerCards() {
 		contentCards.add(new LoginPanel(this), "login");
+
+		// THÊM MÀN HÌNH LOADING VÀO ĐÂY:
+		loadingPanel = new LoadingPanel();
+		contentCards.add(loadingPanel, "loading");
+
+		contentCards.setBackground(GuiTheme.LIGHT_BG);
+		contentCards.add(new HomeGUI(), "home");
+		contentCards.add(new LoginPanel(this), "login");
 		contentCards.setBackground(GuiTheme.LIGHT_BG);
 		contentCards.add(new HomeGUI(), "home");
 		contentCards.add(new DanhSachChuyenDiGUI(), "tra-cuu-chuyen");
@@ -362,13 +371,41 @@ public class AppFrame extends JFrame {
 
 	public void onLoginSuccess(boolean isAdmin) {
 		if (isAdmin) {
-			// Mở giao diện dành cho Quản lý
 			AppFrameManager managerFrame = new AppFrameManager();
 			managerFrame.setVisible(true);
-			this.dispose(); // Đóng giao diện đăng nhập hiện tại
+			this.dispose(); 
 		} else {
-			// Hiển thị giao diện Nhân viên như cũ
-			showCard("home");
+			// 1. Phủ mờ
+			JPanel glassPane = new JPanel() {
+				@Override
+				protected void paintComponent(Graphics g) {
+					g.setColor(new Color(0, 0, 0, 200)); // 200 là tối đậm như ý bác
+					g.fillRect(0, 0, getWidth(), getHeight());
+				}
+			};
+			glassPane.setOpaque(false);
+			this.setGlassPane(glassPane);
+			glassPane.setVisible(true);
+
+			// 2. Hiện Popup
+			MoCaDialog dialog = new MoCaDialog(this);
+			dialog.setVisible(true); 
+
+			// 3. Tắt phủ mờ
+			glassPane.setVisible(false);
+
+			// 4. KIỂM TRA: Bấm xác nhận thì nhảy vào màn hình Loading
+			if (dialog.isConfirmed()) {
+				showCard("loading"); // Nhảy qua thẻ Loading trắng tinh
+				
+				// Gọi hàm chạy thanh phần trăm, xong 100% thì mới vô "home"
+				loadingPanel.startLoading(() -> {
+					showCard("dat-ve");
+				});
+				
+			} else {
+				showCard("login"); // Hủy thì quay lại đăng nhập
+			}
 		}
 	}
 }
