@@ -162,50 +162,72 @@ public final class DoiTraGUI extends JPanel {
 	// DATA
 	// DATA
 	// DATA
+	// DATA
 	private void loadDataFromDB(String keyword) {
 		// Xóa dữ liệu cũ trên bảng và cache
 		tableModel.setRowCount(0);
 		veCache.clear();
-		if (keyword == null || keyword.isEmpty()) {
-			return;
-		}
-		Connection conn = Connect_DB.getInstance().getConnection();
-		if (conn == null) return;
-		try {
-			String sql =
-					"SELECT v.maVe, t.tenTau, gDi.tenGa AS gaDi, gDen.tenGa AS gaDen, " +
-							"v.loaiVe, dt.thoiGianKhoiHanh, v.giaVe, v.maGhe " +
-							"FROM Ve v " +
-							"JOIN ChiTietChuyenTau dt ON v.maChuyenTau = dt.maChuyenTau " +
-							"JOIN ChuyenTau ct ON dt.maChuyenTau = ct.maChuyenTau " +
-							"JOIN Tau t ON ct.maTau = t.maTau " +
-							"JOIN Ga gDi ON dt.maGaDi = gDi.maGa " +
-							"JOIN Ga gDen ON dt.maGaDen = gDen.maGa " +
-							"WHERE v.maVe LIKE ? AND v.trangThaiVe = N'Đã thanh toán' " +
-							"ORDER BY dt.thoiGianKhoiHanh";
-			PreparedStatement stmt = conn.prepareStatement(sql);
+
+		// 1. Đảm bảo keyword không bị null. Nếu rỗng thì sẽ tìm '%%' (lấy tất cả vé)
+		String searchKw = (keyword == null) ? "" : keyword.trim();
+
+		// Câu SQL ĐÃ CHUẨN THEO CSDL MỚI CỦA BẠN
+		String sql =
+				"SELECT v.maVe, t.tenTau, gDi.tenGa AS gaDi, gDen.tenGa AS gaDen, " +
+						"v.loaiVe, dt.thoiGianKhoiHanh, v.giaVe, v.maGhe " +
+						"FROM Ve v " +
+						"JOIN ChiTietChuyenTau dt ON v.maChuyenTau = dt.maChuyenTau " +
+						"JOIN ChuyenTau ct ON dt.maChuyenTau = ct.maChuyenTau " +
+						"JOIN Tau t ON ct.maTau = t.maTau " +
+						"JOIN Ga gDi ON dt.maGaDi = gDi.maGa " +
+						"JOIN Ga gDen ON dt.maGaDen = gDen.maGa " +
+						"WHERE v.maVe LIKE ? AND v.trangThaiVe = N'Đã thanh toán' " +
+						"ORDER BY dt.thoiGianKhoiHanh DESC";
+
+		// 2. Try-with-resources: Tự động đóng kết nối (Tránh tràn RAM CSDL)
+		try (Connection conn = Connect_DB.getInstance().getConnection();
+		     PreparedStatement stmt = conn.prepareStatement(sql)) {
+
 			// Cho phép tìm kiếm tương đối chứa từ khóa (VD: nhập "001" sẽ ra "V001")
-			stmt.setString(1, "%" + keyword.toUpperCase() + "%");
-			ResultSet rs = stmt.executeQuery();
-			java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("dd/MM/yyyy HH:mm");
-			boolean found = false;
-			while (rs.next()) {
-				found = true;
-				String maVe    = rs.getString("maVe");
-				String tenTau  = rs.getString("tenTau");
-				String gaDi    = rs.getString("gaDi");
-				String gaDen   = rs.getString("gaDen");
-				String loaiVe  = rs.getString("loaiVe");
-				String maGhe   = rs.getString("maGhe");
-				String giaVe   = rs.getString("giaVe");
-				Timestamp ts = rs.getTimestamp("thoiGianKhoiHanh");
-				String ngayGio = ts != null ? sdf.format(ts) : "";
-				String soLuong = "1";
-				veCache.put(maVe, new String[]{tenTau, gaDi, gaDen, loaiVe, ngayGio, soLuong, maGhe, giaVe});
-				tableModel.addRow(new Object[]{maVe, tenTau, gaDi, gaDen, loaiVe, ngayGio, soLuong, maGhe});
-			}
-			if (!found) {
-				JOptionPane.showMessageDialog(this, "Không tìm thấy vé nào phù hợp hoặc vé chưa được thanh toán!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+			stmt.setString(1, "%" + searchKw.toUpperCase() + "%");
+
+			try (ResultSet rs = stmt.executeQuery()) {
+				java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("dd/MM/yyyy HH:mm");
+				boolean found = false;
+
+				while (rs.next()) {
+					found = true;
+					String maVe    = rs.getString("maVe");
+					String tenTau  = rs.getString("tenTau");
+					String gaDi    = rs.getString("gaDi");
+					String gaDen   = rs.getString("gaDen");
+
+					// 3. XỬ LÝ FORMAT LOẠI VÉ SANG TIẾNG VIỆT
+					String rawLoaiVe = rs.getString("loaiVe");
+					String loaiVe = rawLoaiVe; // Giữ nguyên chuỗi gốc nếu nó đã là Tiếng Việt
+					if (rawLoaiVe != null) {
+						if (rawLoaiVe.equalsIgnoreCase("MOT_CHIEU")) {
+							loaiVe = "Một chiều";
+						} else if (rawLoaiVe.equalsIgnoreCase("KHU_HOI")) {
+							loaiVe = "Khứ hồi";
+						}
+					}
+
+					String maGhe   = rs.getString("maGhe");
+					String giaVe   = rs.getString("giaVe");
+
+					Timestamp ts = rs.getTimestamp("thoiGianKhoiHanh");
+					String ngayGio = ts != null ? sdf.format(ts) : "";
+					String soLuong = "1";
+
+					veCache.put(maVe, new String[]{tenTau, gaDi, gaDen, loaiVe, ngayGio, soLuong, maGhe, giaVe});
+					tableModel.addRow(new Object[]{maVe, tenTau, gaDi, gaDen, loaiVe, ngayGio, soLuong, maGhe});
+				}
+
+				// Chỉ cảnh báo nếu người dùng CÓ nhập từ khóa tìm kiếm mà không thấy
+				if (!found && !searchKw.isEmpty()) {
+					JOptionPane.showMessageDialog(this, "Không tìm thấy vé nào phù hợp hoặc vé chưa được thanh toán!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+				}
 			}
 		} catch (SQLException e) {
 			e.printStackTrace();
