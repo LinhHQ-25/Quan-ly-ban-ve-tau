@@ -1,7 +1,7 @@
 package entity;
 
 public class ChuyenTau {
-    private String maChuyen;
+    private String maChuyenTau;
     private String ghiChu;
     private Tau tau;
     private TrangThaiChuyenTau trangThai;
@@ -9,19 +9,19 @@ public class ChuyenTau {
     public ChuyenTau() {
     }
 
-    public ChuyenTau(String maChuyen, String ghiChu, Tau tau, TrangThaiChuyenTau trangThai) {
-        this.maChuyen = maChuyen;
+    public ChuyenTau(String maChuyenTau, String ghiChu, Tau tau, TrangThaiChuyenTau trangThai) {
+        this.maChuyenTau = maChuyenTau;
         this.ghiChu = ghiChu;
         this.tau = tau;
         this.trangThai = trangThai;
     }
 
-    public String getMaChuyen() {
-        return maChuyen;
+    public String getMaChuyenTau() {
+        return maChuyenTau;
     }
 
-    public void setMaChuyen(String maChuyen) {
-        this.maChuyen = maChuyen;
+    public void setMaChuyenTau(String maChuyenTau) {
+        this.maChuyenTau = maChuyenTau;
     }
 
     public String getGhiChu() {
@@ -50,6 +50,6 @@ public class ChuyenTau {
 
     @Override
     public String toString() {
-        return maChuyen;
+        return maChuyenTau;
     }
 }

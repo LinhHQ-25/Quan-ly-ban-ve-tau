@@ -111,13 +111,15 @@ public class DatVeGUI1 extends JPanel {
 	private String[][] loadChuyenFromDB(String tenGaDi, String tenGaDen, String ngayDiStr) {
 		List<String[]> list = new ArrayList<>();
 		
-		String sql = "SELECT c.maChuyen, t.tenTau, c.thoiGianKhoiHanh, c.thoiGianDuKien " +
-					 "FROM ChuyenTau c " +
-					 "JOIN Tau t ON c.maTau = t.maTau " +
-					 "JOIN Ga gDi ON c.gaDi = gDi.maGa " +
-					 "JOIN Ga gDen ON c.gaDen = gDen.maGa " +
+		String sql = "SELECT ct.maChuyenTau AS maChuyen, t.tenTau, dt.thoiGianKhoiHanh, dt.thoiGianDuKien " +
+					 "FROM ChuyenTau ct " +
+					 "JOIN ChiTietChuyenTau dt ON ct.maChuyenTau = dt.maChuyenTau " +
+					 "JOIN Tau t ON ct.maTau = t.maTau " +
+					 "JOIN Ga gDi ON dt.maGaDi = gDi.maGa " +
+					 "JOIN Ga gDen ON dt.maGaDen = gDen.maGa " +
 					 "WHERE gDi.tenGa LIKE ? AND gDen.tenGa LIKE ? " +
-					 "AND CONVERT(VARCHAR, c.thoiGianKhoiHanh, 103) = ? ORDER BY c.thoiGianKhoiHanh ASC";
+					 "AND CONVERT(VARCHAR, dt.thoiGianKhoiHanh, 103) = ? " +
+					 "ORDER BY dt.thoiGianKhoiHanh ASC";
 
 		try (Connection con = Connect_DB.getInstance().getConnection();
 			 PreparedStatement ps = con.prepareStatement(sql)) {
@@ -233,8 +235,9 @@ public class DatVeGUI1 extends JPanel {
 	    String maToa = toaList[ti];
 
 	    String sql = "SELECT g.maGhe FROM Ve v " +
+	                 "JOIN ChiTietChuyenTau dt ON v.maChuyenTau = dt.maChuyenTau " +
 	                 "JOIN Ghe g ON v.maGhe = g.maGhe " +
-	                 "WHERE v.maChuyen = ? AND g.maToaTau = ? " +
+	                 "WHERE dt.maChuyenTau = ? AND g.maToaTau = ? " +
 	                 "AND v.trangThaiVe IN ('DA_THANH_TOAN', 'CHO_THANH_TOAN')";
 	                 
 	    try (Connection con = Connect_DB.getInstance().getConnection(); 

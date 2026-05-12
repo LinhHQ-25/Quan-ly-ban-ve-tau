@@ -5,6 +5,8 @@ public class Tau {
     private String tenTau;
     private String trangThai;
     private String ghiChu;
+    private int soToa;
+    private int tongSoGhe;
 
     public Tau() {
     }
@@ -46,6 +48,22 @@ public class Tau {
 
     public void setGhiChu(String ghiChu) {
         this.ghiChu = ghiChu;
+    }
+
+    public int getSoToa() {
+        return soToa;
+    }
+
+    public void setSoToa(int soToa) {
+        this.soToa = soToa;
+    }
+
+    public int getTongSoGhe() {
+        return tongSoGhe;
+    }
+
+    public void setTongSoGhe(int tongSoGhe) {
+        this.tongSoGhe = tongSoGhe;
     }
 
     @Override

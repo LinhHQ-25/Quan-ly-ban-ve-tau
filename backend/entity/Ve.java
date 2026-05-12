@@ -7,16 +7,17 @@ public class Ve implements TinhGiaVe {
     private Ghe ghe;
     private LocalDateTime ngayMua;
     private LoaiVe loaiVe;
-    private Boolean trangThaiVe;
+    private String trangThaiVe; 
     private HoaDon hoaDon;
     private KhachHang khachHang;
-    private ChiTietChuyenTau gaDi;
-    private ChiTietChuyenTau gaDen;
+    private KhuyenMai khuyenMai;
+    private ChiTietChuyenTau chiTietChuyenTau;
+    private double giaVe; // Thêm trường giaVe
 
     public Ve() {
     }
 
-    public Ve(String maVe, Ghe ghe, LocalDateTime ngayMua, LoaiVe loaiVe, Boolean trangThaiVe, HoaDon hoaDon, KhachHang khachHang, ChiTietChuyenTau gaDi, ChiTietChuyenTau gaDen) {
+    public Ve(String maVe, Ghe ghe, LocalDateTime ngayMua, LoaiVe loaiVe, String trangThaiVe, HoaDon hoaDon, KhachHang khachHang, KhuyenMai khuyenMai, ChiTietChuyenTau chiTietChuyenTau, double giaVe) {
         this.maVe = maVe;
         this.ghe = ghe;
         this.ngayMua = ngayMua;
@@ -24,85 +25,59 @@ public class Ve implements TinhGiaVe {
         this.trangThaiVe = trangThaiVe;
         this.hoaDon = hoaDon;
         this.khachHang = khachHang;
-        this.gaDi = gaDi;
-        this.gaDen = gaDen;
+        this.khuyenMai = khuyenMai;
+        this.chiTietChuyenTau = chiTietChuyenTau;
+        this.giaVe = giaVe;
     }
 
-    public String getMaVe() {
-        return maVe;
+    public String getMaVe() { return maVe; }
+    public void setMaVe(String maVe) { this.maVe = maVe; }
+
+    public Ghe getGhe() { return ghe; }
+    public void setGhe(Ghe ghe) { this.ghe = ghe; }
+    
+    // Helper để DAO lấy mã ghế
+    public String getMaGhe() {
+        return ghe != null ? ghe.getMaGhe() : null;
     }
 
-    public void setMaVe(String maVe) {
-        this.maVe = maVe;
+    public LocalDateTime getNgayMua() { return ngayMua; }
+    public void setNgayMua(LocalDateTime ngayMua) { this.ngayMua = ngayMua; }
+
+    public LoaiVe getLoaiVe() { return loaiVe; }
+    public void setLoaiVe(LoaiVe loaiVe) { this.loaiVe = loaiVe; }
+
+    public String getTrangThaiVe() { return trangThaiVe; }
+    public void setTrangThaiVe(String trangThaiVe) { this.trangThaiVe = trangThaiVe; }
+
+    public HoaDon getHoaDon() { return hoaDon; }
+    public void setHoaDon(HoaDon hoaDon) { this.hoaDon = hoaDon; }
+    
+    // Helper để DAO lấy mã hóa đơn
+    public String getMaHoaDon() {
+        return hoaDon != null ? hoaDon.getMaHoaDon() : null;
     }
 
-    public Ghe getGhe() {
-        return ghe;
+    public KhachHang getKhachHang() { return khachHang; }
+    public void setKhachHang(KhachHang khachHang) { this.khachHang = khachHang; }
+
+    public KhuyenMai getKhuyenMai() { return khuyenMai; }
+    public void setKhuyenMai(KhuyenMai khuyenMai) { this.khuyenMai = khuyenMai; }
+
+    public ChiTietChuyenTau getChiTietChuyenTau() { return chiTietChuyenTau; }
+    public void setChiTietChuyenTau(ChiTietChuyenTau chiTietChuyenTau) { this.chiTietChuyenTau = chiTietChuyenTau; }
+    
+    // Helper để DAO lấy mã chuyến tàu
+    public String getMaChuyenTau() {
+        return chiTietChuyenTau != null ? chiTietChuyenTau.getMaChuyenTau() : null;
     }
 
-    public void setGhe(Ghe ghe) {
-        this.ghe = ghe;
-    }
-
-    public LocalDateTime getNgayMua() {
-        return ngayMua;
-    }
-
-    public void setNgayMua(LocalDateTime ngayMua) {
-        this.ngayMua = ngayMua;
-    }
-
-    public LoaiVe getLoaiVe() {
-        return loaiVe;
-    }
-
-    public void setLoaiVe(LoaiVe loaiVe) {
-        this.loaiVe = loaiVe;
-    }
-
-    public Boolean getTrangThaiVe() {
-        return trangThaiVe;
-    }
-
-    public void setTrangThaiVe(Boolean trangThaiVe) {
-        this.trangThaiVe = trangThaiVe;
-    }
-
-    public HoaDon getHoaDon() {
-        return hoaDon;
-    }
-
-    public void setHoaDon(HoaDon hoaDon) {
-        this.hoaDon = hoaDon;
-    }
-
-    public KhachHang getKhachHang() {
-        return khachHang;
-    }
-
-    public void setKhachHang(KhachHang khachHang) {
-        this.khachHang = khachHang;
-    }
-
-    public ChiTietChuyenTau getGaDi() {
-        return gaDi;
-    }
-
-    public void setGaDi(ChiTietChuyenTau gaDi) {
-        this.gaDi = gaDi;
-    }
-
-    public ChiTietChuyenTau getGaDen() {
-        return gaDen;
-    }
-
-    public void setGaDen(ChiTietChuyenTau gaDen) {
-        this.gaDen = gaDen;
-    }
+    public double getGiaVe() { return giaVe; }
+    public void setGiaVe(double giaVe) { this.giaVe = giaVe; }
 
     @Override
     public double tinhGiaVe() {
-        return 0;
+        return giaVe;
     }
 
     @Override

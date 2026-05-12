@@ -15,7 +15,7 @@ public class Connect_DB {
     // Thông tin kết nối
     private static final String URL = "jdbc:sqlserver://localhost:1433;databaseName=QuanLyBanVeTau;encrypt=false;trustServerCertificate=true;";
     private static final String USER = "sa";
-    private static final String PASSWORD = "sapassword";
+    private static final String PASSWORD = "123456789";
 
     // Constructor private để implement Singleton
     private Connect_DB() {
@@ -55,16 +55,13 @@ public class Connect_DB {
      * Lấy Connection hiện tại (tự động tạo mới nếu chưa có hoặc đã đóng)
      * @return Connection object
      */
-    public Connection getConnection() {
+    public static Connection getConnection() {
         try {
-            // Kiểm tra và tạo mới nếu cần
-            if (con == null || con.isClosed()) {
-                con = DriverManager.getConnection(URL, USER, PASSWORD);
-            }
+            return DriverManager.getConnection(URL, USER, PASSWORD);
         } catch (SQLException e) {
             e.printStackTrace();
+            return null;
         }
-        return con;
     }
 
     /**
