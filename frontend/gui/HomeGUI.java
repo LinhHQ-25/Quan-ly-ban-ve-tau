@@ -35,9 +35,6 @@ public class HomeGUI extends JPanel {
         add(buildFooterCard(), BorderLayout.SOUTH);
     }
 
-    // =========================================================================
-    // CARD 1: THÔNG TIN CHI TIẾT CÁ NHÂN (CHỈ XEM - TIẾNG VIỆT 100% - FONT 14)
-    // =========================================================================
     private JPanel buildPersonalInfoCard() {
         RoundedPanel card = new RoundedPanel(15, Color.WHITE);
         card.setLayout(new BorderLayout());
