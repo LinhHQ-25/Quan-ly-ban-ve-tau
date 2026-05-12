@@ -18,12 +18,12 @@ public class DatVeGUI1 extends JPanel {
 
 	private static final Color NAVY = new Color(28, 57, 110);
 	private static final Color NAVY_LIGHT = new Color(44, 82, 150);
-	private static final Color NAVY_SEL = new Color(100, 160, 230); 
+	private static final Color NAVY_SEL = new Color(100, 160, 230);
 	private static final Color BG = new Color(242, 247, 252);
 	private static final Color BORDER_C = new Color(180, 205, 230);
-	private static final Color SEAT_OK = new Color(28, 57, 110); 
-	private static final Color SEAT_TAKEN = new Color(180, 190, 210); 
-	private static final Color SEAT_SEL = new Color(140, 185, 255); 
+	private static final Color SEAT_OK = new Color(28, 57, 110);
+	private static final Color SEAT_TAKEN = new Color(180, 190, 210);
+	private static final Color SEAT_SEL = new Color(140, 185, 255);
 
 	private final String gaDi, gaDen, loaiVe, ngayDi, ngayVe;
 	private final int soLuong;
@@ -59,15 +59,15 @@ public class DatVeGUI1 extends JPanel {
 	private JPanel pnlGhe;
 	private JLabel lblTenToa, lblGheTrong, lblGheDaChon;
 	private JButton btnPrev, btnNext, btnAction;
-	
-	private JPanel pnlToaContainer; 
+
+	private JPanel pnlToaContainer;
 	private JPanel pnlGheContainer;
-	
+
 	// Label tiêu đề chiều đi/về ở center
 	private JLabel lblChieuHeader;
 	// Nút toggle chiều đi/về
 	private JButton btnChieuToggle;
-	
+
 	// Đưa ComboBox ra global để nút "Làm mới" có thể reset nó
 	private JComboBox<String> cbKhungGio;
 
@@ -87,7 +87,7 @@ public class DatVeGUI1 extends JPanel {
 		if (CHUYEN_FULL == null || CHUYEN_FULL.length == 0) {
 			CHUYEN_FULL = new String[][] { { "Không có chuyến", "--:--", "--:--", ngayDi, ngayDi, "" } };
 		}
-		
+
 		CHUYEN_FILTERED = CHUYEN_FULL;
 
 		// Load dữ liệu chiều về (chỉ khi khứ hồi)
@@ -99,7 +99,7 @@ public class DatVeGUI1 extends JPanel {
 		} else {
 			CHUYEN_FULL_VE = new String[][] { { "Không có chuyến", "--:--", "--:--", ngayVe, ngayVe, "" } };
 		}
-		CHUYEN_FILTERED_VE = CHUYEN_FULL_VE; 
+		CHUYEN_FILTERED_VE = CHUYEN_FULL_VE;
 
 		setLayout(new BorderLayout());
 		setBackground(BG);
@@ -110,7 +110,7 @@ public class DatVeGUI1 extends JPanel {
 
 	private String[][] loadChuyenFromDB(String tenGaDi, String tenGaDen, String ngayDiStr) {
 		List<String[]> list = new ArrayList<>();
-		
+
 		String sql = "SELECT ct.maChuyenTau AS maChuyen, t.tenTau, dt.thoiGianKhoiHanh, dt.thoiGianDuKien " +
 					 "FROM ChuyenTau ct " +
 					 "JOIN ChiTietChuyenTau dt ON ct.maChuyenTau = dt.maChuyenTau " +
@@ -123,27 +123,27 @@ public class DatVeGUI1 extends JPanel {
 
 		try (Connection con = Connect_DB.getInstance().getConnection();
 			 PreparedStatement ps = con.prepareStatement(sql)) {
-			 
+
 			ps.setNString(1, "%" + tenGaDi + "%");
 			ps.setNString(2, "%" + tenGaDen + "%");
 			ps.setString(3, ngayDiStr);
-			
+
 			ResultSet rs = ps.executeQuery();
-			
+
 			DateTimeFormatter dateTimeFmt = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
 			DateTimeFormatter dateFmt = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
 			while (rs.next()) {
 				LocalDateTime tgDi = rs.getTimestamp("thoiGianKhoiHanh").toLocalDateTime();
 				LocalDateTime tgDen = rs.getTimestamp("thoiGianDuKien").toLocalDateTime();
-				
-				list.add(new String[]{ 
-					rs.getString("tenTau"),     
-					tgDi.format(dateTimeFmt),   
-					tgDen.format(dateTimeFmt),  
-					tgDi.format(dateFmt),       
-					tgDen.format(dateFmt),      
-					rs.getString("maChuyen")    
+
+				list.add(new String[]{
+					rs.getString("tenTau"),
+					tgDi.format(dateTimeFmt),
+					tgDen.format(dateTimeFmt),
+					tgDi.format(dateFmt),
+					tgDen.format(dateFmt),
+					rs.getString("maChuyen")
 				});
 			}
 		} catch (Exception e) {
@@ -151,10 +151,10 @@ public class DatVeGUI1 extends JPanel {
 		}
 		return list.toArray(new String[0][]);
 	}
-	
+
 	private void applyFilter(String khungGio) {
         String[][] dataToFilter = dangXemChieuVe ? CHUYEN_FULL_VE : CHUYEN_FULL;
-        String[][] result; 
+        String[][] result;
 
         if (dataToFilter == null || dataToFilter.length == 0 || dataToFilter[0][0].equals("Không có chuyến")) {
             result = dataToFilter;
@@ -165,7 +165,7 @@ public class DatVeGUI1 extends JPanel {
                     LocalDateTime tgDi = LocalDateTime.parse(ch[1], fmt);
                     // CHỈ LỌC CHIỀU VỀ THEO CHIỀU ĐI (Chiều đi là mốc cố định)
                     if (dangXemChieuVe && selectedArrivalDi != null) {
-                        if (tgDi.isBefore(selectedArrivalDi)) continue; 
+                        if (tgDi.isBefore(selectedArrivalDi)) continue;
                     }
 
                     boolean match = false;
@@ -173,10 +173,10 @@ public class DatVeGUI1 extends JPanel {
                     else {
                         int hour = tgDi.getHour();
                         switch (khungGio) {
-                            case "Sáng":  match = (hour >= 4 && hour < 12); break;   
-                            case "Trưa":  match = (hour >= 12 && hour < 14); break;  
-                            case "Chiều": match = (hour >= 14 && hour < 18); break;  
-                            case "Tối":   match = (hour >= 18 || hour < 4); break;   
+                            case "Sáng":  match = (hour >= 4 && hour < 12); break;
+                            case "Trưa":  match = (hour >= 12 && hour < 14); break;
+                            case "Chiều": match = (hour >= 14 && hour < 18); break;
+                            case "Tối":   match = (hour >= 18 || hour < 4); break;
                         }
                     }
                     if (match) filteredList.add(ch);
@@ -187,20 +187,20 @@ public class DatVeGUI1 extends JPanel {
                 result = new String[][] { { "Không có chuyến", "--:--", "--:--", ngay, ngay, "" } };
             } else result = filteredList.toArray(new String[0][]);
         }
-        
+
         if (dangXemChieuVe) CHUYEN_FILTERED_VE = result;
         else CHUYEN_FILTERED = result;
 
         // KHÔNG reset chỉ số ở đây nữa để giữ nguyên trạng thái khi chuyển tab
-        refreshChuyen(); 
-        refreshToaGhe(); 
+        refreshChuyen();
+        refreshToaGhe();
         updateActionBtn();
     }
 
 	private String[] buildToaList(int ci) {
 		String[][] filtered = dangXemChieuVe ? CHUYEN_FILTERED_VE : CHUYEN_FILTERED;
 		if (filtered == null || filtered.length == 0 || filtered[0][0].equals("Không có chuyến") || ci == -1) return new String[]{"--"};
-		
+
 		String tenTau = filtered[ci][0];
 		List<String> toaList = new ArrayList<>();
 		String sql = "SELECT t.maToaTau FROM ToaTau t JOIN Tau tau ON t.maTau = tau.maTau WHERE tau.tenTau = ? ORDER BY t.soToa";
@@ -222,14 +222,14 @@ public class DatVeGUI1 extends JPanel {
 
 	private Set<Integer> gheDaDat(int ci, int ti) {
 	    Set<Integer> booked = new LinkedHashSet<>();
-	    
+
 	    // ĐÃ SỬA: Lấy đúng mảng dữ liệu của chiều đang xem
 	    String[][] filtered = dangXemChieuVe ? CHUYEN_FILTERED_VE : CHUYEN_FILTERED;
-	    
+
 	    if (filtered == null || ci == -1 || ti == -1 || filtered[0][0].equals("Không có chuyến")) {
 	        return booked;
 	    }
-	    
+
 	    String maChuyen = filtered[ci][5];
 	    String[] toaList = buildToaList(ci);
 	    String maToa = toaList[ti];
@@ -239,20 +239,20 @@ public class DatVeGUI1 extends JPanel {
 	                 "JOIN Ghe g ON v.maGhe = g.maGhe " +
 	                 "WHERE dt.maChuyenTau = ? AND g.maToaTau = ? " +
 	                 "AND v.trangThaiVe IN ('DA_THANH_TOAN', 'CHO_THANH_TOAN')";
-	                 
-	    try (Connection con = Connect_DB.getInstance().getConnection(); 
+
+	    try (Connection con = Connect_DB.getInstance().getConnection();
 	         PreparedStatement ps = con.prepareStatement(sql)) {
-	        
-	        ps.setString(1, maChuyen); 
+
+	        ps.setString(1, maChuyen);
 	        ps.setString(2, maToa);
 	        ResultSet rs = ps.executeQuery();
-	        
+
 	        while (rs.next()) {
-	            String fullMaGhe = rs.getString("maGhe"); 
+	            String fullMaGhe = rs.getString("maGhe");
 	            String soGheStr = fullMaGhe.substring(2, 4);
-	            
+
 	            if (!soGheStr.isEmpty()) {
-	                booked.add(Integer.parseInt(soGheStr)); 
+	                booked.add(Integer.parseInt(soGheStr));
 	            }
 	        }
 	    } catch (Exception e) { e.printStackTrace(); }
@@ -262,10 +262,10 @@ public class DatVeGUI1 extends JPanel {
 	private JPanel buildTopBar() {
 	    JPanel bar = new JPanel(new GridBagLayout());
 	    bar.setBackground(Color.WHITE);
-	    
+
 	    bar.setBorder(BorderFactory.createCompoundBorder(
 	        new MatteBorder(0, 0, 1, 0, new Color(210, 215, 224)),
-	        new EmptyBorder(0, 0, 5, 0) 
+	        new EmptyBorder(0, 0, 5, 0)
 	    ));
 
 	    GridBagConstraints gbc = new GridBagConstraints();
@@ -282,7 +282,7 @@ public class DatVeGUI1 extends JPanel {
 	        info.add(addInfoCell(lbls[i], vals[i], isDimmed[i], 6));
 	    }
 
-	    gbc.gridx = 0; 
+	    gbc.gridx = 0;
 	    gbc.weightx = 1.0;
 	    gbc.anchor = GridBagConstraints.WEST;
 	    bar.add(info, gbc);
@@ -291,7 +291,7 @@ public class DatVeGUI1 extends JPanel {
 	    rightWrapper.setLayout(new BoxLayout(rightWrapper, BoxLayout.Y_AXIS));
 	    rightWrapper.setBackground(Color.WHITE);
 
-	    rightWrapper.add(Box.createVerticalStrut(19)); 
+	    rightWrapper.add(Box.createVerticalStrut(19));
 
 	    JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
 	    buttonPanel.setBackground(Color.WHITE);
@@ -306,7 +306,7 @@ public class DatVeGUI1 extends JPanel {
 
 	    JButton btnLamMoi = buildStyledButton("Làm mới", iconLamMoi);
 	    btnLamMoi.setPreferredSize(new Dimension(btnLamMoi.getPreferredSize().width, 28));
-	    
+
 	    // Nút toggle Chiều về / Chiều đi
 	    btnChieuToggle.addActionListener(e -> {
 	    	if (!dangXemChieuVe) {
@@ -315,9 +315,9 @@ public class DatVeGUI1 extends JPanel {
 	    		switchToChieuDi();
 	    	}
 	    });
-	    
+
 	    // CẬP NHẬT: Nút Làm mới giờ sẽ cập nhật CSDL và reset trang
-	    btnLamMoi.addActionListener(e -> { 
+	    btnLamMoi.addActionListener(e -> {
             CHUYEN_FULL = loadChuyenFromDB(gaDi, gaDen, ngayDi);
             if (!motChieu) {
                 CHUYEN_FULL_VE = loadChuyenFromDB(gaDen, gaDi, ngayVe);
@@ -332,12 +332,12 @@ public class DatVeGUI1 extends JPanel {
 
 	    buttonPanel.add(btnChieuToggle);
 	    buttonPanel.add(btnLamMoi);
-	    
+
 	    rightWrapper.add(buttonPanel);
 
-	    gbc.gridx = 1; 
+	    gbc.gridx = 1;
 	    gbc.weightx = 0;
-	    gbc.anchor = GridBagConstraints.NORTH; 
+	    gbc.anchor = GridBagConstraints.NORTH;
 	    gbc.insets = new Insets(0, 0, 0, 10);
 	    bar.add(rightWrapper, gbc);
 
@@ -350,7 +350,7 @@ public class DatVeGUI1 extends JPanel {
 	    cell.setBorder(new EmptyBorder(0, 0, 0, rightGap));
 
 	    JLabel l = new JLabel(label, SwingConstants.CENTER);
-	    l.setFont(new Font("Segoe UI", Font.PLAIN, 14)); 
+	    l.setFont(new Font("Segoe UI", Font.PLAIN, 14));
 	    l.setForeground(new Color(110, 115, 125));
 
 	    JLabel v = new JLabel(value, SwingConstants.CENTER);
@@ -365,7 +365,7 @@ public class DatVeGUI1 extends JPanel {
 	    }
 
 	    v.setBorder(new CompoundBorder(
-	        new LineBorder(new Color(200, 200, 200), 1), 
+	        new LineBorder(new Color(200, 200, 200), 1),
 	        new EmptyBorder(2, 12, 2, 12)
 	    ));
 
@@ -387,7 +387,7 @@ public class DatVeGUI1 extends JPanel {
 		}
 		return null;
 	}
-	
+
 	private JButton buildStyledButton(String text, Icon icon) {
 	    JButton btn = new JButton(text) {
 	        @Override
@@ -395,9 +395,9 @@ public class DatVeGUI1 extends JPanel {
 	            Graphics2D g2 = (Graphics2D) g.create();
 	            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 	            g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
-	            
+
 	            if (!isEnabled()) {
-	                g2.setColor(new Color(130, 150, 185)); 
+	                g2.setColor(new Color(130, 150, 185));
 	            } else if (getModel().isPressed()) {
 	                g2.setColor(NAVY_LIGHT);
 	            } else if (getModel().isRollover()) {
@@ -408,17 +408,17 @@ public class DatVeGUI1 extends JPanel {
 
 	            g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
 
-	            g2.setColor(Color.WHITE); 
-	            g2.setFont(new Font("Segoe UI", Font.PLAIN, 14)); 
-	            
+	            g2.setColor(Color.WHITE);
+	            g2.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+
 	            FontMetrics fm = g2.getFontMetrics();
 	            int textWidth = fm.stringWidth(getText());
 	            int iconWidth = (getIcon() != null) ? getIcon().getIconWidth() : 0;
 	            int gap = (getIcon() != null) ? 8 : 0;
-	            
+
 	            int startX = (getWidth() - (iconWidth + gap + textWidth)) / 2;
 	            int centerY = (getHeight() + fm.getAscent() - fm.getDescent()) / 2;
-	            
+
 	            if (getIcon() != null) {
 	                int iconY = (getHeight() - getIcon().getIconHeight()) / 2;
 	                getIcon().paintIcon(this, g2, startX, iconY);
@@ -429,14 +429,14 @@ public class DatVeGUI1 extends JPanel {
 	            g2.dispose();
 	        }
 	    };
-	    
+
 	    btn.setIcon(icon);
 	    btn.setContentAreaFilled(false);
 	    btn.setBorderPainted(false);
 	    btn.setFocusPainted(false);
 	    btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-	    
-	    btn.setBorder(new EmptyBorder(3, 15, 3, 15)); 
+
+	    btn.setBorder(new EmptyBorder(3, 15, 3, 15));
 	    return btn;
 	}
 
@@ -446,7 +446,7 @@ public class DatVeGUI1 extends JPanel {
 
 	    JPanel headerWrapper = new JPanel(new BorderLayout(0, 0));
 	    headerWrapper.setBackground(BG);
-	    headerWrapper.setBorder(new EmptyBorder(5, 0, 5, 0)); 
+	    headerWrapper.setBorder(new EmptyBorder(5, 0, 5, 0));
 
 	    String textHeader = "Chiều đi : Ngày " + ngayDi + " từ " + gaDi + " đến " + gaDen;
 	    lblChieuHeader = new JLabel(textHeader);
@@ -463,11 +463,11 @@ public class DatVeGUI1 extends JPanel {
 
 	    JPanel pnlFilter = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
 	    pnlFilter.setOpaque(false);
-	    
+
 	    JLabel lblFilter = new JLabel("Khung giờ:");
 	    lblFilter.setFont(new Font("Segoe UI", Font.BOLD, 13));
 	    lblFilter.setForeground(new Color(50, 50, 50));
-	    
+
 	    cbKhungGio = new JComboBox<>(new String[]{"Tất cả", "Sáng", "Trưa", "Chiều", "Tối"});
 	    cbKhungGio.setFont(new Font("Segoe UI", Font.PLAIN, 13));
 	    cbKhungGio.setBackground(Color.WHITE);
@@ -477,7 +477,7 @@ public class DatVeGUI1 extends JPanel {
 	        trang = 0; chuyenIdx = -1; toaIdx = -1; gheChon.clear();
 	        applyFilter((String) cbKhungGio.getSelectedItem());
 	    });
-	    
+
 	    pnlFilter.add(lblFilter);
 	    pnlFilter.add(cbKhungGio);
 
@@ -493,7 +493,7 @@ public class DatVeGUI1 extends JPanel {
 	    body.setBorder(new EmptyBorder(8, 10, 4, 10));
 
 	    JPanel rowContainer = buildChuyenRow();
-	    rowContainer.setPreferredSize(new Dimension(0, 140)); 
+	    rowContainer.setPreferredSize(new Dimension(0, 140));
 
 	    body.add(rowContainer, BorderLayout.NORTH);
 	    body.add(buildToaGheSection(), BorderLayout.CENTER);
@@ -508,14 +508,14 @@ public class DatVeGUI1 extends JPanel {
 
 	    btnPrev = makeNavArrow("‹");
 	    btnNext = makeNavArrow("›");
-	    
+
 	    btnPrev.addActionListener(e -> {
 	        if (trang > 0) {
 	            trang--;
 	            refreshChuyen();
 	        }
 	    });
-	    
+
 	    btnNext.addActionListener(e -> {
 	        if ((trang + 1) * 5 < CHUYEN_FILTERED.length) {
 	            trang++;
@@ -523,7 +523,7 @@ public class DatVeGUI1 extends JPanel {
 	        }
 	    });
 
-	    pnlChuyen = new JPanel(); 
+	    pnlChuyen = new JPanel();
 	    pnlChuyen.setBackground(BG);
 	    refreshChuyen();
 
@@ -537,22 +537,22 @@ public class DatVeGUI1 extends JPanel {
 		pnlChuyen.removeAll();
 		String[][] filtered = dangXemChieuVe ? CHUYEN_FILTERED_VE : CHUYEN_FILTERED;
 		String currentNgay = dangXemChieuVe ? ngayVe : ngayDi;
-		
+
 		// NẾU KHÔNG CÓ CHUYẾN -> ĐỔI LAYOUT HIỂN THỊ LỖI BÊN TRONG BẢNG TÀU
 		if (filtered == null || filtered.length == 0 || filtered[0][0].equals("Không có chuyến")) {
 			btnPrev.setVisible(false);
 			btnNext.setVisible(false);
-			
+
 			pnlChuyen.setLayout(new GridBagLayout());
 			JPanel centerContent = new JPanel(new GridBagLayout());
 			centerContent.setOpaque(false);
-			
+
 			GridBagConstraints gc = new GridBagConstraints();
 			gc.gridx = 0; gc.gridy = 0; gc.anchor = GridBagConstraints.CENTER;
 
 			JLabel lblPlaceholder = new JLabel();
 			lblPlaceholder.setHorizontalAlignment(SwingConstants.CENTER);
-			lblPlaceholder.setPreferredSize(new Dimension(60, 60)); 
+			lblPlaceholder.setPreferredSize(new Dimension(60, 60));
 			Icon iconKhongChuyen = loadAndScaleIcon("/Images/khongcochuyen.png", 60, 60);
 			if (iconKhongChuyen != null) lblPlaceholder.setIcon(iconKhongChuyen);
 			centerContent.add(lblPlaceholder, gc);
@@ -566,12 +566,12 @@ public class DatVeGUI1 extends JPanel {
 			centerContent.add(lblMessage, gc);
 
 			pnlChuyen.add(centerContent);
-		} 
+		}
 		// CÓ CHUYẾN -> HIỂN THỊ CÁC THẺ TÀU
 		else {
 			btnPrev.setVisible(true);
 			btnNext.setVisible(true);
-			
+
 			pnlChuyen.setLayout(new GridLayout(1, 5, 10, 0));
 			int from = trang * 5, to = Math.min(from + 5, filtered.length);
 			for (int i = from; i < to; i++)
@@ -584,7 +584,7 @@ public class DatVeGUI1 extends JPanel {
 			btnPrev.setEnabled(trang > 0);
 			btnNext.setEnabled((trang + 1) * 5 < filtered.length);
 		}
-		
+
 		pnlChuyen.revalidate();
 		pnlChuyen.repaint();
 	}
@@ -594,12 +594,12 @@ public class DatVeGUI1 extends JPanel {
 	    String[][] filtered = dangXemChieuVe ? CHUYEN_FILTERED_VE : CHUYEN_FILTERED;
 	    String[] ch = filtered[ci];
 
-	    JPanel info = new JPanel(new GridLayout(4, 1, 0, 0)); 
+	    JPanel info = new JPanel(new GridLayout(4, 1, 0, 0));
 	    info.setOpaque(false);
 	    String[] labels = {"TG đi:", ch[1], "TG đến:", ch[2]};
 	    for (int i = 0; i < labels.length; i++) {
 	        JLabel l = new JLabel(labels[i]);
-	        
+
 	        l.setFont(new Font("Segoe UI", Font.BOLD, (i % 2 == 0) ? 10 : 11));
 	        l.setForeground((i % 2 == 0) ? new Color(100, 100, 100) : Color.BLACK);
 	        l.setHorizontalAlignment(SwingConstants.LEFT);
@@ -612,8 +612,8 @@ public class DatVeGUI1 extends JPanel {
 	            addMouseListener(new MouseAdapter() {
 	                @Override public void mouseEntered(MouseEvent e) { isHover = true; repaint(); }
 	                @Override public void mouseExited(MouseEvent e) { isHover = false; repaint(); }
-	                @Override 
-	                public void mouseClicked(MouseEvent e) { 
+	                @Override
+	                public void mouseClicked(MouseEvent e) {
 	                    // LƯU LẠI THỜI GIAN CỦA CHUYẾN ĐƯỢC CHỌN ĐỂ LÀM MỐC LỌC
 	                    if (!motChieu) {
 	                        try {
@@ -625,12 +625,12 @@ public class DatVeGUI1 extends JPanel {
 	                        } catch (Exception ex) { ex.printStackTrace(); }
 	                    }
 
-	                    chuyenIdx = ci; 
-	                    toaIdx = -1; 
-	                    gheChon.clear(); 
-	                    refreshChuyen(); 
-	                    refreshToaGhe(); 
-	                    updateActionBtn(); 
+	                    chuyenIdx = ci;
+	                    toaIdx = -1;
+	                    gheChon.clear();
+	                    refreshChuyen();
+	                    refreshToaGhe();
+	                    updateActionBtn();
 	                }
 	            });
 	        }
@@ -639,9 +639,9 @@ public class DatVeGUI1 extends JPanel {
 	        protected void paintComponent(Graphics g) {
 	            Graphics2D g2 = (Graphics2D) g.create();
 	            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-	            
+
 	            int w = getWidth(), h = getHeight();
-	            int trainH = h - 20; 
+	            int trainH = h - 20;
 
 	            Color mainColor = new Color(160, 160, 160);
 	            if (sel) mainColor = new Color(0, 150, 215);
@@ -651,7 +651,7 @@ public class DatVeGUI1 extends JPanel {
 	            g2.fillRoundRect(2, 2, w - 4, trainH, 25, 25);
 
 	            g2.setColor(Color.WHITE);
-	            int infoH = info.getPreferredSize().height + 10; 
+	            int infoH = info.getPreferredSize().height + 10;
 	            int infoW = w - 16;
 	            g2.fillRoundRect(8, 32, infoW, infoH, 12, 12);
 
@@ -684,7 +684,7 @@ public class DatVeGUI1 extends JPanel {
 	    };
 	    badge.setFont(new Font("Segoe UI", Font.BOLD, 11));
 	    badge.setBorder(new EmptyBorder(4, 8, 4, 8));
-	    
+
 	    JPanel badgeWrap = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 4));
 	    badgeWrap.setOpaque(false);
 	    badgeWrap.add(badge);
@@ -692,7 +692,7 @@ public class DatVeGUI1 extends JPanel {
 
 	    JPanel infoWrapper = new JPanel(new FlowLayout(FlowLayout.LEFT, 13, 5));
 	    infoWrapper.setOpaque(false);
-	    infoWrapper.setBorder(new EmptyBorder(5, 0, 0, 0)); 
+	    infoWrapper.setBorder(new EmptyBorder(5, 0, 0, 0));
 	    infoWrapper.add(info);
 
 	    card.add(infoWrapper, BorderLayout.CENTER);
@@ -704,7 +704,7 @@ public class DatVeGUI1 extends JPanel {
 		JPanel sec = new JPanel(new BorderLayout(0, 0));
 		sec.setBackground(BG);
 
-		pnlToaContainer = new JPanel(new BorderLayout(0, 4)); 
+		pnlToaContainer = new JPanel(new BorderLayout(0, 4));
 		pnlToaContainer.setBackground(BG);
 
 		JPanel ttlWrapper = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
@@ -716,13 +716,13 @@ public class DatVeGUI1 extends JPanel {
 		ttl.setBackground(NAVY_LIGHT);
 		ttl.setBorder(new EmptyBorder(6, 12, 6, 12));
 		ttlWrapper.add(ttl);
-		
+
 		pnlToaContainer.add(ttlWrapper, BorderLayout.NORTH);
 
 		pnlToaScroll = new JPanel();
 		pnlToaScroll.setLayout(new BoxLayout(pnlToaScroll, BoxLayout.X_AXIS));
 		pnlToaScroll.setBackground(BG);
-		pnlToaScroll.setBorder(new EmptyBorder(0, 0, 0, 0)); 
+		pnlToaScroll.setBorder(new EmptyBorder(0, 0, 0, 0));
 
 		JScrollPane toaSP = new JScrollPane(pnlToaScroll, JScrollPane.VERTICAL_SCROLLBAR_NEVER,
 				JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
@@ -730,13 +730,13 @@ public class DatVeGUI1 extends JPanel {
 		toaSP.setBackground(BG);
 		toaSP.setPreferredSize(new Dimension(0, 100));
 		toaSP.getHorizontalScrollBar().setUnitIncrement(20);
-		
+
 		pnlToaContainer.add(toaSP, BorderLayout.CENTER);
 		sec.add(pnlToaContainer, BorderLayout.NORTH);
 
-		pnlGheContainer = new JPanel(new BorderLayout(0, 2)); 
+		pnlGheContainer = new JPanel(new BorderLayout(0, 2));
 		pnlGheContainer.setBackground(BG);
-		pnlGheContainer.setBorder(new EmptyBorder(0, 0, 0, 0)); 
+		pnlGheContainer.setBorder(new EmptyBorder(0, 0, 0, 0));
 
 		lblTenToa = new JLabel("Toa thường: --", SwingConstants.CENTER);
 		lblTenToa.setFont(new Font("Segoe UI", Font.PLAIN, 14));
@@ -749,19 +749,19 @@ public class DatVeGUI1 extends JPanel {
 				super.paintComponent(g);
 				Graphics2D g2 = (Graphics2D) g.create();
 				g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-				g2.setColor(new Color(200, 205, 225)); 
+				g2.setColor(new Color(200, 205, 225));
 				g2.setStroke(new BasicStroke(1.5f));
-				g2.drawRoundRect(1, 1, getWidth() - 3, getHeight() - 3, 15, 15); 
+				g2.drawRoundRect(1, 1, getWidth() - 3, getHeight() - 3, 15, 15);
 				g2.dispose();
 			}
 		};
 		pnlGheWrapper.setBackground(BG);
-		pnlGheWrapper.setBorder(new EmptyBorder(4, 4, 4, 4)); 
-		
+		pnlGheWrapper.setBorder(new EmptyBorder(4, 4, 4, 4));
+
 		pnlGhe = new JPanel();
 		pnlGhe.setBackground(BG);
 		pnlGheWrapper.add(pnlGhe, BorderLayout.CENTER);
-		
+
 		pnlGheContainer.add(pnlGheWrapper, BorderLayout.CENTER);
 
 		JPanel botLegendArea = new JPanel(new BorderLayout());
@@ -771,7 +771,7 @@ public class DatVeGUI1 extends JPanel {
 		lblGheTrong = new JLabel("Số ghế còn trống: --", SwingConstants.CENTER);
 		lblGheTrong.setFont(new Font("Segoe UI", Font.PLAIN, 14));
 		lblGheTrong.setForeground(Color.BLACK);
-		
+
 		JPanel legendBoxes = new JPanel(new FlowLayout(FlowLayout.RIGHT, 6, 0));
 		legendBoxes.setBackground(BG);
 		legendBoxes.add(makeLegend(SEAT_SEL, "Đang chọn"));
@@ -801,22 +801,22 @@ public class DatVeGUI1 extends JPanel {
 			this.repaint();
 			return;
 		}
-		
+
 		if (pnlToaContainer != null) pnlToaContainer.setVisible(true);
 
 		String[] toaList = buildToaList(chuyenIdx);
 		String[][] filtered = dangXemChieuVe ? CHUYEN_FILTERED_VE : CHUYEN_FILTERED;
 
 		pnlToaScroll.removeAll();
-		int gap = 14; 
-		pnlToaScroll.add(Box.createHorizontalStrut(gap)); 
+		int gap = 14;
+		pnlToaScroll.add(Box.createHorizontalStrut(gap));
 		for (int t = 0; t < toaList.length; t++) {
 			pnlToaScroll.add(buildToaIcon(toaList[t], t == toaIdx, t));
 			if (t < toaList.length - 1) {
-				pnlToaScroll.add(Box.createHorizontalStrut(gap)); 
+				pnlToaScroll.add(Box.createHorizontalStrut(gap));
 			}
 		}
-		pnlToaScroll.add(Box.createHorizontalStrut(gap)); 
+		pnlToaScroll.add(Box.createHorizontalStrut(gap));
 		pnlToaScroll.revalidate();
 		pnlToaScroll.repaint();
 
@@ -826,11 +826,11 @@ public class DatVeGUI1 extends JPanel {
 			this.repaint();
 			return;
 		}
-		
+
 		if (pnlGheContainer != null) pnlGheContainer.setVisible(true);
 
 		Set<Integer> dadat = gheDaDat(chuyenIdx, toaIdx);
-		lblTenToa.setText("Toa: " + toaList[toaIdx]); 
+		lblTenToa.setText("Toa: " + toaList[toaIdx]);
 		int trong = 0;
 		for (int g = 1; g <= 28; g++)
 			if (!dadat.contains(g))
@@ -838,8 +838,8 @@ public class DatVeGUI1 extends JPanel {
 		lblGheTrong.setText("Số ghế còn trống: " + trong + "/28");
 
 		pnlGhe.removeAll();
-		pnlGhe.setLayout(new GridLayout(2, 14, 4, 4)); 
-		pnlGhe.setBorder(new EmptyBorder(6, 10, 6, 10)); 
+		pnlGhe.setLayout(new GridLayout(2, 14, 4, 4));
+		pnlGhe.setBorder(new EmptyBorder(6, 10, 6, 10));
 
 		for (int i = 1; i <= 28; i++) {
 			final int gNum = i;
@@ -882,61 +882,61 @@ public class DatVeGUI1 extends JPanel {
 		pnlGhe.revalidate();
 		pnlGhe.repaint();
 		updateGheDaChon();
-		
+
 		this.revalidate();
 		this.repaint();
 	}
 
 	private void switchToChieuVe() {
         // 1. Lưu lại những gì đang làm ở Chiều Đi
-        trangDi = trang; 
-        chuyenIdxDi = chuyenIdx; 
+        trangDi = trang;
+        chuyenIdxDi = chuyenIdx;
         toaIdxDi = toaIdx;
-        gheChonDi.clear(); 
+        gheChonDi.clear();
         gheChonDi.addAll(gheChon);
 
         // 2. Chuyển trạng thái và nạp lại dữ liệu Chiều Về
         dangXemChieuVe = true;
         applyFilter(cbKhungGio.getSelectedItem().toString()); // Cập nhật danh sách chuyến về dựa trên chiều đi
-        
+
         // 3. Khôi phục các mốc đã chọn của Chiều Về
-        trang = trangVe; 
-        chuyenIdx = chuyenIdxVe; 
+        trang = trangVe;
+        chuyenIdx = chuyenIdxVe;
         toaIdx = toaIdxVe;
-        gheChon.clear(); 
+        gheChon.clear();
         gheChon.addAll(gheChonVe);
 
         lblChieuHeader.setText("Chiều về : Ngày " + ngayVe + " từ " + gaDen + " đến " + gaDi);
         btnChieuToggle.setText("Chiều đi");
-        refreshChuyen(); 
-        refreshToaGhe(); 
-        updateActionBtn(); 
+        refreshChuyen();
+        refreshToaGhe();
+        updateActionBtn();
         updateGheDaChon();
     }
 
     private void switchToChieuDi() {
         // 1. Lưu lại những gì đang làm ở Chiều Về
-        trangVe = trang; 
+        trangVe = trang;
         chuyenIdxVe = chuyenIdx;
         toaIdxVe = toaIdx;
-        gheChonVe.clear(); 
+        gheChonVe.clear();
         gheChonVe.addAll(gheChon);
 
         // 2. Chuyển trạng thái (Chiều đi không bị lọc theo chiều về nên không cần gọi applyFilter)
         dangXemChieuVe = false;
-        
+
         // 3. Khôi phục lại y xì trạng thái Chiều Đi lúc nãy
-        trang = trangDi; 
+        trang = trangDi;
         chuyenIdx = chuyenIdxDi;
         toaIdx = toaIdxDi;
-        gheChon.clear(); 
+        gheChon.clear();
         gheChon.addAll(gheChonDi);
 
         lblChieuHeader.setText("Chiều đi : Ngày " + ngayDi + " từ " + gaDi + " đến " + gaDen);
         btnChieuToggle.setText("Chiều về");
-        refreshChuyen(); 
-        refreshToaGhe(); 
-        updateActionBtn(); 
+        refreshChuyen();
+        refreshToaGhe();
+        updateActionBtn();
         updateGheDaChon();
     }
 	private JPanel buildToaIcon(String maToa, boolean sel, int ti) {
@@ -969,7 +969,7 @@ public class DatVeGUI1 extends JPanel {
 		if (toaImg != null) {
 			icon.setIcon(toaImg);
 		} else {
-			icon.setText("Lỗi ảnh"); 
+			icon.setText("Lỗi ảnh");
 		}
 
 		JLabel lbl = new JLabel(maToa, SwingConstants.CENTER);
@@ -1026,17 +1026,17 @@ public class DatVeGUI1 extends JPanel {
 
 		JPanel left = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 2));
 		JPanel right = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 2));
-		
+
 		left.setBackground(Color.WHITE);
 		right.setBackground(Color.WHITE);
-		
+
 		left.add(btnQuay);
 		right.add(lblGheDaChon);
 		right.add(btnAction);
-		
+
 		bar.add(left, BorderLayout.WEST);
 		bar.add(right, BorderLayout.EAST);
-		
+
 		return bar;
 	}
 
@@ -1057,7 +1057,7 @@ public class DatVeGUI1 extends JPanel {
 			btnAction.setIcon(loadAndScaleIcon("/Images/logoGhe.png", 14, 14));
 			btnAction.setHorizontalTextPosition(SwingConstants.RIGHT);
 		}
-		btnAction.revalidate(); 
+		btnAction.revalidate();
 		btnAction.repaint();
 	}
 
@@ -1100,14 +1100,14 @@ public class DatVeGUI1 extends JPanel {
 				g2.setColor(en ? NAVY : new Color(175, 185, 205));
 				g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 8, 8);
 				g2.dispose();
-				super.paintComponent(g); 
+				super.paintComponent(g);
 			}
 		};
 		b.setIcon(icon);
 		b.setFont(new Font("Segoe UI", Font.PLAIN, 12));
 		b.setForeground(NAVY);
-		b.setIconTextGap(8); 
-		b.setBorder(new EmptyBorder(6, 16, 6, 16)); 
+		b.setIconTextGap(8);
+		b.setBorder(new EmptyBorder(6, 16, 6, 16));
 		b.setContentAreaFilled(false);
 		b.setFocusPainted(false);
 		b.setCursor(new Cursor(Cursor.HAND_CURSOR));
@@ -1124,13 +1124,13 @@ public class DatVeGUI1 extends JPanel {
 						: getModel().isRollover() ? new Color(38, 68, 128) : NAVY);
 				g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
 				g2.dispose();
-				super.paintComponent(g); 
+				super.paintComponent(g);
 			}
 		};
 		b.setIcon(icon);
 		b.setFont(new Font("Segoe UI", Font.BOLD, 12));
 		b.setForeground(Color.WHITE);
-		b.setIconTextGap(8); 
+		b.setIconTextGap(8);
 		b.setBorder(new EmptyBorder(6, 16, 6, 16));
 		b.setContentAreaFilled(false);
 		b.setBorderPainted(false);
@@ -1148,17 +1148,17 @@ public class DatVeGUI1 extends JPanel {
 				Graphics2D g2 = (Graphics2D) g.create();
 				g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 				g2.setColor(c);
-				g2.fillRoundRect(0, 0, getWidth(), getHeight(), 3, 3); 
+				g2.fillRoundRect(0, 0, getWidth(), getHeight(), 3, 3);
 				g2.dispose();
 			}
 		};
-		box.setPreferredSize(new Dimension(16, 16)); 
+		box.setPreferredSize(new Dimension(16, 16));
 		box.setOpaque(false);
-		
+
 		JLabel l = new JLabel(txt);
-		l.setFont(new Font("Segoe UI", Font.PLAIN, 14)); 
+		l.setFont(new Font("Segoe UI", Font.PLAIN, 14));
 		l.setForeground(Color.BLACK);
-		
+
 		p.add(box);
 		p.add(l);
 		return p;

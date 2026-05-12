@@ -41,6 +41,7 @@ public class AppFrame extends JFrame {
 	private SidebarButton searchMainButton;
 	private boolean searchExpanded;
 	private String activeCard = "home";
+	private DoiVeGUI0 doiVeGUI0;
 
 	public AppFrame() {
 		setTitle("Quản lý bán vé tàu");
@@ -191,9 +192,10 @@ public class AppFrame extends JFrame {
 			updateTitle(card);
 			updateSidebarState(card);
 		}
-		if ("doi-ve".equals(card)       && doiVeGUI  != null) doiVeGUI .refresh();
-		if ("tra-ve".equals(card)       && traVeGUI  != null) traVeGUI .refresh();
+		if ("doi-ve".equals(card)        && doiVeGUI  != null) doiVeGUI .refresh();
+		if ("doi-ve-step-1".equals(card) && doiVeGUI0 != null) doiVeGUI0.refresh(); // Thêm dòng này
 		if ("doi-ve-step-2".equals(card) && doiVeGUI1 != null) doiVeGUI1.refresh();
+		if ("tra-ve".equals(card)        && traVeGUI  != null) traVeGUI .refresh();
 		if ("tra-ve-step-2".equals(card) && traVeGUI1 != null) traVeGUI1.refresh();
 	}
 
@@ -373,6 +375,8 @@ public class AppFrame extends JFrame {
 		contentCards.add(doiVeGUI, "doi-ve");
 		doiVeGUI1 = new DoiVeGUI1(this);
 		contentCards.add(doiVeGUI1, "doi-ve-step-2");
+		doiVeGUI0 = new DoiVeGUI0(this);
+		contentCards.add(doiVeGUI0, "doi-ve-step-1");
 	}
 
 	public void onLoginSuccess(boolean isAdmin) {

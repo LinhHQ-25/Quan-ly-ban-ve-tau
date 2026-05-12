@@ -179,7 +179,12 @@ public class AppFrameManager extends JFrame {
 	private void registerCards() {
 		// Đăng ký các khung trắng (Stub)
 		contentCards.add(createBlankPage("Giao diện Tổng quan (Dashboard) đang xây dựng..."), "dashboard");
-		contentCards.add(createBlankPage("Giao diện Quản lý Nhân viên đang xây dựng..."), "ql-nhanvien");
+
+		// ---------------------------------------------------------
+		// [SỬA Ở ĐÂY] - Thay trang trắng bằng giao diện QLyNhanVienGUI
+		// ---------------------------------------------------------
+		contentCards.add(new QLyNhanVienGUI(), "ql-nhanvien");
+
 		contentCards.add(createBlankPage("Giao diện Quản lý Ca làm đang xây dựng..."), "ql-calam");
 		contentCards.add(createBlankPage("Giao diện Quản lý Chuyến tàu đang xây dựng..."), "ql-chuyentau");
 		contentCards.add(createBlankPage("Giao diện Quản lý Khuyến mãi đang xây dựng..."), "ql-khuyenmai");
