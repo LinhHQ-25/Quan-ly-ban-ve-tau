@@ -193,13 +193,19 @@ BEGIN
     WHILE @@FETCH_STATUS = 0
     BEGIN
         DECLARE @numOut INT, @numIn INT;
+        -- Đặc biệt cho riêng ga Thủ Thiêm vào ngày 15 và 16 để test
+        IF @dayOffset IN (1, 2) AND @gaDen = 'THUTHIEM'
+        BEGIN
+            SET @numOut = 20;
+            SET @numIn = 15;
+        END
         -- Khoảng thời gian từ 4 tuần trước đến 1 tuần trước (Period 1)
-        IF @dayOffset < -7
+        ELSE IF @dayOffset < -7
         BEGIN
             SET @numOut = 5 + (@gaIdx % 2); -- 5-6 chuyến đi
             SET @numIn = 3 + (@gaIdx % 2);  -- 3-4 chuyến về
         END
-        -- Khoảng thời gian từ 1 tuần trước đến nay (Period 2)
+        -- Các ngày bình thường khác
         ELSE
         BEGIN
             SET @numOut = 6 + (@gaIdx % 2); -- 6-7 chuyến đi
