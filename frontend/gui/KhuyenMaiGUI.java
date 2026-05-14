@@ -24,8 +24,8 @@ public class KhuyenMaiGUI extends JPanel {
     // --- CẤU HÌNH MAPPING LOẠI KHÁCH HÀNG ---
     private final String[] LOAI_KH_VN = {
         "Tất cả", 
-        "Trẻ em (<6t)", 
-        "Trẻ em (6-10t)", 
+        "Trẻ em (<6 tuổi)", 
+        "Trẻ em (6-10 tuổi)", 
         "Sinh viên", 
         "Người lớn", 
         "Người cao tuổi"
