@@ -307,7 +307,7 @@ public class QLyNhanVienGUI extends JPanel {
         allRows.clear();
 
         // Lấy full name = họ đệm + tên (split tại khoảng trắng cuối)
-        String sql = "SELECT maNV, hoTenNV, ngaySinh, gioiTinh, soDT, email, loaiNV, trangThaiNV " +
+        String sql = "SELECT maNV, hoTenNV, ngaySinh, gioiTinh, soDT, email, loaiNV, " +
                 "FROM NhanVien ORDER BY maNV ASC";
 
         try (Connection con = Connect_DB.getInstance().getConnection();
