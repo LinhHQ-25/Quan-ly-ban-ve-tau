@@ -121,7 +121,7 @@ public final class ThongKeGUI extends JPanel {
             } catch (SQLException e) { e.printStackTrace(); }
         }).start();
     }
-
+//j
     private JPanel buildSummaryBar() {
         JPanel pnl = new JPanel();
         pnl.setLayout(new BoxLayout(pnl, BoxLayout.X_AXIS));
