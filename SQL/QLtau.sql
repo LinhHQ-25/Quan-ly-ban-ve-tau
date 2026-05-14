@@ -128,6 +128,7 @@ CREATE TABLE [dbo].[Ve](
 
 GO
 -- DATA
+-- DATA
 INSERT [dbo].[Ga] ([maGa], [tenGa], [diaChi], [tinhThanh]) VALUES 
 ('NGOCHOI', N'Ngọc Hồi', N'Hà Nội', N'Hà Nội'),
 ('PHULY', N'Phủ Lý', N'Hà Nam', N'Hà Nam'),
@@ -152,7 +153,7 @@ INSERT [dbo].[Ga] ([maGa], [tenGa], [diaChi], [tinhThanh]) VALUES
 ('LONGTHANH', N'Long Thành', N'Đồng Nai', N'Đồng Nai'),
 ('THUTHIEM', N'Thủ Thiêm', N'TP. HCM', N'TP. HCM');
 
--- 132 ga, 100 tau, 7 ngay * 22 ga * 2 chuyen = 308 chuyen/ngay
+-- 132 ga, 100 tau, tao du lieu cho 100 tau
 DECLARE @t INT = 1;
 WHILE @t <= 100
 BEGIN
@@ -181,9 +182,9 @@ BEGIN
 END
 
 DECLARE @gaDen VARCHAR(20), @tripIdx INT = 1;
-DECLARE @dayOffset INT = 0;
+DECLARE @dayOffset INT = -28; -- Bắt đầu từ 4 tuần trước
 
-WHILE @dayOffset < 7
+WHILE @dayOffset <= 7 -- Đến 1 tuần sau để có dữ liệu tương lai
 BEGIN
     DECLARE @gaIdx INT = 0;
     DECLARE curGa CURSOR FOR SELECT maGa FROM Ga WHERE maGa <> 'DIEUTRI';
@@ -191,41 +192,68 @@ BEGIN
     
     WHILE @@FETCH_STATUS = 0
     BEGIN
-        -- Mỗi ga đến có 2 chuyến/ngày (Sáng và Chiều)
-        DECLARE @slot INT = 1;
-        WHILE @slot <= 2
+        DECLARE @numOut INT, @numIn INT;
+        -- Đặc biệt cho riêng ga Thủ Thiêm vào ngày 15 và 16 để test
+        IF @dayOffset IN (1, 2) AND @gaDen = 'THUTHIEM'
         BEGIN
-            -- Phân bổ tàu từ 100 tàu (bỏ qua tàu bảo trì)
-            DECLARE @tIdx INT = ((@dayOffset * 44) + (@gaIdx * 2) + @slot) % 100 + 1;
-            IF @tIdx % 10 = 0 SET @tIdx = @tIdx - 1; -- Tránh tàu bảo trì
+            SET @numOut = 20;
+            SET @numIn = 15;
+        END
+        -- Khoảng thời gian từ 4 tuần trước đến 1 tuần trước (Period 1)
+        ELSE IF @dayOffset < -7
+        BEGIN
+            SET @numOut = 5 + (@gaIdx % 2); -- 5-6 chuyến đi
+            SET @numIn = 3 + (@gaIdx % 2);  -- 3-4 chuyến về
+        END
+        -- Các ngày bình thường khác
+        ELSE
+        BEGIN
+            SET @numOut = 6 + (@gaIdx % 2); -- 6-7 chuyến đi
+            SET @numIn = 3 + (@gaIdx % 2);  -- 3-4 chuyến khứ hồi (về)
+        END
+
+        DECLARE @slot INT = 1;
+        WHILE @slot <= @numOut
+        BEGIN
+            -- Phân bổ tàu (tránh tàu bảo trì)
+            DECLARE @tIdx INT = (ABS(@dayOffset * 100) + (@gaIdx * 10) + @slot) % 100 + 1;
+            IF @tIdx % 10 = 0 SET @tIdx = CASE WHEN @tIdx < 100 THEN @tIdx + 1 ELSE @tIdx - 1 END;
             DECLARE @trainID VARCHAR(20) = 'SEVN' + RIGHT('00' + CAST(@tIdx AS VARCHAR), 3);
 
-            -- Tính thời gian chạy (2h - 14h)
             DECLARE @gaPos INT = (SELECT COUNT(*) FROM Ga g2 WHERE g2.maGa < @gaDen); 
             DECLARE @duration INT = ABS(@gaPos - 15) * 1 + 2;
 
-            -- CHUYẾN ĐI
-            DECLARE @maCT_Di VARCHAR(20) = 'CT' + RIGHT('0000' + CAST(@tripIdx AS VARCHAR), 4);
-            INSERT [dbo].[ChuyenTau] ([maChuyenTau], [ghiChu], [maTau], [trangThai]) VALUES (@maCT_Di, N'Đi ' + @gaDen, @trainID, 'CHUAN_BI');
+            -- Trạng thái chuyến tàu dựa trên thời gian
+            DECLARE @status NVARCHAR(50) = CASE 
+                WHEN @dayOffset < 0 THEN N'DA_DEN' 
+                WHEN @dayOffset = 0 THEN N'DANG_CHAY' 
+                ELSE N'CHUAN_BI' END;
+
+            -- CHUYẾN ĐI: Diêu Trì -> Ga Đến
+            DECLARE @maCT_Di VARCHAR(20) = 'CT' + RIGHT('00000' + CAST(@tripIdx AS VARCHAR), 5);
+            INSERT [dbo].[ChuyenTau] ([maChuyenTau], [ghiChu], [maTau], [trangThai]) VALUES (@maCT_Di, N'Đi ' + @gaDen, @trainID, @status);
             
-            DECLARE @dep_Time_Di INT = CASE WHEN @slot = 1 THEN 5 ELSE 13 END + (@gaIdx % 3);
-            DECLARE @dep_Di DATETIME = DATEADD(HOUR, @dep_Time_Di, CAST(CAST(DATEADD(DAY, @dayOffset, GETDATE()) AS DATE) AS DATETIME));
+            DECLARE @dep_Time_Di FLOAT = (24.0 / @numOut) * (@slot - 1) + (@gaIdx % 2);
+            DECLARE @dep_Di DATETIME = DATEADD(MINUTE, CAST(@dep_Time_Di * 60 AS INT), CAST(CAST(DATEADD(DAY, @dayOffset, GETDATE()) AS DATE) AS DATETIME));
             DECLARE @arr_Di DATETIME = DATEADD(HOUR, @duration, @dep_Di);
             
             INSERT [dbo].[ChiTietChuyenTau] ([maChuyenTau], [thoiGianKhoiHanh], [thoiGianDuKien], [maGaDi], [maGaDen]) 
             VALUES (@maCT_Di, @dep_Di, @arr_Di, 'DIEUTRI', @gaDen);
             SET @tripIdx = @tripIdx + 1;
 
-            -- CHUYẾN VỀ: Nghỉ 5 tiếng rồi về
-            DECLARE @maCT_Ve VARCHAR(20) = 'CT' + RIGHT('0000' + CAST(@tripIdx AS VARCHAR), 4);
-            INSERT [dbo].[ChuyenTau] ([maChuyenTau], [ghiChu], [maTau], [trangThai]) VALUES (@maCT_Ve, N'Về Diêu Trì từ ' + @gaDen, @trainID, 'CHUAN_BI');
-            
-            DECLARE @dep_Ve DATETIME = DATEADD(HOUR, 5, @arr_Di); -- Nghỉ 5 tiếng
-            DECLARE @arr_Ve DATETIME = DATEADD(HOUR, @duration, @dep_Ve);
-            
-            INSERT [dbo].[ChiTietChuyenTau] ([maChuyenTau], [thoiGianKhoiHanh], [thoiGianDuKien], [maGaDi], [maGaDen]) 
-            VALUES (@maCT_Ve, @dep_Ve, @arr_Ve, @gaDen, 'DIEUTRI');
-            SET @tripIdx = @tripIdx + 1;
+            -- CHUYẾN VỀ: Ga Đến -> Diêu Trì (nếu slot nằm trong số lượng chuyến về)
+            IF @slot <= @numIn
+            BEGIN
+                DECLARE @maCT_Ve VARCHAR(20) = 'CT' + RIGHT('00000' + CAST(@tripIdx AS VARCHAR), 5);
+                INSERT [dbo].[ChuyenTau] ([maChuyenTau], [ghiChu], [maTau], [trangThai]) VALUES (@maCT_Ve, N'Về Diêu Trì từ ' + @gaDen, @trainID, @status);
+                
+                DECLARE @dep_Ve DATETIME = DATEADD(HOUR, 5, @arr_Di); -- Nghỉ ít nhất 5 tiếng
+                DECLARE @arr_Ve DATETIME = DATEADD(HOUR, @duration, @dep_Ve);
+                
+                INSERT [dbo].[ChiTietChuyenTau] ([maChuyenTau], [thoiGianKhoiHanh], [thoiGianDuKien], [maGaDi], [maGaDen]) 
+                VALUES (@maCT_Ve, @dep_Ve, @arr_Ve, @gaDen, 'DIEUTRI');
+                SET @tripIdx = @tripIdx + 1;
+            END
 
             SET @slot = @slot + 1;
         END
@@ -260,11 +288,11 @@ INSERT [dbo].[KhuyenMai] ([maKhuyenMai], [tenKhuyenMai], [trangThai], [moTaChiTi
 ('KM002', N'Giảm giá người cao tuổi', 1, N'Giảm 15% cho người trên 60 tuổi', 0.15, 'TU_60_TRO_LEN', '2024-01-01', '2025-12-31');
 
 DECLARE @v INT = 1;
-WHILE @v <= 150
+WHILE @v <= 500 -- Tạo 500 vé cho dữ liệu phong phú
 BEGIN
-    DECLARE @maHD VARCHAR(20) = 'HD' + RIGHT('000' + CAST(@v AS VARCHAR), 3);
+    DECLARE @maHD VARCHAR(20) = 'HD' + RIGHT('0000' + CAST(@v AS VARCHAR), 4);
     
-    -- Lấy ngẫu nhiên một chuyến tàu đã tồn tại để tránh NULL
+    -- Lấy ngẫu nhiên một chuyến tàu đã tồn tại
     DECLARE @maCT VARCHAR(20) = (SELECT TOP 1 maChuyenTau FROM ChuyenTau ORDER BY NEWID());
     DECLARE @tauID VARCHAR(20) = (SELECT maTau FROM ChuyenTau WHERE maChuyenTau = @maCT);
     
@@ -283,7 +311,7 @@ BEGIN
 
     INSERT [dbo].[HoaDon] ([maHoaDon], [maNV], [maKH], [tongTien], [tienNhan], [phuongThucThanhToan]) VALUES (@maHD, 'NV001', 'KH' + RIGHT('000' + CAST(@khIdx AS VARCHAR), 3), 500000, 500000, 'TIEN_MAT');
     INSERT [dbo].[Ve] ([maVe], [loaiVe], [trangThaiVe], [giaVe], [maGhe], [maHoaDon], [maChuyenTau], [maKH], [maKhuyenMai]) 
-    VALUES ('VE' + RIGHT('000' + CAST(@v AS VARCHAR), 3), @lv, @statusVe, 500000, @mG, @maHD, @maCT, 'KH' + RIGHT('000' + CAST(@khIdx AS VARCHAR), 3), NULL);
+    VALUES ('VE' + RIGHT('0000' + CAST(@v AS VARCHAR), 4), @lv, @statusVe, 500000, @mG, @maHD, @maCT, 'KH' + RIGHT('000' + CAST(@khIdx AS VARCHAR), 3), NULL);
     SET @v = @v + 1;
 END
 GO
