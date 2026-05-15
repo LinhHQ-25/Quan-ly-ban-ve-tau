@@ -12,7 +12,7 @@ public class KhuyenMaiDAO {
     // Lấy toàn bộ danh sách khuyến mãi
     public List<KhuyenMai> selectAll() {
         List<KhuyenMai> list = new ArrayList<>();
-        String sql = "SELECT * FROM KhuyenMai ORDER BY maKhuyenMai DESC";
+        String sql = "SELECT * FROM KhuyenMai ORDER BY maKhuyenMai ASC";
         try (Connection con = Connect_DB.getInstance().getConnection();
              PreparedStatement ps = con.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
@@ -23,6 +23,20 @@ public class KhuyenMaiDAO {
             e.printStackTrace();
         }
         return list;
+    }
+
+    // Lấy một khuyến mãi theo mã — dùng cho dialog Sửa
+    public KhuyenMai selectById(String maKhuyenMai) {
+        String sql = "SELECT * FROM KhuyenMai WHERE maKhuyenMai = ?";
+        try (Connection con = Connect_DB.getInstance().getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setString(1, maKhuyenMai);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) return mapRow(rs);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
     // Thêm mới
@@ -73,6 +87,7 @@ public class KhuyenMaiDAO {
             ps.setString(1, id);
             return ps.executeUpdate() > 0;
         } catch (Exception e) {
+            e.printStackTrace();
             return false;
         }
     }
