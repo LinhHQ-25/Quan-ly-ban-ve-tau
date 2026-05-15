@@ -117,7 +117,7 @@ final class TauGUI extends JPanel {
         pnlOuter.setLayout(new BorderLayout(0, 5));
         
         JLabel lblTitle = new JLabel("Thông tin tra cứu");
-        lblTitle.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 13));
+        lblTitle.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 15));
         lblTitle.setForeground(GuiTheme.TEXT);
         lblTitle.setBorder(new EmptyBorder(10, 15, 0, 15));
         lblTitle.setIcon(GuiIcons.loadIcon(TauGUI.class, "filter", 18, 18));
@@ -162,9 +162,9 @@ final class TauGUI extends JPanel {
         JPanel pnlField = new JPanel(new BorderLayout(8, 0));
         pnlField.setOpaque(false);
         JLabel lbField = new JLabel(label);
-        lbField.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 10));
+        lbField.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 14));
         lbField.setForeground(GuiTheme.NAVY);
-        lbField.setPreferredSize(new Dimension(80, 22));
+        lbField.setPreferredSize(new Dimension(120, 30));
         pnlField.add(lbField, BorderLayout.WEST);
         pnlField.add(comp, BorderLayout.CENTER);
         return pnlField;
@@ -172,24 +172,24 @@ final class TauGUI extends JPanel {
 
     private JTextField buildTextField(int width) {
         JTextField txtField = new JTextField();
-        txtField.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 11));
+        txtField.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
         txtField.setBackground(GuiTheme.SEARCH_FIELD_BG);
         txtField.setForeground(GuiTheme.TEXT);
         txtField.setBorder(BorderFactory.createCompoundBorder(
             new LineBorder(GuiTheme.SEARCH_FIELD_BORDER, 1, true),
             new EmptyBorder(2, 6, 2, 6)
         ));
-        txtField.setPreferredSize(new Dimension(104, 22));
+        txtField.setPreferredSize(new Dimension(104, 30));
         return txtField;
     }
 
     private JComboBox<String> buildStatusCombo() {
         JComboBox<String> cbo = new JComboBox<>(new String[] { "", "Hoạt động", "Bảo trì" });
-        cbo.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 11));
+        cbo.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
         cbo.setBackground(GuiTheme.SEARCH_FIELD_BG);
         cbo.setForeground(GuiTheme.TEXT);
         cbo.setBorder(new LineBorder(GuiTheme.SEARCH_FIELD_BORDER, 1, true));
-        cbo.setPreferredSize(new Dimension(104, 22));
+        cbo.setPreferredSize(new Dimension(104, 30));
         return cbo;
     }
 

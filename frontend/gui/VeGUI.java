@@ -58,7 +58,7 @@ final class VeGUI extends JPanel {
         pnlOuter.setLayout(new BorderLayout(0, 5));
         
         JLabel lblTitle = new JLabel("Thông tin tra cứu");
-        lblTitle.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 13));
+        lblTitle.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 15));
         lblTitle.setForeground(GuiTheme.TEXT);
         lblTitle.setBorder(new EmptyBorder(10, 15, 0, 15));
         lblTitle.setIcon(GuiIcons.loadIcon(VeGUI.class, "filter", 18, 18));
@@ -140,9 +140,9 @@ final class VeGUI extends JPanel {
         JPanel pnlField = new JPanel(new BorderLayout(8, 0));
         pnlField.setOpaque(false);
         JLabel lbField = new JLabel(label);
-        lbField.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 10));
+        lbField.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 14));
         lbField.setForeground(GuiTheme.NAVY);
-        lbField.setPreferredSize(new Dimension(80, 22));
+        lbField.setPreferredSize(new Dimension(110, 30));
         pnlField.add(lbField, BorderLayout.WEST);
         pnlField.add(comp, BorderLayout.CENTER);
         return pnlField;
@@ -150,32 +150,32 @@ final class VeGUI extends JPanel {
 
     private JTextField buildTextField() {
         JTextField tf = new JTextField();
-        tf.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 11));
+        tf.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
         tf.setBackground(GuiTheme.SEARCH_FIELD_BG);
         tf.setForeground(GuiTheme.TEXT);
         tf.setBorder(BorderFactory.createCompoundBorder(
             new LineBorder(GuiTheme.SEARCH_FIELD_BORDER, 1, true),
             new EmptyBorder(2, 6, 2, 6)
         ));
-        tf.setPreferredSize(new Dimension(104, 22));
+        tf.setPreferredSize(new Dimension(104, 30));
         return tf;
     }
 
     private JComboBox<String> buildCombo(String... values) {
         JComboBox<String> cmb = new JComboBox<>(values);
-        cmb.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 11));
+        cmb.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
         cmb.setBackground(GuiTheme.SEARCH_FIELD_BG);
         cmb.setForeground(GuiTheme.TEXT);
         cmb.setBorder(new LineBorder(GuiTheme.SEARCH_FIELD_BORDER, 1, true));
-        cmb.setPreferredSize(new Dimension(104, 22));
+        cmb.setPreferredSize(new Dimension(104, 30));
         return cmb;
     }
 
     private JDateChooser buildDateField() {
         JDateChooser dc = new JDateChooser();
         dc.setDateFormatString("dd/MM/yyyy");
-        dc.setPreferredSize(new Dimension(104, 22));
-        dc.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 11));
+        dc.setPreferredSize(new Dimension(104, 30));
+        dc.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
         dc.setBackground(GuiTheme.SEARCH_FIELD_BG);
         dc.setBorder(new LineBorder(GuiTheme.SEARCH_FIELD_BORDER, 1, true));
         return dc;

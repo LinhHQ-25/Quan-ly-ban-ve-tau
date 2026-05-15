@@ -125,7 +125,7 @@ final class DanhSachChuyenDiGUI extends JPanel {
         
         // Tiêu đề
         JLabel lblTitle = new JLabel("Thông tin tra cứu");
-        lblTitle.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 13));
+        lblTitle.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 15));
         lblTitle.setForeground(GuiTheme.TEXT);
         lblTitle.setBorder(new EmptyBorder(10, 15, 0, 15));
         lblTitle.setIcon(GuiIcons.loadIcon(DanhSachChuyenDiGUI.class, "filter", 18, 18));
@@ -155,8 +155,8 @@ final class DanhSachChuyenDiGUI extends JPanel {
         gbc.gridx = 0; pnlGrid.add(buildField("Mã /Tên tàu:", cboTau), gbc);
 
         spnSeat = new JSpinner(new SpinnerNumberModel(0, 0, 99, 1));
-        spnSeat.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 12));
-        spnSeat.setPreferredSize(new Dimension(128, 26));
+        spnSeat.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
+        spnSeat.setPreferredSize(new Dimension(128, 30));
         spnSeat.setBorder(new LineBorder(GuiTheme.SEARCH_FIELD_BORDER, 1, true));
         gbc.gridx = 1; pnlGrid.add(buildField("Ghế trống tối thiểu:", spnSeat), gbc);
         
@@ -207,7 +207,7 @@ final class DanhSachChuyenDiGUI extends JPanel {
         JPanel pnlField = new JPanel(new BorderLayout(0, 4));
         pnlField.setOpaque(false);
         JLabel lbField = new JLabel(label);
-        lbField.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 10));
+        lbField.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 14));
         lbField.setForeground(GuiTheme.NAVY);
         pnlField.add(lbField, BorderLayout.NORTH);
         pnlField.add(comp, BorderLayout.CENTER);
@@ -217,19 +217,19 @@ final class DanhSachChuyenDiGUI extends JPanel {
     private JComboBox<String> buildCombo(String... values) {
         JComboBox<String> cmb = new JComboBox<>(values);
         cmb.setEditable(true);
-        cmb.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 12));
+        cmb.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
         cmb.setBackground(GuiTheme.SEARCH_FIELD_BG);
         cmb.setForeground(GuiTheme.TEXT);
         cmb.setBorder(new LineBorder(GuiTheme.SEARCH_FIELD_BORDER, 1, true));
-        cmb.setPreferredSize(new Dimension(128, 26));
+        cmb.setPreferredSize(new Dimension(128, 30));
         return cmb;
     }
 
     private JDateChooser buildDateField() {
         JDateChooser dc = new JDateChooser();
         dc.setDateFormatString("dd/MM/yyyy");
-        dc.setPreferredSize(new Dimension(128, 26));
-        dc.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 12));
+        dc.setPreferredSize(new Dimension(128, 30));
+        dc.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
         dc.setBackground(GuiTheme.SEARCH_FIELD_BG);
         dc.setBorder(new LineBorder(GuiTheme.SEARCH_FIELD_BORDER, 1, true));
         return dc;
@@ -239,7 +239,7 @@ final class DanhSachChuyenDiGUI extends JPanel {
         JPanel pnlBlock = new JPanel(new BorderLayout(0, 4));
         pnlBlock.setOpaque(false);
         JLabel lbBlock = new JLabel("Loại toa");
-        lbBlock.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 10));
+        lbBlock.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 14));
         lbBlock.setForeground(GuiTheme.NAVY);
         JPanel pnlOptions = new JPanel();
         pnlOptions.setOpaque(false);
@@ -286,7 +286,7 @@ final class DanhSachChuyenDiGUI extends JPanel {
     private JRadioButton buildRadio(String text) {
         JRadioButton rdo = new JRadioButton(text);
         rdo.setOpaque(false);
-        rdo.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 12));
+        rdo.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
         rdo.setForeground(GuiTheme.TEXT);
         return rdo;
     }
