@@ -187,7 +187,7 @@ public class AppFrameManager extends JFrame {
 
 		contentCards.add(createBlankPage("Giao diện Quản lý Ca làm đang xây dựng..."), "ql-calam");
 		contentCards.add(createBlankPage("Giao diện Quản lý Chuyến tàu đang xây dựng..."), "ql-chuyentau");
-		contentCards.add(createBlankPage("Giao diện Quản lý Khuyến mãi đang xây dựng..."), "ql-khuyenmai");
+		contentCards.add(new KhuyenMaiGUI(), "ql-khuyenmai");
 		contentCards.add(createBlankPage("Giao diện Thống kê đang xây dựng..."), "thong-ke");
 		contentCards.add(createBlankPage("Giao diện Hỗ trợ đang xây dựng..."), "ho-tro");
 		contentCards.add(createBlankPage("Hồ sơ chi tiết của Quản lý..."), "ho-so");
