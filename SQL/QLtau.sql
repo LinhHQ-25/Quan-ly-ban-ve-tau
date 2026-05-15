@@ -287,3 +287,65 @@ BEGIN
     SET @v = @v + 1;
 END
 GO
+
+--Phu
+
+-- =======================================================================
+-- TẠO VÉ VÀ HÓA ĐƠN MẪU (ĐÃ FIX: CÓ CẢ VÉ CÁ NHÂN VÀ VÉ NHÓM)
+-- =======================================================================
+DECLARE @invoiceCount INT = 1;
+DECLARE @ticketCount INT = 1;
+
+-- Tạo 500 Hóa đơn ngẫu nhiên
+WHILE @invoiceCount <= 500
+BEGIN
+    DECLARE @maHD VARCHAR(20) = 'HD' + RIGHT('000000' + CAST(@invoiceCount AS VARCHAR), 6);
+
+    -- QUAN TRỌNG: Random số lượng vé cho hóa đơn này (từ 1 đến 5 vé/hóa đơn)
+    -- Nếu ra 1 => Vé cá nhân | Nếu ra 2,3,4,5 => Vé nhóm
+    DECLARE @numTickets INT = (ABS(CHECKSUM(NEWID())) % 5) + 1;
+
+    DECLARE @khIdx INT = (@invoiceCount % 15) + 1;
+    DECLARE @maKH VARCHAR(20) = 'KH' + RIGHT('000' + CAST(@khIdx AS VARCHAR), 3);
+
+    -- Insert Hóa Đơn (Tổng tiền nhân lên theo số lượng vé)
+    INSERT [dbo].[HoaDon] ([maHoaDon], [maNV], [maKH], [tongTien], [tienNhan], [phuongThucThanhToan])
+    VALUES (@maHD, 'NV001', @maKH, @numTickets * 500000, @numTickets * 500000, 'TIEN_MAT');
+
+    -- Chọn ngẫu nhiên 1 chuyến tàu cho toàn bộ hóa đơn này
+    DECLARE @maCT VARCHAR(20) = (SELECT TOP 1 maChuyenTau FROM ChuyenTau ORDER BY NEWID());
+    DECLARE @tauID VARCHAR(20) = (SELECT maTau FROM ChuyenTau WHERE maChuyenTau = @maCT);
+
+    DECLARE @statusVe NVARCHAR(50) = CASE @invoiceCount % 3 WHEN 0 THEN N'Đã thanh toán' WHEN 1 THEN N'Đã hủy' ELSE N'Chưa thanh toán' END;
+    DECLARE @lv NVARCHAR(50) = CASE @invoiceCount % 2 WHEN 0 THEN N'Một chiều' ELSE N'Khứ hồi' END;
+
+    -- Tìm @numTickets cái ghế ngẫu nhiên trống của chuyến tàu đó
+    DECLARE curSeats CURSOR LOCAL FOR
+SELECT TOP (@numTickets) g.maGhe
+FROM Ghe g
+         JOIN ToaTau t ON g.maToaTau = t.maToaTau
+WHERE t.maTau = @tauID
+ORDER BY NEWID();
+
+DECLARE @mG VARCHAR(20);
+OPEN curSeats;
+FETCH NEXT FROM curSeats INTO @mG;
+
+-- Lặp để Insert từng vé thuộc Hóa đơn này
+WHILE @@FETCH_STATUS = 0
+BEGIN
+        DECLARE @maVe VARCHAR(20) = 'VE' + RIGHT('000000' + CAST(@ticketCount AS VARCHAR), 6);
+
+        INSERT [dbo].[Ve] ([maVe], [loaiVe], [trangThaiVe], [giaVe], [maGhe], [maHoaDon], [maChuyenTau], [maKH], [maKhuyenMai])
+        VALUES (@maVe, @lv, @statusVe, 500000, @mG, @maHD, @maCT, @maKH, NULL);
+
+        SET @ticketCount = @ticketCount + 1;
+FETCH NEXT FROM curSeats INTO @mG;
+END
+
+CLOSE curSeats;
+DEALLOCATE curSeats;
+
+    SET @invoiceCount = @invoiceCount + 1;
+END
+GO

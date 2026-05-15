@@ -9,8 +9,10 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.List;
 
+import com.toedter.calendar.JDateChooser;
 import connect_DB.Connect_DB;
 
 public class DoiVeGUI extends JPanel {
@@ -32,9 +34,12 @@ public class DoiVeGUI extends JPanel {
     private final AppFrame appFrame;
 
     // Các trường thông tin vé cũ
-    private JTextField tfGaDi, tfGaDen, tfLoai, tfNgayGio, tfNgayVe, tfSoLuong;
+    private JTextField tfGaDi, tfGaDen, tfLoai, tfNgayGio, tfNgayVe, tfSoLuong, tfGia;
     private JLabel lbMaVeCu, lbTrangThai, lbWarning;
-    private JComboBox<String> cbGaDi, cbGaDen, cbLoaiVe, cbNgayDi, cbNgayVe, cbSoLuong;
+
+    // Các trường chọn thông tin vé mới
+    private JComboBox<String> cbGaDi, cbGaDen, cbLoaiVe, cbSoLuong;
+    private JDateChooser dcNgayDi, dcNgayVe;
     private JButton btnTiepTuc;
 
     public DoiVeGUI(AppFrame appFrame) {
@@ -149,33 +154,34 @@ public class DoiVeGUI extends JPanel {
         card.add(lb, BorderLayout.NORTH);
 
         String[] dsGa = loadDanhSachGa();
-        String[] dsNgay = generateDateList(30);
         String[] dsLoaiVe = {"Một chiều", "Khứ hồi"};
         String[] dsSoLuong = {"1", "2", "3", "4", "5", "6", "7", "8", "9", "10"};
 
-        cbGaDi   = createComboBox(dsGa);
-        cbGaDen  = createComboBox(dsGa);
-        cbLoaiVe = createComboBox(dsLoaiVe);
-        cbNgayDi = createComboBox(dsNgay);
-        cbNgayVe = createComboBox(dsNgay);
+        cbGaDi    = createComboBox(dsGa);
+        cbGaDen   = createComboBox(dsGa);
+        cbLoaiVe  = createComboBox(dsLoaiVe);
+        dcNgayDi  = buildDateChooser(true);
+        dcNgayVe  = buildDateChooser(false);
         cbSoLuong = createComboBox(dsSoLuong);
 
-        cbNgayVe.setEnabled(false);
-        cbNgayVe.setBackground(new Color(245, 247, 250));
-        cbLoaiVe.addActionListener(e -> {
-            boolean isKhuHoi = cbLoaiVe.getSelectedItem().toString().equals("Khứ hồi");
-            cbNgayVe.setEnabled(isKhuHoi);
-            cbNgayVe.setBackground(isKhuHoi ? Color.WHITE : new Color(245, 247, 250));
-        });
+        // Vô hiệu hóa các trường bắt buộc phải giữ nguyên như vé cũ
+        cbGaDi.setEnabled(false);
+        cbLoaiVe.setEnabled(false);
+        cbSoLuong.setEnabled(false);
+
+        // Cập nhật giao diện cho giống disabled field
+        cbGaDi.setBackground(new Color(245, 247, 250));
+        cbLoaiVe.setBackground(new Color(245, 247, 250));
+        cbSoLuong.setBackground(new Color(245, 247, 250));
 
         JPanel grid = new JPanel(new GridLayout(2, 3, 20, 15));
         grid.setOpaque(false);
-        grid.add(comboFieldBox("Ga đi", cbGaDi));
-        grid.add(comboFieldBox("Ga đến", cbGaDen));
-        grid.add(comboFieldBox("Loại vé", cbLoaiVe));
-        grid.add(comboFieldBox("Ngày đi", cbNgayDi));
-        grid.add(comboFieldBox("Ngày về", cbNgayVe));
-        grid.add(comboFieldBox("Số lượng", cbSoLuong));
+        grid.add(newFieldBox("Ga đi", cbGaDi));
+        grid.add(newFieldBox("Ga đến", cbGaDen));
+        grid.add(newFieldBox("Loại vé", cbLoaiVe));
+        grid.add(newFieldBox("Ngày đi", dcNgayDi));
+        grid.add(newFieldBox("Ngày về", dcNgayVe));
+        grid.add(newFieldBox("Số lượng", cbSoLuong));
 
         card.add(grid, BorderLayout.CENTER);
         return card;
@@ -235,10 +241,30 @@ public class DoiVeGUI extends JPanel {
         tfNgayVe .setText("—");
         tfSoLuong.setText(s_data[5]);
 
+        // Auto select the new fields
         cbGaDi.setSelectedItem(s_data[1]);
         cbGaDen.setSelectedItem(s_data[2]);
         cbLoaiVe.setSelectedItem(s_data[3]);
         cbSoLuong.setSelectedItem(s_data[5]);
+
+        boolean isKhuHoi = s_data[3].equalsIgnoreCase("Khứ hồi");
+        dcNgayVe.setEnabled(isKhuHoi);
+        dcNgayVe.setBackground(isKhuHoi ? Color.WHITE : new Color(245, 247, 250));
+
+        // --- BẠN THAY THẾ KHÚC NÀY TỚI HẾT HÀM ---
+        // Logic: Ngày đi và ngày về vé mới phải từ hôm nay trở đi
+        java.util.Date today = new java.util.Date(); // Lấy ngày hiện tại của hệ thống
+
+        // Cài đặt ngày nhỏ nhất cho phép chọn là ngày hôm nay
+        dcNgayDi.setMinSelectableDate(today);
+        if (isKhuHoi) {
+            dcNgayVe.setMinSelectableDate(today);
+        }
+
+        // Mặc định để trống ô chọn ngày
+        dcNgayDi.setDate(null);
+        dcNgayVe.setDate(null);
+        // ------------------------------------------
     }
 
     private void validateDoiVe() {
@@ -248,7 +274,8 @@ public class DoiVeGUI extends JPanel {
             lbTrangThai.setForeground(GuiTheme.SUB_TEXT); return;
         }
 
-        boolean nhom = s_data[3].toLowerCase().contains("nhóm");
+        // Nếu số lượng > 1 thì là vé nhóm
+        boolean nhom = Integer.parseInt(s_data[5].replaceAll("[^0-9]", "")) > 1;
         long gioTong = tinhGio(s_data[4]);
         long gioThuc = Math.max(gioTong, 0);
         long d = gioThuc / 24; long h = gioThuc % 24;
@@ -270,16 +297,35 @@ public class DoiVeGUI extends JPanel {
         String gaDiMoi = cbGaDi.getSelectedItem().toString();
         String gaDenMoi = cbGaDen.getSelectedItem().toString();
         String loaiVeMoi = cbLoaiVe.getSelectedItem().toString();
-        String ngayDiMoi = cbNgayDi.getSelectedItem().toString();
-        String ngayVeMoi = cbNgayVe.isEnabled() ? cbNgayVe.getSelectedItem().toString() : "";
         int soLuongMoi = Integer.parseInt(cbSoLuong.getSelectedItem().toString());
+
+        java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("dd/MM/yyyy");
+        String ngayDiMoi = dcNgayDi.getDate() != null ? sdf.format(dcNgayDi.getDate()) : "";
+        String ngayVeMoi = "";
 
         if (gaDiMoi.equals(gaDenMoi)) {
             JOptionPane.showMessageDialog(this, "Ga đi và Ga đến không được trùng nhau!", "Lỗi", JOptionPane.ERROR_MESSAGE);
             return;
         }
 
-        // Cập nhật Database Model
+        if (ngayDiMoi.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Vui lòng chọn ngày đi!", "Cảnh báo", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        if (loaiVeMoi.equalsIgnoreCase("Khứ hồi")) {
+            if (dcNgayVe.getDate() == null) {
+                JOptionPane.showMessageDialog(this, "Vui lòng chọn ngày về!", "Cảnh báo", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            if (dcNgayVe.getDate().before(dcNgayDi.getDate())) {
+                JOptionPane.showMessageDialog(this, "Ngày về phải diễn ra sau hoặc bằng Ngày đi!", "Lỗi ngày tháng", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            ngayVeMoi = sdf.format(dcNgayVe.getDate());
+        }
+
+        // Cập nhật Database Model và chuyển trang
         DoiVeGUI0.setTieuChiMoi(s_maVe, s_data, gaDiMoi, gaDenMoi, loaiVeMoi, ngayDiMoi, ngayVeMoi, soLuongMoi);
         appFrame.showCard("doi-ve-step-1");
     }
@@ -309,15 +355,24 @@ public class DoiVeGUI extends JPanel {
         return listGa.toArray(new String[0]);
     }
 
-    private String[] generateDateList(int days) {
-        List<String> dates = new ArrayList<>();
-        LocalDate today = LocalDate.now();
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
-        for (int i = 0; i < days; i++) dates.add(today.plusDays(i).format(formatter));
-        return dates.toArray(new String[0]);
+    // --- UI HELPERS ---
+
+    // Giao diện Lịch (JDateChooser)
+    private JDateChooser buildDateChooser(boolean enabled) {
+        JDateChooser dc = new JDateChooser();
+        dc.setDateFormatString("dd/MM/yyyy");
+        dc.setDate(null);
+        dc.setEnabled(enabled);
+        dc.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
+        dc.setBackground(enabled ? Color.WHITE : new Color(245, 247, 250));
+        dc.setBorder(BorderFactory.createCompoundBorder(
+                new LineBorder(BORDER, 1, false), new EmptyBorder(2, 4, 2, 4)));
+
+        Component editor = dc.getDateEditor().getUiComponent();
+        if (editor instanceof JComponent) ((JComponent) editor).setBorder(null);
+        return dc;
     }
 
-    // --- UI HELPERS ---
     private JTextField readField() {
         JTextField tf = new JTextField("—");
         tf.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
@@ -350,12 +405,13 @@ public class DoiVeGUI extends JPanel {
         p.add(lb); p.add(Box.createVerticalStrut(6)); p.add(tf); return p;
     }
 
-    private JPanel comboFieldBox(String label, JComboBox<String> cb) {
+    // Box chung dùng được cho cả JComboBox và JDateChooser
+    private JPanel newFieldBox(String label, JComponent comp) {
         JPanel p = new JPanel(); p.setLayout(new BoxLayout(p, BoxLayout.Y_AXIS)); p.setOpaque(false);
         JLabel lb = new JLabel(label); lb.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 13));
         lb.setForeground(GuiTheme.NAVY); lb.setAlignmentX(LEFT_ALIGNMENT);
-        cb.setAlignmentX(LEFT_ALIGNMENT); cb.setMaximumSize(new Dimension(Integer.MAX_VALUE, FIELD_H));
-        p.add(lb); p.add(Box.createVerticalStrut(6)); p.add(cb); return p;
+        comp.setAlignmentX(LEFT_ALIGNMENT); comp.setMaximumSize(new Dimension(Integer.MAX_VALUE, FIELD_H));
+        p.add(lb); p.add(Box.createVerticalStrut(6)); p.add(comp); return p;
     }
 
     private JButton makeOutlineBtn(String text, int w, int h) {

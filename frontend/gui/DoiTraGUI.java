@@ -174,7 +174,8 @@ public final class DoiTraGUI extends JPanel {
 		// Câu SQL ĐÃ CHUẨN THEO CSDL MỚI CỦA BẠN
 		String sql =
 				"SELECT v.maVe, t.tenTau, gDi.tenGa AS gaDi, gDen.tenGa AS gaDen, " +
-						"v.loaiVe, dt.thoiGianKhoiHanh, v.giaVe, v.maGhe " +
+						"v.loaiVe, dt.thoiGianKhoiHanh, v.giaVe, v.maGhe, " +
+						"(SELECT COUNT(*) FROM Ve v2 WHERE v2.maHoaDon = v.maHoaDon) AS soLuongVe " + // ĐẾM SỐ VÉ CÙNG HÓA ĐƠN
 						"FROM Ve v " +
 						"JOIN ChiTietChuyenTau dt ON v.maChuyenTau = dt.maChuyenTau " +
 						"JOIN ChuyenTau ct ON dt.maChuyenTau = ct.maChuyenTau " +
@@ -218,7 +219,7 @@ public final class DoiTraGUI extends JPanel {
 
 					Timestamp ts = rs.getTimestamp("thoiGianKhoiHanh");
 					String ngayGio = ts != null ? sdf.format(ts) : "";
-					String soLuong = "1";
+					String soLuong = String.valueOf(rs.getInt("soLuongVe")); // Lấy số lượng thực tế từ DB
 
 					veCache.put(maVe, new String[]{tenTau, gaDi, gaDen, loaiVe, ngayGio, soLuong, maGhe, giaVe});
 					tableModel.addRow(new Object[]{maVe, tenTau, gaDi, gaDen, loaiVe, ngayGio, soLuong, maGhe});
