@@ -229,7 +229,7 @@ public class KhuyenMaiGUI extends JPanel {
 
         // Render cột Thao tác (3 chấm)
         table.getColumnModel().getColumn(7).setCellRenderer((tbl, val, sel, foc, row, col) -> {
-            JLabel lbl = new JLabel("⋮", SwingConstants.CENTER);
+            JLabel lbl = new JLabel("...", SwingConstants.CENTER);
             lbl.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 20));
             lbl.setForeground(new Color(100, 110, 130));
             lbl.setCursor(new Cursor(Cursor.HAND_CURSOR));
