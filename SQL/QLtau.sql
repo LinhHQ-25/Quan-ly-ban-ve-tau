@@ -253,7 +253,12 @@ INSERT [dbo].[KhachHang] ([maKH], [hoTenKH], [cccd], [sdt], [email], [namSinh], 
 ('KH014', N'Lương Gia Bảo', '052095000134', '0944556677', 'bao.lg@gmail.com', '2002-03-22', 1),
 ('KH015', N'Tô Ngọc Vân', '052095000135', '0955667788', 'van.tn@gmail.com', '1996-08-18', 0);
 
-INSERT [dbo].[NhanVien] ([maNV], [hoTenNV], [email], [ngaySinh], [soDT], [gioiTinh], [diaChi], [soCCCD], [loaiNV]) VALUES ('NV001', N'Nguyễn Văn A', 'nva@railway.com', '1995-02-15', '0987654321', 1, N'Quy Nhơn', '052095000123', 'NHAN_VIEN_BAN_VE');
+INSERT [dbo].[NhanVien] ([maNV], [hoTenNV], [email], [ngaySinh], [soDT], [gioiTinh], [diaChi], [soCCCD], [loaiNV]) VALUES
+('NV001', N'Nguyễn Văn An', 'nva@railway.com', '1995-02-15', '0987654321', 1, N'Quy Nhơn', '052095000123', 'NHAN_VIEN_BAN_VE'),
+('NV002', N'Trần Thị Mai', 'mai.tt@railway.com', '1998-08-20', '0912345678', 0, N'Hà Nội', '001198000001', 'NHAN_VIEN_QUAN_LY'),
+('NV003', N'Lê Hoàng Tuấn', 'tuan.lh@railway.com', '1990-12-05', '0923456789', 1, N'Đà Nẵng', '048190000002', 'NHAN_VIEN_BAN_VE'),
+('NV004', N'Phạm Thu Hương', 'huong.pt@railway.com', '2000-04-10', '0934567890', 0, N'TP.HCM', '079200000003', 'NHAN_VIEN_BAN_VE'),
+('NV005', N'Hoàng Đình Bảo', 'bao.hd@railway.com', '1985-11-25', '0945678901', 1, N'Hải Phòng', '031185000004', 'NHAN_VIEN_QUAN_LY');
 
 INSERT [dbo].[KhuyenMai] ([maKhuyenMai], [tenKhuyenMai], [trangThai], [moTaChiTiet], [tiLeGiamGia], [loaiKhachHang], [thoiGianBatDau], [thoiGianKetThuc]) VALUES 
 ('KM001', N'Giảm giá sinh viên', 1, N'Giảm 20% cho sinh viên', 0.2, 'SINH_VIEN', '2024-01-01', '2025-12-31'),
@@ -285,67 +290,5 @@ BEGIN
     INSERT [dbo].[Ve] ([maVe], [loaiVe], [trangThaiVe], [giaVe], [maGhe], [maHoaDon], [maChuyenTau], [maKH], [maKhuyenMai]) 
     VALUES ('VE' + RIGHT('000' + CAST(@v AS VARCHAR), 3), @lv, @statusVe, 500000, @mG, @maHD, @maCT, 'KH' + RIGHT('000' + CAST(@khIdx AS VARCHAR), 3), NULL);
     SET @v = @v + 1;
-END
-GO
-
---Phu
-
--- =======================================================================
--- TẠO VÉ VÀ HÓA ĐƠN MẪU (ĐÃ FIX: CÓ CẢ VÉ CÁ NHÂN VÀ VÉ NHÓM)
--- =======================================================================
-DECLARE @invoiceCount INT = 1;
-DECLARE @ticketCount INT = 1;
-
--- Tạo 500 Hóa đơn ngẫu nhiên
-WHILE @invoiceCount <= 500
-BEGIN
-    DECLARE @maHD VARCHAR(20) = 'HD' + RIGHT('000000' + CAST(@invoiceCount AS VARCHAR), 6);
-
-    -- QUAN TRỌNG: Random số lượng vé cho hóa đơn này (từ 1 đến 5 vé/hóa đơn)
-    -- Nếu ra 1 => Vé cá nhân | Nếu ra 2,3,4,5 => Vé nhóm
-    DECLARE @numTickets INT = (ABS(CHECKSUM(NEWID())) % 5) + 1;
-
-    DECLARE @khIdx INT = (@invoiceCount % 15) + 1;
-    DECLARE @maKH VARCHAR(20) = 'KH' + RIGHT('000' + CAST(@khIdx AS VARCHAR), 3);
-
-    -- Insert Hóa Đơn (Tổng tiền nhân lên theo số lượng vé)
-    INSERT [dbo].[HoaDon] ([maHoaDon], [maNV], [maKH], [tongTien], [tienNhan], [phuongThucThanhToan])
-    VALUES (@maHD, 'NV001', @maKH, @numTickets * 500000, @numTickets * 500000, 'TIEN_MAT');
-
-    -- Chọn ngẫu nhiên 1 chuyến tàu cho toàn bộ hóa đơn này
-    DECLARE @maCT VARCHAR(20) = (SELECT TOP 1 maChuyenTau FROM ChuyenTau ORDER BY NEWID());
-    DECLARE @tauID VARCHAR(20) = (SELECT maTau FROM ChuyenTau WHERE maChuyenTau = @maCT);
-
-    DECLARE @statusVe NVARCHAR(50) = CASE @invoiceCount % 3 WHEN 0 THEN N'Đã thanh toán' WHEN 1 THEN N'Đã hủy' ELSE N'Chưa thanh toán' END;
-    DECLARE @lv NVARCHAR(50) = CASE @invoiceCount % 2 WHEN 0 THEN N'Một chiều' ELSE N'Khứ hồi' END;
-
-    -- Tìm @numTickets cái ghế ngẫu nhiên trống của chuyến tàu đó
-    DECLARE curSeats CURSOR LOCAL FOR
-SELECT TOP (@numTickets) g.maGhe
-FROM Ghe g
-         JOIN ToaTau t ON g.maToaTau = t.maToaTau
-WHERE t.maTau = @tauID
-ORDER BY NEWID();
-
-DECLARE @mG VARCHAR(20);
-OPEN curSeats;
-FETCH NEXT FROM curSeats INTO @mG;
-
--- Lặp để Insert từng vé thuộc Hóa đơn này
-WHILE @@FETCH_STATUS = 0
-BEGIN
-        DECLARE @maVe VARCHAR(20) = 'VE' + RIGHT('000000' + CAST(@ticketCount AS VARCHAR), 6);
-
-        INSERT [dbo].[Ve] ([maVe], [loaiVe], [trangThaiVe], [giaVe], [maGhe], [maHoaDon], [maChuyenTau], [maKH], [maKhuyenMai])
-        VALUES (@maVe, @lv, @statusVe, 500000, @mG, @maHD, @maCT, @maKH, NULL);
-
-        SET @ticketCount = @ticketCount + 1;
-FETCH NEXT FROM curSeats INTO @mG;
-END
-
-CLOSE curSeats;
-DEALLOCATE curSeats;
-
-    SET @invoiceCount = @invoiceCount + 1;
 END
 GO

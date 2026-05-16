@@ -19,7 +19,7 @@ public class TraVeGUI extends JPanel {
     private static final Color STAT_OK_BORDER = new Color(134, 239, 172);
     private static final Color STAT_FEE_BG    = new Color(254, 249, 235);
     private static final Color STAT_FEE_BORDER= new Color(251, 207, 100);
-    private static final int   FIELD_H        = 36; // Tăng từ 28 lên 36 cho bớt trống
+    private static final int   FIELD_H        = 36;
     private static final DateTimeFormatter FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
 
     private static String   s_maVe = "";
@@ -34,7 +34,10 @@ public class TraVeGUI extends JPanel {
             tfNgayGio, tfLoai, tfGhe, tfSoLuong, tfGia;
     private JLabel lbStatTong, lbStatPhi, lbStatHoan;
     private JPanel statPanelPhi;
+
     private JComboBox<String> cbLyDo;
+    private JTextField txtLyDoKhac; // Ô nhập liệu khi chọn "Khác"
+
     private JLabel lbDieuKien, lbWarning;
     private JButton btnXacNhan;
 
@@ -56,10 +59,9 @@ public class TraVeGUI extends JPanel {
         stack.setLayout(new BoxLayout(stack, BoxLayout.Y_AXIS));
         stack.setOpaque(false);
         stack.add(buildInfoCard());
-        stack.add(Box.createVerticalStrut(15)); // Tăng khoảng cách giữa 2 thẻ
+        stack.add(Box.createVerticalStrut(15));
         stack.add(buildFeeCard());
 
-        // Bọc stack vào NORTH để ngăn bị giãn theo chiều dọc khi cửa sổ to
         JPanel centerAlign = new JPanel(new BorderLayout());
         centerAlign.setOpaque(false);
         centerAlign.add(stack, BorderLayout.NORTH);
@@ -83,13 +85,12 @@ public class TraVeGUI extends JPanel {
         tfGia     = readField();
 
         lbDieuKien = new JLabel("—");
-        lbDieuKien.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 14)); // Nâng lên 14
+        lbDieuKien.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 14));
         lbDieuKien.setForeground(GuiTheme.SUB_TEXT);
         lbDieuKien.setAlignmentX(LEFT_ALIGNMENT);
 
         JPanel grid = new JPanel(new GridLayout(3, 4, 12, 10));
         grid.setOpaque(false);
-        // Có thể tăng inset nếu dùng GridBagLayout, với GridLayout khoảng cách đã là 12,10
         grid.add(fieldBox("Mã vé",        tfMaVe));
         grid.add(fieldBox("Chuyến tàu",   tfChuyen));
         grid.add(fieldBox("Ga đi",        tfGaDi));
@@ -100,38 +101,62 @@ public class TraVeGUI extends JPanel {
         grid.add(fieldBox("Số lượng",     tfSoLuong));
         grid.add(fieldBox("Đơn giá",      tfGia));
         grid.add(labelBox("Điều kiện trả", lbDieuKien));
-        grid.add(new JLabel()); grid.add(new JLabel()); // Cột trống cho đủ layout
+        grid.add(new JLabel()); grid.add(new JLabel());
         card.add(grid, BorderLayout.CENTER);
         return card;
     }
 
     private JPanel buildFeeCard() {
         JPanel card = buildCard("Thông tin hoàn trả");
-        lbStatTong = statLabel(GuiTheme.TEXT,              Font.BOLD, 20); // Nâng lên 20
+        lbStatTong = statLabel(GuiTheme.TEXT,              Font.BOLD, 20);
         lbStatPhi  = statLabel(new Color(180, 60, 0),      Font.BOLD, 20);
         lbStatHoan = statLabel(OK_FG,                      Font.BOLD, 20);
 
-        JPanel statRow = new JPanel(new GridLayout(1, 3, 15, 0)); // Tăng khe hở stat card
+        JPanel statRow = new JPanel(new GridLayout(1, 3, 15, 0));
         statRow.setOpaque(false);
         statRow.add(buildStatCard("Tổng tiền vé",  lbStatTong, new Color(248,250,252), BORDER,GuiTheme.TEXT));
         statPanelPhi = buildStatCard("Phí trả (10%)", lbStatPhi, STAT_FEE_BG, STAT_FEE_BORDER, new Color(160,100,0));
         statRow.add(statPanelPhi);
         statRow.add(buildStatCard("Tiền hoàn lại", lbStatHoan, STAT_OK_BG,  STAT_OK_BORDER,  OK_FG));
 
+        // --- TẠO COMBOBOX VÀ TEXTBOX LÝ DO ---
         cbLyDo = new JComboBox<>(new String[]{"Bận việc", "Ốm", "Thay đổi kế hoạch", "Khác"});
-        cbLyDo.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14)); // Nâng lên 14
+        cbLyDo.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
         cbLyDo.setBackground(Color.WHITE);
-        cbLyDo.setMaximumSize(new Dimension(Integer.MAX_VALUE, FIELD_H));
-        cbLyDo.setPreferredSize(new Dimension(0, FIELD_H));
+        cbLyDo.setPreferredSize(new Dimension(160, FIELD_H)); // Cố định độ rộng combobox
+
+        txtLyDoKhac = new JTextField();
+        txtLyDoKhac.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
+        txtLyDoKhac.setBorder(BorderFactory.createCompoundBorder(
+                new LineBorder(BORDER, 1, false), new EmptyBorder(4, 10, 4, 10)));
+        txtLyDoKhac.setVisible(false); // Ban đầu ẩn text box đi
+
+        JPanel pnlLyDoContainer = new JPanel(new BorderLayout(10, 0));
+        pnlLyDoContainer.setOpaque(false);
+        pnlLyDoContainer.add(cbLyDo, BorderLayout.WEST);
+        pnlLyDoContainer.add(txtLyDoKhac, BorderLayout.CENTER);
+
+        // Sự kiện: Ẩn/Hiện Text Box khi đổi giá trị Combobox
+        cbLyDo.addActionListener(e -> {
+            boolean isKhac = "Khác".equals(cbLyDo.getSelectedItem());
+            txtLyDoKhac.setVisible(isKhac);
+            if (isKhac) {
+                txtLyDoKhac.requestFocus();
+            } else {
+                txtLyDoKhac.setText(""); // Xóa text nếu không chọn "Khác"
+            }
+            pnlLyDoContainer.revalidate();
+            pnlLyDoContainer.repaint();
+        });
 
         lbWarning = new JLabel(" ");
-        lbWarning.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 13)); // Nâng lên 13
+        lbWarning.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 13));
         lbWarning.setForeground(WARN_FG);
 
         JPanel bottomRow = new JPanel(new GridLayout(1, 2, 12, 0));
         bottomRow.setOpaque(false);
-        bottomRow.setBorder(new EmptyBorder(20, 0, 5, 0)); // Thêm khoảng cách với thẻ trên
-        bottomRow.add(fieldBox("Lý do trả vé", cbLyDo));
+        bottomRow.setBorder(new EmptyBorder(20, 0, 5, 0));
+        bottomRow.add(fieldBox("Lý do trả vé", pnlLyDoContainer)); // Đưa cả Container vào thay vì chỉ cbLyDo
         bottomRow.add(labelBox("Điều kiện",    lbWarning));
 
         JPanel content = new JPanel();
@@ -144,11 +169,10 @@ public class TraVeGUI extends JPanel {
     }
 
     private JPanel buildButtonRow() {
-        JPanel p = new JPanel(new FlowLayout(FlowLayout.RIGHT, 15, 10)); // Thêm lề
+        JPanel p = new JPanel(new FlowLayout(FlowLayout.RIGHT, 15, 10));
         p.setOpaque(false);
         p.setBorder(new MatteBorder(1, 0, 0, 0, BORDER));
 
-        // Nút đúng chuẩn 130x38
         JButton btnBack = secondaryBtn("Quay lại", 130, 38);
         btnBack.addActionListener(e -> appFrame.showCard("doi-tra"));
 
@@ -182,20 +206,24 @@ public class TraVeGUI extends JPanel {
             lbStatTong.setText("—"); lbStatPhi.setText("—"); lbStatHoan.setText("—");
             lbWarning.setText(" "); btnXacNhan.setEnabled(false); return;
         }
-        boolean nhom = s_data[3].toLowerCase().contains("nhóm");
+
         long gio = tinhGio(s_data[4]);
         long soLuong = 1, donGia = 0;
         try {
             soLuong = Long.parseLong(s_data[5].replaceAll("[^0-9]", ""));
         } catch (Exception ignored) {}
+
+        boolean nhom = soLuong >= 2; // Logic nhận diện vé nhóm dựa vào số lượng
+
         try {
             String cleanGia = s_data[7].split("\\.")[0];
             cleanGia = cleanGia.replaceAll("[^0-9]", "");
-
             donGia = Long.parseLong(cleanGia);
         } catch (Exception ignored) {}
+
         long tongTien = soLuong * donGia;
         lbStatTong.setText(fmtTien(tongTien));
+
         int phiPct; boolean hopLe; String dieuKien;
         if (nhom) {
             if      (gio >= 72) { phiPct = 20; hopLe = true;  dieuKien = "Hợp lệ — phí 20% (vé nhóm)"; }
@@ -206,6 +234,7 @@ public class TraVeGUI extends JPanel {
             else if (gio >= 12) { phiPct = 20; hopLe = true;  dieuKien = "Hợp lệ — phí 20%"; }
             else                { phiPct = -1; hopLe = false; dieuKien = "Quá hạn — dưới 12h"; }
         }
+
         lbDieuKien.setText(dieuKien);
         lbDieuKien.setForeground(hopLe ? OK_FG : RED_FG);
         if (hopLe) {
@@ -232,6 +261,12 @@ public class TraVeGUI extends JPanel {
     }
 
     private void handleTraVe() {
+        // Lấy lý do trả vé gửi qua màn hình sau nếu cần thiết
+        String lyDo = cbLyDo.getSelectedItem().toString();
+        if ("Khác".equals(lyDo) && !txtLyDoKhac.getText().trim().isEmpty()) {
+            lyDo = txtLyDoKhac.getText().trim();
+        }
+
         TraVeGUI1.setDonTra(s_maVe, s_data, lbStatPhi.getText(), lbStatHoan.getText());
         appFrame.showCard("tra-ve-step-2");
     }
@@ -254,10 +289,10 @@ public class TraVeGUI extends JPanel {
         };
         p.setOpaque(false);
         p.setLayout(new BoxLayout(p, BoxLayout.Y_AXIS));
-        p.setBorder(new EmptyBorder(16, 16, 16, 16)); // Tăng padding để card không bị xẹp
+        p.setBorder(new EmptyBorder(16, 16, 16, 16));
 
         JLabel lbTitle = new JLabel(title);
-        lbTitle.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 13)); // Lên 13
+        lbTitle.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 13));
         lbTitle.setForeground(titleColor);
         lbTitle.setAlignmentX(CENTER_ALIGNMENT);
         lbTitle.setName("stat-title");
@@ -265,7 +300,7 @@ public class TraVeGUI extends JPanel {
         valueLb.setAlignmentX(CENTER_ALIGNMENT);
         valueLb.setHorizontalAlignment(SwingConstants.CENTER);
 
-        p.add(lbTitle); p.add(Box.createVerticalStrut(8)); p.add(valueLb); // Tăng khoảng trống
+        p.add(lbTitle); p.add(Box.createVerticalStrut(8)); p.add(valueLb);
         return p;
     }
 
@@ -287,10 +322,9 @@ public class TraVeGUI extends JPanel {
 
     private JTextField readField() {
         JTextField tf = new JTextField("—");
-        tf.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14)); // Font đồng bộ 14
+        tf.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
         tf.setEditable(false); tf.setForeground(GuiTheme.TEXT);
         tf.setBackground(GuiTheme.SEARCH_FIELD_BG);
-        // Tăng padding để vừa vặn chiều cao mới FIELD_H
         tf.setBorder(BorderFactory.createCompoundBorder(
                 new LineBorder(BORDER, 1, false), new EmptyBorder(6, 10, 6, 10)));
         tf.setPreferredSize(new Dimension(0, FIELD_H));
@@ -303,13 +337,13 @@ public class TraVeGUI extends JPanel {
         p.setLayout(new BoxLayout(p, BoxLayout.Y_AXIS));
         p.setOpaque(false);
         JLabel lb = new JLabel(label);
-        lb.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 13)); // Nâng lên 13
+        lb.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 13));
         lb.setForeground(GuiTheme.SUB_TEXT);
         lb.setAlignmentX(LEFT_ALIGNMENT);
         comp.setAlignmentX(LEFT_ALIGNMENT);
         comp.setMaximumSize(new Dimension(Integer.MAX_VALUE, FIELD_H));
         p.add(lb); p.add(Box.createVerticalStrut(6)); p.add(comp);
-        p.setMaximumSize(new Dimension(Integer.MAX_VALUE, 55)); // Tăng max height
+        p.setMaximumSize(new Dimension(Integer.MAX_VALUE, 55));
         return p;
     }
 
@@ -318,7 +352,7 @@ public class TraVeGUI extends JPanel {
         p.setLayout(new BoxLayout(p, BoxLayout.Y_AXIS));
         p.setOpaque(false);
         JLabel lb = new JLabel(labelText);
-        lb.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 13)); // Nâng lên 13
+        lb.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 13));
         lb.setForeground(GuiTheme.SUB_TEXT);
         lb.setAlignmentX(LEFT_ALIGNMENT);
         value.setAlignmentX(LEFT_ALIGNMENT);
@@ -331,13 +365,12 @@ public class TraVeGUI extends JPanel {
     private JPanel buildCard(String titleText) {
         JPanel card = new JPanel(new BorderLayout(0, 12));
         card.setBackground(Color.WHITE);
-        // Tăng khoảng cách viền Card ra để lấp form
         card.setBorder(BorderFactory.createCompoundBorder(
                 new LineBorder(BORDER, 1, true), new EmptyBorder(20, 24, 20, 24)));
         card.setAlignmentX(LEFT_ALIGNMENT);
         card.setMaximumSize(new Dimension(Integer.MAX_VALUE, Integer.MAX_VALUE));
         JLabel lbTitle = new JLabel(titleText);
-        lbTitle.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 16)); // Nâng title lên 16
+        lbTitle.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 16));
         lbTitle.setForeground(GuiTheme.TEXT);
         lbTitle.setBorder(new EmptyBorder(0, 0, 6, 0));
         card.add(lbTitle, BorderLayout.NORTH);
@@ -357,7 +390,6 @@ public class TraVeGUI extends JPanel {
                 g2.setColor(bg); g2.fillRoundRect(0, 0, getWidth(), getHeight(), 12, 12);
                 g2.setColor(Color.WHITE);
 
-                // Đồng bộ font 14
                 g2.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
                 FontMetrics fm = g2.getFontMetrics();
                 String txt = getText();
@@ -383,7 +415,6 @@ public class TraVeGUI extends JPanel {
                 g2.setColor(BORDER); g2.drawRoundRect(0, 0, getWidth()-1, getHeight()-1, 12, 12);
                 g2.setColor(GuiTheme.TEXT);
 
-                // Đồng bộ font 14
                 g2.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
                 FontMetrics fm = g2.getFontMetrics();
                 String txt = getText();

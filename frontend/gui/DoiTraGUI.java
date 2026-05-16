@@ -37,6 +37,7 @@ public final class DoiTraGUI extends JPanel {
 		add(pnlPage, BorderLayout.CENTER);
 		loadDataFromDB("");
 	}
+
 	// UI BUILDERS
 	private JPanel buildNoteBox() {
 		JPanel p = new JPanel() {
@@ -65,6 +66,7 @@ public final class DoiTraGUI extends JPanel {
 		addNote(p, "\t- Vé nhóm:    ≥ 72h (20%), 24–72h (30%), < 24h: không hoàn", plain, c);
 		return p;
 	}
+
 	private void addNote(JPanel p, String text, Font f, Color c) {
 		JLabel lb = new JLabel(text);
 		lb.setFont(f); lb.setForeground(c); lb.setAlignmentX(LEFT_ALIGNMENT);
@@ -74,6 +76,7 @@ public final class DoiTraGUI extends JPanel {
 	private JPanel buildCenter() {
 		JPanel p = new JPanel(new BorderLayout(0, 8));
 		p.setOpaque(false);
+
 		// Search bar
 		JPanel searchBar = new JPanel(new GridBagLayout());
 		searchBar.setOpaque(false);
@@ -87,17 +90,22 @@ public final class DoiTraGUI extends JPanel {
 		JButton btnSearch = buildNavyButton("Tìm kiếm", 130, 38);
 		btnSearch.addActionListener(e -> loadDataFromDB(txtSearch.getText().trim()));
 		txtSearch.addActionListener(e -> loadDataFromDB(txtSearch.getText().trim()));
+
 		gbc.gridx = 0; gbc.weightx = 0; gbc.fill = GridBagConstraints.NONE;
 		searchBar.add(lb, gbc);
 		gbc.gridx = 1; gbc.weightx = 1; gbc.fill = GridBagConstraints.HORIZONTAL;
 		searchBar.add(wrapTextField(txtSearch), gbc);
 		gbc.gridx = 2; gbc.weightx = 0; gbc.fill = GridBagConstraints.NONE;
 		searchBar.add(btnSearch, gbc);
+
 		tableModel = new DefaultTableModel(
 				new Object[]{"Mã vé","Chuyến","Ga đi","Ga đến","Loại vé","Ngày/Giờ KH","SL","Ghế"}, 0) {
 			public boolean isCellEditable(int r, int c) { return false; }
 		};
 		table = new JTable(tableModel);
+
+		table.setAutoCreateRowSorter(true);
+
 		table.setRowHeight(28);
 		table.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 13));
 		table.setForeground(GuiTheme.TEXT);
@@ -110,33 +118,35 @@ public final class DoiTraGUI extends JPanel {
 		table.getTableHeader().setBackground(Color.WHITE);
 		table.getTableHeader().setForeground(GuiTheme.TEXT);
 		table.getTableHeader().setBorder(new LineBorder(BORDER, 1, true));
+
 		DefaultTableCellRenderer center = new DefaultTableCellRenderer();
 		center.setHorizontalAlignment(SwingConstants.CENTER);
 		table.getColumnModel().getColumn(0).setCellRenderer(center);
+		table.getColumnModel().getColumn(6).setCellRenderer(center);
+
 		JScrollPane scroll = new JScrollPane(table);
 		scroll.setBorder(new LineBorder(BORDER, 1, true));
 		scroll.getViewport().setBackground(Color.WHITE);
 		scroll.setPreferredSize(new Dimension(0, 180));
+
 		JPanel tablePanel = new JPanel(new BorderLayout(0, 6));
 		tablePanel.setOpaque(false);
 		tablePanel.add(buildSectionTitle("Danh sách vé"), BorderLayout.NORTH);
 		tablePanel.add(scroll, BorderLayout.CENTER);
+
 		p.add(searchBar, BorderLayout.NORTH);
 		p.add(tablePanel, BorderLayout.CENTER);
 		return p;
 	}
 
 	private JPanel buildButtonRow() {
-		// FlowLayout căn phải, khoảng cách chiều ngang giữa các nút là 15px (tùy chỉnh), chiều dọc 10px
 		JPanel p = new JPanel(new FlowLayout(FlowLayout.RIGHT, 15, 10));
 		p.setOpaque(false);
-		p.setBorder(new MatteBorder(1, 0, 0, 0, BORDER)); // Viền mờ ở trên cùng tạo đường phân cách
+		p.setBorder(new MatteBorder(1, 0, 0, 0, BORDER));
 
-		// Tạo 2 nút với hàm buildNavyButton đã được làm mới ở trên
 		JButton btnTra = buildNavyButton("Trả vé", 130, 38);
 		JButton btnDoi = buildNavyButton("Đổi vé", 130, 38);
 
-		// Gắn sự kiện
 		btnTra.addActionListener(e -> handleGoiTraVe());
 		btnDoi.addActionListener(e -> handleGoiDoiVe());
 
@@ -159,37 +169,33 @@ public final class DoiTraGUI extends JPanel {
 		pnl.add(lb);
 		return pnl;
 	}
+
+	// =========================================================
 	// DATA
-	// DATA
-	// DATA
-	// DATA
+	// =========================================================
 	private void loadDataFromDB(String keyword) {
-		// Xóa dữ liệu cũ trên bảng và cache
 		tableModel.setRowCount(0);
 		veCache.clear();
 
-		// 1. Đảm bảo keyword không bị null. Nếu rỗng thì sẽ tìm '%%' (lấy tất cả vé)
 		String searchKw = (keyword == null) ? "" : keyword.trim();
 
-		// Câu SQL ĐÃ CHUẨN THEO CSDL MỚI CỦA BẠN
+		// --- ĐÃ THÊM ĐIỀU KIỆN: dt.maGaDi = 'DIEUTRI' ---
 		String sql =
 				"SELECT v.maVe, t.tenTau, gDi.tenGa AS gaDi, gDen.tenGa AS gaDen, " +
 						"v.loaiVe, dt.thoiGianKhoiHanh, v.giaVe, v.maGhe, " +
-						"(SELECT COUNT(*) FROM Ve v2 WHERE v2.maHoaDon = v.maHoaDon) AS soLuongVe " + // ĐẾM SỐ VÉ CÙNG HÓA ĐƠN
+						"(SELECT COUNT(*) FROM Ve v2 WHERE v2.maHoaDon = v.maHoaDon) AS soLuongVe " +
 						"FROM Ve v " +
 						"JOIN ChiTietChuyenTau dt ON v.maChuyenTau = dt.maChuyenTau " +
 						"JOIN ChuyenTau ct ON dt.maChuyenTau = ct.maChuyenTau " +
 						"JOIN Tau t ON ct.maTau = t.maTau " +
 						"JOIN Ga gDi ON dt.maGaDi = gDi.maGa " +
 						"JOIN Ga gDen ON dt.maGaDen = gDen.maGa " +
-						"WHERE v.maVe LIKE ? AND v.trangThaiVe = N'Đã thanh toán' " +
+						"WHERE v.maVe LIKE ? AND v.trangThaiVe = N'Đã thanh toán' AND dt.maGaDi = 'DIEUTRI' " +
 						"ORDER BY dt.thoiGianKhoiHanh DESC";
 
-		// 2. Try-with-resources: Tự động đóng kết nối (Tránh tràn RAM CSDL)
 		try (Connection conn = Connect_DB.getInstance().getConnection();
 		     PreparedStatement stmt = conn.prepareStatement(sql)) {
 
-			// Cho phép tìm kiếm tương đối chứa từ khóa (VD: nhập "001" sẽ ra "V001")
 			stmt.setString(1, "%" + searchKw.toUpperCase() + "%");
 
 			try (ResultSet rs = stmt.executeQuery()) {
@@ -203,9 +209,8 @@ public final class DoiTraGUI extends JPanel {
 					String gaDi    = rs.getString("gaDi");
 					String gaDen   = rs.getString("gaDen");
 
-					// 3. XỬ LÝ FORMAT LOẠI VÉ SANG TIẾNG VIỆT
 					String rawLoaiVe = rs.getString("loaiVe");
-					String loaiVe = rawLoaiVe; // Giữ nguyên chuỗi gốc nếu nó đã là Tiếng Việt
+					String loaiVe = rawLoaiVe;
 					if (rawLoaiVe != null) {
 						if (rawLoaiVe.equalsIgnoreCase("MOT_CHIEU")) {
 							loaiVe = "Một chiều";
@@ -219,13 +224,13 @@ public final class DoiTraGUI extends JPanel {
 
 					Timestamp ts = rs.getTimestamp("thoiGianKhoiHanh");
 					String ngayGio = ts != null ? sdf.format(ts) : "";
-					String soLuong = String.valueOf(rs.getInt("soLuongVe")); // Lấy số lượng thực tế từ DB
+
+					String soLuong = String.valueOf(rs.getInt("soLuongVe"));
 
 					veCache.put(maVe, new String[]{tenTau, gaDi, gaDen, loaiVe, ngayGio, soLuong, maGhe, giaVe});
 					tableModel.addRow(new Object[]{maVe, tenTau, gaDi, gaDen, loaiVe, ngayGio, soLuong, maGhe});
 				}
 
-				// Chỉ cảnh báo nếu người dùng CÓ nhập từ khóa tìm kiếm mà không thấy
 				if (!found && !searchKw.isEmpty()) {
 					JOptionPane.showMessageDialog(this, "Không tìm thấy vé nào phù hợp hoặc vé chưa được thanh toán!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
 				}
@@ -236,11 +241,20 @@ public final class DoiTraGUI extends JPanel {
 					"Lỗi", JOptionPane.ERROR_MESSAGE);
 		}
 	}
+
+	// =========================================================
 	// LOGIC
+	// =========================================================
 	private void handleGoiDoiVe() {
-		String[] d = getSelectedData(); if (d == null) return;
+		String[] d = getSelectedData();
+		if (d == null) return;
 		String maVe = getSelectedMaVe();
-		if (laNhom(d)) { warn("Không áp dụng đổi vé đối với vé nhóm."); return; }
+
+		if (laNhom(d)) {
+			warn("Không được phép đổi vé nhóm (số lượng vé từ 2 trở lên).");
+			return;
+		}
+
 		if (tinhGio(d) < 24) {
 			warn("Không thể đổi vé.\nYêu cầu đổi phải trước giờ tàu ít nhất 24 giờ.\nHiện còn: " + tinhGio(d) + " giờ.");
 			return;
@@ -248,27 +262,46 @@ public final class DoiTraGUI extends JPanel {
 		DoiVeGUI.setVeDuocChon(maVe, d);
 		appFrame.showCard("doi-ve");
 	}
+
 	private void handleGoiTraVe() {
 		String[] d = getSelectedData(); if (d == null) return;
 		TraVeGUI.setVeDuocChon(getSelectedMaVe(), d);
 		appFrame.showCard("tra-ve");
 	}
+
 	private String getSelectedMaVe() {
 		int row = table.getSelectedRow();
-		return row < 0 ? null : (String) tableModel.getValueAt(row, 0);
+		if(row >= 0) {
+			row = table.convertRowIndexToModel(row);
+			return (String) tableModel.getValueAt(row, 0);
+		}
+		return null;
 	}
+
 	private String[] getSelectedData() {
 		String maVe = getSelectedMaVe();
 		if (maVe == null) { warn("Vui lòng chọn một vé trong bảng danh sách trước!"); return null; }
 		return veCache.get(maVe);
 	}
+
 	private long tinhGio(String[] d) {
 		try { return ChronoUnit.HOURS.between(LocalDateTime.now(), LocalDateTime.parse(d[4], FMT)); }
 		catch (Exception ex) { return -1; }
 	}
-	private boolean laNhom(String[] d) { return d[3].toLowerCase().contains("nhóm"); }
+
+	private boolean laNhom(String[] d) {
+		try {
+			return Integer.parseInt(d[5]) >= 2;
+		} catch (Exception e) {
+			return false;
+		}
+	}
+
 	private void warn(String msg) { JOptionPane.showMessageDialog(this, msg, "Không thể thực hiện", JOptionPane.WARNING_MESSAGE); }
+
+	// =========================================================
 	// UI HELPERS
+	// =========================================================
 	private JPanel wrapTextField(JTextField tf) {
 		JPanel p = new JPanel(new BorderLayout()) {
 			@Override protected void paintComponent(Graphics g) {
@@ -288,8 +321,6 @@ public final class DoiTraGUI extends JPanel {
 		p.add(tf, BorderLayout.CENTER);
 		return p;
 	}
-	// UI HELPERS
-	// ... (Giữ nguyên hàm wrapTextField) ...
 
 	private JButton buildNavyButton(String text, int w, int h) {
 		JButton btn = new JButton(text) {
@@ -301,18 +332,15 @@ public final class DoiTraGUI extends JPanel {
 				g2.fillRoundRect(0, 0, getWidth(), getHeight(), 12, 12);
 				g2.setColor(Color.WHITE);
 
-				// Cập nhật font size lên 14 theo mẫu
 				g2.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
 
 				FontMetrics fm = g2.getFontMetrics();
-				// Lấy chuỗi text ra biến riêng theo mẫu buildTimButton
 				String txt = getText();
 				g2.drawString(txt, (getWidth() - fm.stringWidth(txt)) / 2,
 						(getHeight() + fm.getAscent() - fm.getDescent()) / 2);
 				g2.dispose();
 			}
 		};
-		// Giữ lại tham số w, h để dùng chung cho các nút có kích thước khác nhau
 		btn.setPreferredSize(new Dimension(w, h));
 		btn.setContentAreaFilled(false);
 		btn.setBorderPainted(false);
