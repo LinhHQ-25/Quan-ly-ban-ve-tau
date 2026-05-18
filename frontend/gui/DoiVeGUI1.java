@@ -52,7 +52,7 @@ public class DoiVeGUI1 extends JPanel {
         notePanel.setBorder(new EmptyBorder(10, 5, 0, 0));
         JLabel note = new JLabel("<html><i>* Lưu ý: Vé sau khi đổi sẽ áp dụng chính sách trả vé của chuyến tàu mới.</i></html>");
         note.setForeground(GuiTheme.SUB_TEXT);
-        note.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 13));
+        note.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
         notePanel.add(note);
         centerWrapper.add(notePanel);
 
@@ -148,12 +148,12 @@ public class DoiVeGUI1 extends JPanel {
         feeStrip.setBorder(BorderFactory.createCompoundBorder(new MatteBorder(1, 0, 0, 0, BORDER), new EmptyBorder(16, 0, 4, 0)));
 
         JPanel feeLeft = new JPanel(); feeLeft.setLayout(new BoxLayout(feeLeft, BoxLayout.Y_AXIS)); feeLeft.setOpaque(false);
-        JLabel lbFT = new JLabel("Lệ phí đổi vé"); lbFT.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 13)); lbFT.setForeground(GuiTheme.SUB_TEXT);
+        JLabel lbFT = new JLabel("Lệ phí đổi vé"); lbFT.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14)); lbFT.setForeground(GuiTheme.SUB_TEXT);
         JLabel lbFV = new JLabel("30.000 đ / vé  ·  Thu tại quầy"); lbFV.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 15)); lbFV.setForeground(new Color(160, 80, 0));
         feeLeft.add(lbFT); feeLeft.add(Box.createVerticalStrut(6)); feeLeft.add(lbFV);
 
         JPanel feeRight = new JPanel(); feeRight.setLayout(new BoxLayout(feeRight, BoxLayout.Y_AXIS)); feeRight.setOpaque(false);
-        JLabel lbCT = new JLabel("Thay đổi chính"); lbCT.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 13)); lbCT.setForeground(GuiTheme.SUB_TEXT);
+        JLabel lbCT = new JLabel("Thay đổi chính"); lbCT.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14)); lbCT.setForeground(GuiTheme.SUB_TEXT);
         feeRight.add(lbCT); feeRight.add(Box.createVerticalStrut(6)); feeRight.add(lbThayDoi);
 
         feeStrip.add(feeLeft); feeStrip.add(feeRight);
@@ -242,6 +242,7 @@ public class DoiVeGUI1 extends JPanel {
         boolean isSuccess = false;
 
         // SỬA CÂU QUERY: Join đúng với bảng ChiTietChuyenTau và UPDATE bằng maChuyenTau
+        // Sửa câu lệnh SQL trong hàm handleConfirm() của DoiVeGUI1.java
         String sqlUpdateVe =
                 "UPDATE Ve " +
                         "SET maChuyenTau = (" +
@@ -249,7 +250,12 @@ public class DoiVeGUI1 extends JPanel {
                         "FROM ChiTietChuyenTau dt " +
                         "JOIN ChuyenTau ct ON dt.maChuyenTau = ct.maChuyenTau " +
                         "JOIN Tau t ON ct.maTau = t.maTau " +
-                        "WHERE t.tenTau = ? AND FORMAT(dt.thoiGianKhoiHanh, 'dd/MM/yyyy HH:mm') = ?" +
+                        "JOIN Ga gDi ON dt.maGaDi = gDi.maGa " +
+                        "JOIN Ga gDen ON dt.maGaDen = gDen.maGa " +
+                        "WHERE t.tenTau = ? " +
+                        "AND FORMAT(dt.thoiGianKhoiHanh, 'dd/MM/yyyy HH:mm') = ? " +
+                        "AND gDi.tenGa = ? " +
+                        "AND gDen.tenGa = ?" +
                         "), " +
                         "maGhe = ? " +
                         "WHERE maVe = ?";
@@ -257,10 +263,13 @@ public class DoiVeGUI1 extends JPanel {
         try (Connection conn = Connect_DB.getInstance().getConnection();
              PreparedStatement psUpdate = conn.prepareStatement(sqlUpdateVe)) {
 
-            psUpdate.setString(1, s_chuyenMoi);
-            psUpdate.setString(2, s_ngayMoi);
-            psUpdate.setString(3, getMaGheMoiDB(s_gheMoi));
-            psUpdate.setString(4, s_maVe);
+            // Set params dựa trên các biến có sẵn, không thay đổi flow
+            psUpdate.setString(1, s_chuyenMoi);         // Tên tàu (vd: Tàu SE 1)
+            psUpdate.setString(2, s_ngayMoi);           // Ngày giờ mới
+            psUpdate.setString(3, safe(s_data, 1));     // Ga đi (từ vé cũ truyền sang)
+            psUpdate.setString(4, safe(s_data, 2));     // Ga đến (từ vé cũ truyền sang)
+            psUpdate.setString(5, getMaGheMoiDB(s_gheMoi)); // Mã ghế đúng định dạng DB
+            psUpdate.setString(6, s_maVe);              // Mã vé cần đổi
 
             int rowsAffected = psUpdate.executeUpdate();
             if (rowsAffected > 0) isSuccess = true;

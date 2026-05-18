@@ -150,7 +150,7 @@ public class TraVeGUI extends JPanel {
         });
 
         lbWarning = new JLabel(" ");
-        lbWarning.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 13));
+        lbWarning.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
         lbWarning.setForeground(WARN_FG);
 
         JPanel bottomRow = new JPanel(new GridLayout(1, 2, 12, 0));
@@ -292,7 +292,7 @@ public class TraVeGUI extends JPanel {
         p.setBorder(new EmptyBorder(16, 16, 16, 16));
 
         JLabel lbTitle = new JLabel(title);
-        lbTitle.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 13));
+        lbTitle.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
         lbTitle.setForeground(titleColor);
         lbTitle.setAlignmentX(CENTER_ALIGNMENT);
         lbTitle.setName("stat-title");
@@ -337,7 +337,7 @@ public class TraVeGUI extends JPanel {
         p.setLayout(new BoxLayout(p, BoxLayout.Y_AXIS));
         p.setOpaque(false);
         JLabel lb = new JLabel(label);
-        lb.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 13));
+        lb.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
         lb.setForeground(GuiTheme.SUB_TEXT);
         lb.setAlignmentX(LEFT_ALIGNMENT);
         comp.setAlignmentX(LEFT_ALIGNMENT);
@@ -352,7 +352,7 @@ public class TraVeGUI extends JPanel {
         p.setLayout(new BoxLayout(p, BoxLayout.Y_AXIS));
         p.setOpaque(false);
         JLabel lb = new JLabel(labelText);
-        lb.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 13));
+        lb.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
         lb.setForeground(GuiTheme.SUB_TEXT);
         lb.setAlignmentX(LEFT_ALIGNMENT);
         value.setAlignmentX(LEFT_ALIGNMENT);
@@ -370,7 +370,7 @@ public class TraVeGUI extends JPanel {
         card.setAlignmentX(LEFT_ALIGNMENT);
         card.setMaximumSize(new Dimension(Integer.MAX_VALUE, Integer.MAX_VALUE));
         JLabel lbTitle = new JLabel(titleText);
-        lbTitle.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 16));
+        lbTitle.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 14));
         lbTitle.setForeground(GuiTheme.TEXT);
         lbTitle.setBorder(new EmptyBorder(0, 0, 6, 0));
         card.add(lbTitle, BorderLayout.NORTH);

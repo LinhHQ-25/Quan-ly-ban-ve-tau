@@ -44,9 +44,9 @@ public final class DoiTraGUI extends JPanel {
 			@Override protected void paintComponent(Graphics g) {
 				Graphics2D g2 = (Graphics2D) g.create();
 				g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-				g2.setColor(new Color(255, 248, 220));
+				g2.setColor(new Color(220, 245, 255));
 				g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
-				g2.setColor(new Color(220, 190, 100));
+				g2.setColor(new Color(52, 123, 255));
 				g2.drawRoundRect(0, 0, getWidth()-1, getHeight()-1, 10, 10);
 				g2.dispose();
 			}
@@ -54,9 +54,9 @@ public final class DoiTraGUI extends JPanel {
 		p.setOpaque(false);
 		p.setLayout(new BoxLayout(p, BoxLayout.Y_AXIS));
 		p.setBorder(new EmptyBorder(10, 14, 10, 14));
-		Color c = new Color(120, 75, 0);
-		Font bold  = GuiTheme.font("Segoe UI", Font.BOLD,  13);
-		Font plain = GuiTheme.font("Segoe UI", Font.PLAIN, 13);
+		Color c = new Color(0, 0, 0);
+		Font bold  = GuiTheme.font("Segoe UI", Font.BOLD,  14);
+		Font plain = GuiTheme.font("Segoe UI", Font.PLAIN, 14);
 		addNote(p, "QUY ĐỊNH ĐỔI / TRẢ VÉ", bold,  c);
 		p.add(Box.createVerticalStrut(4));
 		addNote(p, "1. ĐỔI VÉ:", plain, c);
@@ -104,17 +104,21 @@ public final class DoiTraGUI extends JPanel {
 		};
 		table = new JTable(tableModel);
 
+		// Dòng này chính là tính năng cho phép click vào tiêu đề cột để Sắp xếp (Tăng/Giảm dần)
 		table.setAutoCreateRowSorter(true);
 
 		table.setRowHeight(28);
-		table.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 13));
+		table.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
 		table.setForeground(GuiTheme.TEXT);
 		table.setGridColor(new Color(230, 233, 238));
 		table.setSelectionBackground(new Color(207, 222, 243));
 		table.setSelectionForeground(GuiTheme.TEXT);
 		table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-		table.getTableHeader().setReorderingAllowed(false);
-		table.getTableHeader().setFont(GuiTheme.font("Segoe UI", Font.BOLD, 13));
+
+		// --- CẤU HÌNH HEADER (TIÊU ĐỀ CỘT) ---
+		table.getTableHeader().setReorderingAllowed(false); // Không cho kéo thả đổi vị trí cột
+		table.getTableHeader().setResizingAllowed(false);   // THÊM DÒNG NÀY: Không cho kéo dãn độ rộng cột
+		table.getTableHeader().setFont(GuiTheme.font("Segoe UI", Font.BOLD, 14));
 		table.getTableHeader().setBackground(Color.WHITE);
 		table.getTableHeader().setForeground(GuiTheme.TEXT);
 		table.getTableHeader().setBorder(new LineBorder(BORDER, 1, true));

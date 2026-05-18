@@ -93,11 +93,11 @@ public class DoiVeGUI extends JPanel {
         headerPane.setBorder(new EmptyBorder(0, 0, 10, 0));
 
         JLabel lbTitle = new JLabel("Thông tin vé cũ");
-        lbTitle.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 15));
+        lbTitle.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 14));
         lbTitle.setForeground(GuiTheme.TEXT);
 
         lbMaVeCu = new JLabel("Mã vé: —");
-        lbMaVeCu.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 13));
+        lbMaVeCu.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 14));
         lbMaVeCu.setForeground(NAVY);
 
         headerPane.add(lbTitle, BorderLayout.WEST);
@@ -148,7 +148,7 @@ public class DoiVeGUI extends JPanel {
         card.setAlignmentX(LEFT_ALIGNMENT);
 
         JLabel lb = new JLabel("Chọn thông tin vé mới");
-        lb.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 15));
+        lb.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 14));
         lb.setForeground(GuiTheme.TEXT);
         lb.setBorder(new EmptyBorder(0, 0, 10, 0));
         card.add(lb, BorderLayout.NORTH);
@@ -194,7 +194,7 @@ public class DoiVeGUI extends JPanel {
                 new MatteBorder(1, 0, 0, 0, BORDER), new EmptyBorder(10, 15, 10, 15)));
 
         lbWarning = new JLabel(" ");
-        lbWarning.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 13));
+        lbWarning.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
         lbWarning.setForeground(WARN_FG);
 
         JPanel left = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 10));
