@@ -46,11 +46,11 @@ public class AppFrame extends JFrame {
 	public AppFrame() {
 		setTitle("Quản lý bán vé tàu");
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		setSize(1366, 768); 
-		setMinimumSize(new Dimension(1366, 768)); 
-		setExtendedState(JFrame.MAXIMIZED_BOTH); 
-		
-		setLocationRelativeTo(null); 
+		setSize(1366, 768);
+		setMinimumSize(new Dimension(1366, 768));
+		setExtendedState(JFrame.MAXIMIZED_BOTH);
+
+		setLocationRelativeTo(null);
 
 		try {
 			UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
@@ -76,17 +76,18 @@ public class AppFrame extends JFrame {
 		sb.setLayout(new BoxLayout(sb, BoxLayout.Y_AXIS));
 		sb.setBorder(new EmptyBorder(0, 0, 18, 0));
 
+		// --- ĐÃ SỬA: Căn giữa tuyệt đối và đưa chiều cao về lại 70 như cũ ---
 		JPanel logoArea = new JPanel();
 		logoArea.setBackground(GuiTheme.NAVY);
-		logoArea.setLayout(new FlowLayout(FlowLayout.CENTER, 0, 10));
+		logoArea.setLayout(new FlowLayout(FlowLayout.CENTER, 0, 5)); // Để lề 5px cho vừa khít khung 70
 		logoArea.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-		int logoHeight = 100;
+		int logoHeight = 70; // Đã đổi từ 100 về lại 70 như ban đầu
 		logoArea.setMaximumSize(new Dimension(GuiTheme.SIDEBAR_W, logoHeight));
 		logoArea.setPreferredSize(new Dimension(GuiTheme.SIDEBAR_W, logoHeight));
 
-		// Tạo Label Logo
-		JLabel labelLogo = new JLabel(GuiIcons.loadIcon(AppFrame.class, "/Images/logoTrain.png", 90, 90));
+		// Tạo Label Logo (Đưa kích thước hiển thị về lại 60x60 hoặc 70x70 để vừa khít khung cao 70)
+		JLabel labelLogo = new JLabel(GuiIcons.loadIcon(AppFrame.class, "/Images/logoTrain.png", 70, 70));
 		logoArea.add(labelLogo);
 		sb.add(logoArea);
 
@@ -135,7 +136,6 @@ public class AppFrame extends JFrame {
 
 		return sb;
 	}
-
 
 	private SidebarButton mkBtn(String route, String label, String iconPath, boolean isSearchMain) {
 		SidebarButton btn = new SidebarButton(label, false, iconPath);
@@ -379,7 +379,7 @@ public class AppFrame extends JFrame {
 		if (isAdmin) {
 			AppFrameManager managerFrame = new AppFrameManager();
 			managerFrame.setVisible(true);
-			this.dispose(); 
+			this.dispose();
 		} else {
 			// 1. Phủ mờ
 			JPanel glassPane = new JPanel() {
@@ -395,7 +395,7 @@ public class AppFrame extends JFrame {
 
 			// 2. Hiện Popup
 			MoCaDialog dialog = new MoCaDialog(this);
-			dialog.setVisible(true); 
+			dialog.setVisible(true);
 
 			// 3. Tắt phủ mờ
 			glassPane.setVisible(false);
@@ -403,12 +403,12 @@ public class AppFrame extends JFrame {
 			// 4. KIỂM TRA: Bấm xác nhận thì nhảy vào màn hình Loading
 			if (dialog.isConfirmed()) {
 				showCard("loading"); // Nhảy qua thẻ Loading trắng tinh
-				
+
 				// Gọi hàm chạy thanh phần trăm, xong 100% thì mới vô "home"
 				loadingPanel.startLoading(() -> {
 					showCard("dat-ve");
 				});
-				
+
 			} else {
 				showCard("login"); // Hủy thì quay lại đăng nhập
 			}

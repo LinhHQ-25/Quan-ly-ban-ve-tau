@@ -18,10 +18,10 @@ public class DigitalClockWidget extends JPanel {
         RoundedShadowPanel card = new RoundedShadowPanel();
         card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
         card.setBorder(BorderFactory.createCompoundBorder(
-            new LineBorder(new Color(230, 230, 230), 1, true),
+            new LineBorder(new Color(230, 230, 230), 0, true),
             new EmptyBorder(8, 20, 8, 20)
         ));
-        
+
         lblTime = new JLabel("00:00:00");
         lblTime.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 18));
         lblTime.setForeground(GuiTheme.NAVY);

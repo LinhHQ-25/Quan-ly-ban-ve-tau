@@ -48,14 +48,13 @@ public class AppFrameManager extends JFrame {
 
 		JPanel logoArea = new JPanel();
 		logoArea.setBackground(GuiTheme.NAVY);
-		logoArea.setLayout(new FlowLayout(FlowLayout.CENTER, 0, 10));
+		logoArea.setLayout(new FlowLayout(FlowLayout.CENTER, 0, 5)); // Lề 5px cho vừa khít
 		logoArea.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-		int logoHeight = 100;
+		int logoHeight = 70;
 		logoArea.setMaximumSize(new Dimension(GuiTheme.SIDEBAR_W, logoHeight));
 		logoArea.setPreferredSize(new Dimension(GuiTheme.SIDEBAR_W, logoHeight));
-
-		JLabel labelLogo = new JLabel(GuiIcons.loadIcon(AppFrameManager.class, "/Images/logoTrain.png", 90, 90));
+		JLabel labelLogo = new JLabel(GuiIcons.loadIcon(AppFrameManager.class, "/Images/logoTrain.png", 70, 70));
 		logoArea.add(labelLogo);
 		sb.add(logoArea);
 
