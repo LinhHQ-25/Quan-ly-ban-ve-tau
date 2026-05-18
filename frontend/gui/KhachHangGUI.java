@@ -13,7 +13,6 @@ import javax.swing.border.*;
 import javax.swing.table.*;
 import com.toedter.calendar.JDateChooser;
 import connect_DB.Connect_DB;
-import dao.KhachHangDAO;
 import entity.KhachHang;
 
 final class KhachHangGUI extends JPanel {
@@ -26,8 +25,6 @@ final class KhachHangGUI extends JPanel {
     private JTextField txtMaKH, txtHoTen, txtSdt, txtCCCD, txtEmail;
     private JDateChooser dcNamSinh;
     private JComboBox<String> cboDoiTuong;
-    
-    private KhachHangDAO khDAO = new KhachHangDAO();
 
     KhachHangGUI() {
         setBackground(GuiTheme.LIGHT_BG);
@@ -45,7 +42,6 @@ final class KhachHangGUI extends JPanel {
 
         pnlPage.add(buildFilterPanel(), BorderLayout.NORTH);
         pnlPage.add(buildTablePanel(), BorderLayout.CENTER);
-        pnlPage.add(buildCRUDBlock(), BorderLayout.SOUTH);
 
         add(pnlPage, BorderLayout.CENTER);
         
@@ -169,25 +165,6 @@ final class KhachHangGUI extends JPanel {
         return pnlButtons;
     }
 
-    private JPanel buildCRUDBlock() {
-        JPanel pnlCRUD = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 10));
-        pnlCRUD.setOpaque(false);
-        
-        JButton btnAdd = buildNavyButton("Thêm mới", new Color(46, 125, 50), new Color(60, 145, 65));
-        JButton btnUpdate = buildNavyButton("Cập nhật", new Color(25, 118, 210), new Color(33, 150, 243));
-        JButton btnDelete = buildNavyButton("Xóa bỏ", new Color(198, 40, 40), new Color(229, 57, 53));
-
-        btnAdd.addActionListener(e -> performAdd());
-        btnUpdate.addActionListener(e -> performUpdate());
-        btnDelete.addActionListener(e -> performDelete());
-
-        pnlCRUD.add(btnAdd);
-        pnlCRUD.add(btnUpdate);
-        pnlCRUD.add(btnDelete);
-        
-        return pnlCRUD;
-    }
-
     private JButton buildNavyButton(String text, Color baseColor, Color hoverColor) {
         JButton btn = new JButton(text) {
             @Override protected void paintComponent(java.awt.Graphics g) {
@@ -207,11 +184,8 @@ final class KhachHangGUI extends JPanel {
         btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
         btn.setIconTextGap(8);
         
-        if (text.contains("Tìm kiếm")) btn.setIcon(GuiIcons.loadIcon(KhachHangGUI.class, "search", 16, 16));
-        else if (text.contains("Xóa trắng")) btn.setIcon(GuiIcons.loadIcon(KhachHangGUI.class, "reset", 16, 16));
-        else if (text.contains("Thêm")) btn.setIcon(GuiIcons.loadIcon(KhachHangGUI.class, "add", 16, 16));
-        else if (text.contains("Cập nhật")) btn.setIcon(GuiIcons.loadIcon(KhachHangGUI.class, "edit", 16, 16));
-        else if (text.contains("Xóa bỏ")) btn.setIcon(GuiIcons.loadIcon(KhachHangGUI.class, "delete", 16, 16));
+        if (text.contains("Tìm kiếm")) btn.setIcon(GuiIcons.loadIcon(KhachHangGUI.class, "/Images/traCuu.png", 16, 16));
+        else if (text.contains("Xóa trắng")) btn.setIcon(GuiIcons.loadIcon(KhachHangGUI.class, "/Images/logoLammoi.png", 16, 16));
         
         return btn;
     }
@@ -340,57 +314,6 @@ final class KhachHangGUI extends JPanel {
             case "NGUOI_LON": return "Người lớn";
             default: return value;
         }
-    }
-
-    private void performAdd() {
-        KhachHang kh = getKhachHangFromFields();
-        if (kh == null) return;
-        if (khDAO.insert(kh)) {
-            JOptionPane.showMessageDialog(this, "Thêm khách hàng thành công!");
-            loadDataToTable();
-        } else JOptionPane.showMessageDialog(this, "Lỗi khi thêm khách hàng!");
-    }
-
-    private void performUpdate() {
-        KhachHang kh = getKhachHangFromFields();
-        if (kh == null) return;
-        if (khDAO.update(kh)) {
-            JOptionPane.showMessageDialog(this, "Cập nhật thành công!");
-            loadDataToTable();
-        } else JOptionPane.showMessageDialog(this, "Lỗi khi cập nhật!");
-    }
-
-    private void performDelete() {
-        int row = tblData.getSelectedRow();
-        if (row == -1) {
-            JOptionPane.showMessageDialog(this, "Vui lòng chọn khách hàng cần xóa!");
-            return;
-        }
-        String maKH = tblModel.getValueAt(row, 1).toString();
-        int confirm = JOptionPane.showConfirmDialog(this, "Xác nhận xóa khách hàng " + maKH + "?", "Xác nhận", JOptionPane.YES_NO_OPTION);
-        if (confirm == JOptionPane.YES_OPTION) {
-            if (khDAO.delete(maKH)) {
-                JOptionPane.showMessageDialog(this, "Xóa thành công!");
-                loadDataToTable();
-            } else JOptionPane.showMessageDialog(this, "Lỗi khi xóa!");
-        }
-    }
-
-    private KhachHang getKhachHangFromFields() {
-        String ma = txtMaKH.getText().trim();
-        String ten = txtHoTen.getText().trim();
-        String cccd = txtCCCD.getText().trim();
-        String sdt = txtSdt.getText().trim();
-        String email = txtEmail.getText().trim();
-        LocalDate birth = null;
-        if (dcNamSinh.getDate() != null) birth = dcNamSinh.getDate().toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
-        String dt = (String) cboDoiTuong.getSelectedItem();
-        boolean laSV = "Sinh viên".equals(dt);
-        if (ma.isEmpty() || ten.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Vui lòng nhập Mã và Tên khách hàng!");
-            return null;
-        }
-        return new KhachHang(ma, ten, cccd, sdt, email, birth, laSV);
     }
 
     private JPanel buildSectionTitle(String title) {
