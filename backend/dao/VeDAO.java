@@ -20,7 +20,7 @@ public class VeDAO {
                 "WHERE CAST(v.ngayMua AS DATE) = ? " +
                 "AND hd.maNV = ? " +
                 "AND v.trangThaiVe = N'Đã thanh toán'" + getHourCondition(ca);
-        try (Connection con = Connect_DB.getConnection();
+        try (Connection con = Connect_DB.getInstance().getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setDate(1, java.sql.Date.valueOf(ngay));
             ps.setString(2, maNV);
@@ -34,7 +34,7 @@ public class VeDAO {
         String sql = "SELECT COUNT(*) FROM Ve v " +
                 "JOIN HoaDon hd ON v.maHoaDon = hd.maHoaDon " +
                 "WHERE CAST(v.ngayMua AS DATE) = ? AND hd.maNV = ? AND v.trangThaiVe = ?" + getHourCondition(ca);
-        try (Connection con = Connect_DB.getConnection();
+        try (Connection con = Connect_DB.getInstance().getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setDate(1, java.sql.Date.valueOf(ngay));
             ps.setString(2, maNV);
@@ -53,7 +53,7 @@ public class VeDAO {
                 "WHERE CAST(v.ngayMua AS DATE) = ? AND hd.maNV = ? " +
                 "AND v.trangThaiVe = N'Đã thanh toán'" + getHourCondition(ca) +
                 " GROUP BY g.loaiGhe";
-        try (Connection con = Connect_DB.getConnection();
+        try (Connection con = Connect_DB.getInstance().getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setDate(1, java.sql.Date.valueOf(ngay));
             ps.setString(2, maNV);
@@ -69,9 +69,26 @@ public class VeDAO {
         return result;
     }
 
+    public List<String> layDanhSachMaGheDaDat(String maChuyenTau) {
+        List<String> listGheDaDat = new ArrayList<>();
+        String sql = "SELECT maGhe FROM Ve WHERE maChuyenTau = ? AND trangThaiVe IN (N'Đã thanh toán', 'DA_THANH_TOAN', N'Chờ thanh toán')";
+        try (Connection con = Connect_DB.getInstance().getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setString(1, maChuyenTau);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    listGheDaDat.add(rs.getString("maGhe"));
+                }
+            }
+        } catch (Exception e) { 
+            e.printStackTrace(); 
+        }
+        return listGheDaDat;
+    }
+
     public boolean insert(Ve v) {
         String sql = "INSERT INTO Ve (maVe, ngayMua, loaiVe, trangThaiVe, giaVe, maGhe, maHoaDon, maChuyenTau) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
-        try (Connection con = Connect_DB.getConnection();
+        try (Connection con = Connect_DB.getInstance().getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setString(1, v.getMaVe());
             ps.setTimestamp(2, v.getNgayMua() != null ? Timestamp.valueOf(v.getNgayMua()) : new Timestamp(System.currentTimeMillis()));
@@ -88,7 +105,7 @@ public class VeDAO {
 
     public boolean update(Ve v) {
         String sql = "UPDATE Ve SET ngayMua=?, loaiVe=?, trangThaiVe=?, giaVe=?, maGhe=?, maHoaDon=?, maChuyenTau=? WHERE maVe=?";
-        try (Connection con = Connect_DB.getConnection();
+        try (Connection con = Connect_DB.getInstance().getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setTimestamp(1, Timestamp.valueOf(v.getNgayMua()));
             ps.setString(2, v.getLoaiVe() != null ? v.getLoaiVe().toString() : null);
@@ -105,7 +122,7 @@ public class VeDAO {
 
     public boolean delete(String id) {
         String sql = "DELETE FROM Ve WHERE maVe = ?";
-        try (Connection con = Connect_DB.getConnection();
+        try (Connection con = Connect_DB.getInstance().getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setString(1, id);
             return ps.executeUpdate() > 0;

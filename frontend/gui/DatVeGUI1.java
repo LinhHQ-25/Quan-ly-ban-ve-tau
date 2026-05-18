@@ -9,11 +9,11 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.List;
-import java.util.function.Consumer;
 import javax.swing.*;
 import javax.swing.border.*;
 
 import connect_DB.Connect_DB;
+import dao.VeDAO;
 
 public class DatVeGUI1 extends JPanel {
 
@@ -74,8 +74,7 @@ public class DatVeGUI1 extends JPanel {
 	private final Font SEAT_FONT = new Font("Segoe UI", Font.BOLD, 12);
 	private final Font ARROW_FONT = new Font("Segoe UI", Font.BOLD, 18);
 
-	public DatVeGUI1(String gaDi, String gaDen, String loaiVe, String ngayDi, String ngayVe, int soLuong,
-			Runnable onQuayLai) {
+	public DatVeGUI1(String gaDi, String gaDen, String loaiVe, String ngayDi, String ngayVe, int soLuong, Runnable onQuayLai) {
 		this.gaDi = gaDi;
 		this.gaDen = gaDen;
 		this.loaiVe = loaiVe;
@@ -177,15 +176,12 @@ public class DatVeGUI1 extends JPanel {
 		if (dangXemChieuVe) CHUYEN_FILTERED_VE = result;
 		else CHUYEN_FILTERED = result;
 
-		refreshChuyen();
-		refreshToaGhe();
-		updateActionBtn();
+		refreshChuyen(); refreshToaGhe(); updateActionBtn();
 	}
 
 	private String[] buildToaList(int ci) {
 		String[][] filtered = dangXemChieuVe ? CHUYEN_FILTERED_VE : CHUYEN_FILTERED;
-		if (filtered == null || filtered.length == 0 || filtered[0][0].equals("Không có chuyến") || ci == -1)
-			return new String[] { "--" };
+		if (filtered == null || filtered.length == 0 || filtered[0][0].equals("Không có chuyến") || ci == -1) return new String[] { "--" };
 
 		String tenTau = filtered[ci][0];
 		List<String> toaList = new ArrayList<>();
@@ -205,23 +201,16 @@ public class DatVeGUI1 extends JPanel {
 		Set<Integer> booked = new LinkedHashSet<>();
 		if (maChuyen == null || maToa == null || maChuyen.isEmpty()) return booked;
 
-		String sql = "SELECT g.maGhe FROM Ve v " +
-				"JOIN ChiTietChuyenTau dt ON v.maChuyenTau = dt.maChuyenTau " +
-				"JOIN Ghe g ON v.maGhe = g.maGhe " +
-				"WHERE dt.maChuyenTau = ? AND g.maToaTau = ? " +
-				"AND v.trangThaiVe IN ('DA_THANH_TOAN', 'CHO_THANH_TOAN')";
-
-		try (Connection con = Connect_DB.getInstance().getConnection();
-				PreparedStatement ps = con.prepareStatement(sql)) {
-			ps.setString(1, maChuyen);
-			ps.setString(2, maToa);
-			ResultSet rs = ps.executeQuery();
-			while (rs.next()) {
-				String fullMaGhe = rs.getString("maGhe");
-				String soGheStr = fullMaGhe.substring(1, 3); 
-				if (!soGheStr.isEmpty()) booked.add(Integer.parseInt(soGheStr));
+		List<String> danhSachGheDaDatCuaChuyen = new VeDAO().layDanhSachMaGheDaDat(maChuyen);
+		
+		for (String fullMaGhe : danhSachGheDaDatCuaChuyen) {
+			if (fullMaGhe != null && fullMaGhe.endsWith(maToa)) {
+				try {
+					String soGheStr = fullMaGhe.substring(1, 3);
+					booked.add(Integer.parseInt(soGheStr));
+				} catch (Exception e) { }
 			}
-		} catch (Exception e) { e.printStackTrace(); }
+		}
 		return booked;
 	}
 
@@ -239,9 +228,7 @@ public class DatVeGUI1 extends JPanel {
 			if (!booked.contains(i)) {
 				consecutiveCount++;
 				if (consecutiveCount >= k) return true;
-			} else {
-				consecutiveCount = 0;
-			}
+			} else consecutiveCount = 0;
 		}
 		return false;
 	}
@@ -256,9 +243,7 @@ public class DatVeGUI1 extends JPanel {
 	private JPanel buildTopBar() {
 		JPanel bar = new JPanel(new GridBagLayout());
 		bar.setBackground(Color.WHITE);
-		bar.setBorder(BorderFactory.createCompoundBorder(
-				new MatteBorder(0, 0, 1, 0, new Color(210, 215, 224)),
-				new EmptyBorder(0, 0, 5, 0)));
+		bar.setBorder(BorderFactory.createCompoundBorder(new MatteBorder(0, 0, 1, 0, new Color(210, 215, 224)), new EmptyBorder(0, 0, 5, 0)));
 
 		GridBagConstraints gbc = new GridBagConstraints();
 		gbc.fill = GridBagConstraints.VERTICAL;
@@ -270,9 +255,7 @@ public class DatVeGUI1 extends JPanel {
 		String[] vals = { gaDi, gaDen, loaiVe, ngayDi, ngayVe, String.valueOf(soLuong) };
 		boolean[] isDimmed = { false, false, false, false, motChieu, false };
 
-		for (int i = 0; i < lbls.length; i++) {
-			info.add(addInfoCell(lbls[i], vals[i], isDimmed[i], 6));
-		}
+		for (int i = 0; i < lbls.length; i++) info.add(addInfoCell(lbls[i], vals[i], isDimmed[i], 6));
 
 		gbc.gridx = 0; gbc.weightx = 1.0; gbc.anchor = GridBagConstraints.WEST;
 		bar.add(info, gbc);
@@ -304,8 +287,7 @@ public class DatVeGUI1 extends JPanel {
 			if (cbKhungGio != null) cbKhungGio.setSelectedIndex(0);
 		});
 
-		buttonPanel.add(btnChieuToggle);
-		buttonPanel.add(btnLamMoi);
+		buttonPanel.add(btnChieuToggle); buttonPanel.add(btnLamMoi);
 		rightWrapper.add(buttonPanel);
 
 		gbc.gridx = 1; gbc.weightx = 0; gbc.anchor = GridBagConstraints.NORTH;
@@ -330,8 +312,7 @@ public class DatVeGUI1 extends JPanel {
 		v.setForeground(dimmed ? new Color(180, 180, 180) : Color.BLACK);
 		v.setBorder(new CompoundBorder(new LineBorder(new Color(200, 200, 200), 1), new EmptyBorder(2, 12, 2, 12)));
 
-		cell.add(l, BorderLayout.NORTH);
-		cell.add(v, BorderLayout.CENTER);
+		cell.add(l, BorderLayout.NORTH); cell.add(v, BorderLayout.CENTER);
 		return cell;
 	}
 
@@ -339,14 +320,12 @@ public class DatVeGUI1 extends JPanel {
 		try {
 			java.net.URL url = getClass().getResource(path);
 			if (url != null) return new ImageIcon(new ImageIcon(url).getImage().getScaledInstance(w, h, Image.SCALE_SMOOTH));
-		} catch (Exception ignored) {}
-		return null;
+		} catch (Exception ignored) {} return null;
 	}
 
 	private JButton buildStyledButton(String text, Icon icon) {
 		JButton btn = new JButton(text) {
-			@Override
-			protected void paintComponent(Graphics g) {
+			@Override protected void paintComponent(Graphics g) {
 				Graphics2D g2 = (Graphics2D) g.create();
 				g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 				if (!isEnabled()) g2.setColor(new Color(130, 150, 185));
@@ -370,16 +349,12 @@ public class DatVeGUI1 extends JPanel {
 				g2.dispose();
 			}
 		};
-		btn.setIcon(icon);
-		btn.setContentAreaFilled(false);
-		btn.setBorderPainted(false);
-		btn.setFocusPainted(false);
-		btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+		btn.setIcon(icon); btn.setContentAreaFilled(false); btn.setBorderPainted(false);
+		btn.setFocusPainted(false); btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
 		btn.setBorder(new EmptyBorder(3, 15, 3, 15));
 		return btn;
 	}
 
-	// SAU
 	class SmoothScrollPanel extends JPanel implements Scrollable {
 	    public Dimension getPreferredScrollableViewportSize() { return getPreferredSize(); }
 	    public int getScrollableUnitIncrement(Rectangle visibleRect, int orientation, int direction) { return 16; }
@@ -387,6 +362,7 @@ public class DatVeGUI1 extends JPanel {
 	    public boolean getScrollableTracksViewportWidth() { return true; }
 	    public boolean getScrollableTracksViewportHeight() { return false; }
 	}
+
 	private JPanel buildCenter() {
 		JPanel c = new JPanel(new BorderLayout(0, 0));
 		c.setBackground(BG);
@@ -408,17 +384,14 @@ public class DatVeGUI1 extends JPanel {
 		JLabel lblFilter = new JLabel("Khung giờ:");
 		lblFilter.setFont(new Font("Segoe UI", Font.BOLD, 13));
 		cbKhungGio = new JComboBox<>(new String[] { "Tất cả", "Sáng", "Trưa", "Chiều", "Tối" });
-		cbKhungGio.setFocusable(false);
-		cbKhungGio.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-		cbKhungGio.setBackground(Color.WHITE);
-		cbKhungGio.setPreferredSize(new Dimension(110, 26));
+		cbKhungGio.setFocusable(false); cbKhungGio.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+		cbKhungGio.setBackground(Color.WHITE); cbKhungGio.setPreferredSize(new Dimension(110, 26));
 		cbKhungGio.addActionListener(e -> {
 			trang = 0; chuyenIdx = -1; activeMaToa = null; gheChon.clear();
 			applyFilter((String) cbKhungGio.getSelectedItem());
 		});
 
-		pnlFilter.add(lblFilter);
-		pnlFilter.add(cbKhungGio);
+		pnlFilter.add(lblFilter); pnlFilter.add(cbKhungGio);
 		topHeaderWrapper.add(new JPanel(new GridBagLayout()) {{ setOpaque(false); add(pnlFilter); }}, BorderLayout.EAST);
 		c.add(topHeaderWrapper, BorderLayout.NORTH);
 
@@ -453,13 +426,11 @@ public class DatVeGUI1 extends JPanel {
 		pnlAllToas.setBackground(BG);
 		pnlScrollContent.add(pnlAllToas);
 
-		// SAU
 		toaScrollPane = new JScrollPane(pnlScrollContent);
 		toaScrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
 		toaScrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
 		toaScrollPane.setBorder(new LineBorder(BORDER_C, 1));
 
-		// ===== SMOOTH SCROLL =====
 		toaScrollPane.getVerticalScrollBar().setUnitIncrement(16);
 		toaScrollPane.getVerticalScrollBar().setBlockIncrement(120);
 		toaScrollPane.getViewport().setScrollMode(JViewport.BLIT_SCROLL_MODE);
@@ -479,7 +450,6 @@ public class DatVeGUI1 extends JPanel {
 		            currentPos[0] = targetPos[0];
 		            timerRunning[0] = false;
 		            timer[0].stop();
-		            // Chỉ gọi handleScrollEvents SAU KHI animate xong
 		            handleScrollEvents();
 		        } else {
 		            currentPos[0] += diff * 0.18;
@@ -492,21 +462,13 @@ public class DatVeGUI1 extends JPanel {
 		toaScrollPane.addMouseWheelListener(e -> {
 		    e.consume();
 		    JScrollBar bar = toaScrollPane.getVerticalScrollBar();
-		    // Sync currentPos với vị trí thực tế nếu timer chưa chạy
 		    if (!timerRunning[0]) currentPos[0] = bar.getValue();
-
 		    targetPos[0] += e.getUnitsToScroll() * 35;
-		    targetPos[0] = Math.max(bar.getMinimum(),
-		                   Math.min(bar.getMaximum() - bar.getVisibleAmount(), targetPos[0]));
+		    targetPos[0] = Math.max(bar.getMinimum(), Math.min(bar.getMaximum() - bar.getVisibleAmount(), targetPos[0]));
 		    startAnim.run();
 		});
-		// =========================
 
-		// Chỉ gọi handleScrollEvents khi KHÔNG đang animate
-		toaScrollPane.getViewport().addChangeListener(e -> {
-		    if (!timerRunning[0]) handleScrollEvents();
-		});
-
+		toaScrollPane.getViewport().addChangeListener(e -> { if (!timerRunning[0]) handleScrollEvents(); });
 
 		body.add(toaScrollPane, BorderLayout.CENTER);
 
@@ -524,8 +486,7 @@ public class DatVeGUI1 extends JPanel {
 		legendBoxes.add(makeLegend(SEAT_OK, "Còn trống"));
 		legendBoxes.add(makeLegend(SEAT_TAKEN, "Đã đặt"));
 
-		JPanel leftDummy = new JPanel();
-		leftDummy.setBackground(BG);
+		JPanel leftDummy = new JPanel(); leftDummy.setBackground(BG);
 		leftDummy.setPreferredSize(legendBoxes.getPreferredSize());
 
 		botLegendArea.add(leftDummy, BorderLayout.WEST);
@@ -539,7 +500,7 @@ public class DatVeGUI1 extends JPanel {
 		return c;
 	}
 
-	private boolean stickyActive = false; // thêm field này ở đầu class
+	private boolean stickyActive = false;
 
 	private void handleScrollEvents() {
 	    int scrollY = toaScrollPane.getViewport().getViewPosition().y;
@@ -548,7 +509,6 @@ public class DatVeGUI1 extends JPanel {
 
 	    boolean shouldSticky = scrollY >= threshold;
 
-	    // Chỉ xử lý khi trạng thái THỰC SỰ thay đổi
 	    if (shouldSticky != stickyActive) {
 	        stickyActive = shouldSticky;
 
@@ -606,8 +566,7 @@ public class DatVeGUI1 extends JPanel {
 			refreshToaGhe();
 		});
 		
-		rightHdr.add(lblLoaiToa);
-		rightHdr.add(cbLoaiToa);
+		rightHdr.add(lblLoaiToa); rightHdr.add(cbLoaiToa);
 		hdr.add(rightHdr, BorderLayout.EAST);
 		return hdr;
 	}
@@ -615,8 +574,7 @@ public class DatVeGUI1 extends JPanel {
 	private JPanel buildChuyenRow() {
 		JPanel row = new JPanel(new BorderLayout(2, 0));
 		row.setBackground(BG);
-		btnPrev = makeNavArrow("‹");
-		btnNext = makeNavArrow("›");
+		btnPrev = makeNavArrow("‹"); btnNext = makeNavArrow("›");
 		btnPrev.addActionListener(e -> { if (trang > 0) { trang--; refreshChuyen(); } });
 		btnNext.addActionListener(e -> { if ((trang + 1) * 5 < CHUYEN_FILTERED.length) { trang++; refreshChuyen(); } });
 
@@ -682,29 +640,17 @@ public class DatVeGUI1 extends JPanel {
 			private boolean isHover = false;
 			{
 				addMouseListener(new MouseAdapter() {
-					// SAU
 					@Override public void mouseEntered(MouseEvent e) { isHover = true; repaint(); setCursor(new Cursor(Cursor.HAND_CURSOR)); }
 					@Override public void mouseExited(MouseEvent e) { isHover = false; repaint(); setCursor(new Cursor(Cursor.DEFAULT_CURSOR)); }
 					@Override public void mouseClicked(MouseEvent e) {
-					    // 1. Cập nhật state ngay lập tức
 					    if (!motChieu) {
-					        try {
-					            if (!dangXemChieuVe) selectedArrivalDi = LocalDateTime.parse(ch[2], fmt);
-					        } catch (Exception ex) {}
+					        try { if (!dangXemChieuVe) selectedArrivalDi = LocalDateTime.parse(ch[2], fmt); } 
+					        catch (Exception ex) {}
 					    }
-					    chuyenIdx = ci;
-					    activeMaToa = null;
-					    gheChon.clear();
+					    chuyenIdx = ci; activeMaToa = null; gheChon.clear();
 					    toaScrollPane.getVerticalScrollBar().setValue(0);
-
-					    // 2. Highlight card ngay — không chờ refreshChuyen()
 					    refreshChuyen();
-
-					    // 3. Load toa/ghế nặng hơn → defer sang sau
-					    SwingUtilities.invokeLater(() -> {
-					        refreshToaGhe();
-					        updateActionBtn();
-					    });
+					    SwingUtilities.invokeLater(() -> { refreshToaGhe(); updateActionBtn(); });
 					}
 				});
 			}
@@ -714,27 +660,13 @@ public class DatVeGUI1 extends JPanel {
 				int w = getWidth(), h = getHeight(), trainH = h - 20;
 				Color mainColor = sel ? new Color(0, 150, 215) : isHover ? new Color(255, 200, 80) : new Color(160, 160, 160);
 				
-				g2.setColor(mainColor);
-				g2.fillRoundRect(2, 2, w - 4, trainH, 25, 25);
+				g2.setColor(mainColor); g2.fillRoundRect(2, 2, w - 4, trainH, 25, 25);
+				g2.setColor(Color.WHITE); g2.fillRoundRect(8, 32, w - 16, info.getPreferredSize().height + 10, 12, 12);
+				g2.setColor(Color.WHITE); g2.fillOval(w / 4 - 8, trainH - 14, 16, 16); g2.fillOval(3 * w / 4 - 8, trainH - 14, 16, 16);
 				
-				g2.setColor(Color.WHITE);
-				int infoH = info.getPreferredSize().height + 10;
-				int infoW = w - 16;
-				g2.fillRoundRect(8, 32, infoW, infoH, 12, 12);
-				
-				g2.setColor(Color.WHITE);
-				g2.fillOval(w / 4 - 8, trainH - 14, 16, 16);
-				g2.fillOval(3 * w / 4 - 8, trainH - 14, 16, 16);
-				
-				g2.setColor(Color.BLACK);
-				int railY = h - 15;
-				g2.setStroke(new BasicStroke(1.5f));
-				g2.drawLine(15, railY, 5, h - 2);
-				g2.drawLine(w - 15, railY, w - 5, h - 2);
-				for (int i = 0; i <= 3; i++) {
-					int y = railY + (i * 4);
-					g2.drawLine(15 - (i * 2), y, w - 15 + (i * 2), y);
-				}
+				g2.setColor(Color.BLACK); int railY = h - 15; g2.setStroke(new BasicStroke(1.5f));
+				g2.drawLine(15, railY, 5, h - 2); g2.drawLine(w - 15, railY, w - 5, h - 2);
+				for (int i = 0; i <= 3; i++) { int y = railY + (i * 4); g2.drawLine(15 - (i * 2), y, w - 15 + (i * 2), y); }
 				g2.dispose();
 			}
 		};
@@ -748,35 +680,23 @@ public class DatVeGUI1 extends JPanel {
 				super.paintComponent(g); g2.dispose();
 			}
 		};
-		badge.setFont(fontLabelData);
-		badge.setBorder(new EmptyBorder(4, 8, 4, 8));
+		badge.setFont(fontLabelData); badge.setBorder(new EmptyBorder(4, 8, 4, 8));
 		
 		JPanel badgeWrap = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 4));
-		badgeWrap.setOpaque(false);
-		badgeWrap.add(badge);
+		badgeWrap.setOpaque(false); badgeWrap.add(badge);
 		card.add(badgeWrap, BorderLayout.NORTH);
 		
 		JPanel infoWrapper = new JPanel(new FlowLayout(FlowLayout.LEFT, 13, 5));
-		infoWrapper.setOpaque(false);
-		infoWrapper.setBorder(new EmptyBorder(5, 0, 0, 0));
-		infoWrapper.add(info);
+		infoWrapper.setOpaque(false); infoWrapper.setBorder(new EmptyBorder(5, 0, 0, 0)); infoWrapper.add(info);
 		card.add(infoWrapper, BorderLayout.CENTER);
 		
 		return card;
 	}
 
 	private void refreshToaGhe() {
-		pnlAllToas.removeAll();
-		toaBlocks.clear();
-		toaMaToas.clear();
-		toaLoaiToas.clear();
-		toaLogos.clear();
-		currentVisibleToaIndex = -1;
-
+		pnlAllToas.removeAll(); toaBlocks.clear(); toaMaToas.clear(); toaLoaiToas.clear(); toaLogos.clear(); currentVisibleToaIndex = -1;
 		if (chuyenIdx == -1) {
-			lblGheTrong.setText("Số ghế còn trống: --/--");
-			pnlAllToas.revalidate(); pnlAllToas.repaint();
-			return;
+			lblGheTrong.setText("Số ghế còn trống: --/--"); pnlAllToas.revalidate(); pnlAllToas.repaint(); return;
 		}
 
 		String[][] filtered = dangXemChieuVe ? CHUYEN_FILTERED_VE : CHUYEN_FILTERED;
@@ -792,22 +712,14 @@ public class DatVeGUI1 extends JPanel {
 		}
 
 		validToas.sort((toa1, toa2) -> {
-			String loai1 = getLoaiToa(toa1);
-			String loai2 = getLoaiToa(toa2);
-			int max1 = loai1.equals("VIP") ? 18 : 28;
-			int max2 = loai2.equals("VIP") ? 18 : 28;
-
-			Set<Integer> booked1 = gheDaDat(maChuyen, toa1);
-			Set<Integer> booked2 = gheDaDat(maChuyen, toa2);
-
-			boolean adj1 = hasAdjacent(booked1, soLuong, max1);
-			boolean adj2 = hasAdjacent(booked2, soLuong, max2);
-
+			String loai1 = getLoaiToa(toa1); String loai2 = getLoaiToa(toa2);
+			int max1 = loai1.equals("VIP") ? 18 : 28; int max2 = loai2.equals("VIP") ? 18 : 28;
+			Set<Integer> booked1 = gheDaDat(maChuyen, toa1); Set<Integer> booked2 = gheDaDat(maChuyen, toa2);
+			boolean adj1 = hasAdjacent(booked1, soLuong, max1); boolean adj2 = hasAdjacent(booked2, soLuong, max2);
 			int group1 = getGroup(max1 - booked1.size(), adj1, (max1 - booked1.size()) >= soLuong);
 			int group2 = getGroup(max2 - booked2.size(), adj2, (max2 - booked2.size()) >= soLuong);
 
 			if (group1 != group2) return Integer.compare(group1, group2);
-			
 			int num1 = Integer.parseInt(toa1.substring(1, 3));
 			int num2 = Integer.parseInt(toa2.substring(1, 3));
 			return Integer.compare(num1, num2); 
@@ -816,92 +728,63 @@ public class DatVeGUI1 extends JPanel {
 		for (String maToa : validToas) {
 			String loai = getLoaiToa(maToa);
 			JPanel block = buildSingleToaBlock(maChuyen, maToa, loai);
-			toaBlocks.add(block);
-			toaMaToas.add(maToa);
-			toaLoaiToas.add(loai);
-			pnlAllToas.add(block);
+			toaBlocks.add(block); toaMaToas.add(maToa); toaLoaiToas.add(loai); pnlAllToas.add(block);
 		}
 
 		pnlAllToas.setBorder(new EmptyBorder(10, 0, 200, 0));
 		pnlAllToas.revalidate(); pnlAllToas.repaint();
-
 		SwingUtilities.invokeLater(this::updateVisibleToa);
 	}
 
 	private JPanel buildSingleToaBlock(String maChuyen, String maToa, String loaiToa) {
 		JPanel wrapper = new JPanel(new BorderLayout(0, 0)) {
-			@Override
-			public Dimension getMaximumSize() {
-				return new Dimension(Integer.MAX_VALUE, super.getPreferredSize().height);
-			}
+			@Override public Dimension getMaximumSize() { return new Dimension(Integer.MAX_VALUE, super.getPreferredSize().height); }
 		}; 
-		wrapper.setBackground(BG);
-		wrapper.setBorder(new EmptyBorder(15, 20, 15, 20)); 
+		wrapper.setBackground(BG); wrapper.setBorder(new EmptyBorder(15, 20, 15, 20)); 
 
-		// SAU
 		JPanel hdr = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 0));
-		hdr.setOpaque(false);
-		hdr.setBorder(new EmptyBorder(0, 0, 5, 0));
+		hdr.setOpaque(false); hdr.setBorder(new EmptyBorder(0, 0, 5, 0));
 
-		JLabel lblLogo = new JLabel();
-		lblLogo.setHorizontalAlignment(SwingConstants.CENTER);
-
+		JLabel lblLogo = new JLabel(); lblLogo.setHorizontalAlignment(SwingConstants.CENTER);
 		boolean isVip = loaiToa.equals("VIP");
-		// ↓ thêm vào đây
-		String[][] filtered = dangXemChieuVe ? CHUYEN_FILTERED_VE : CHUYEN_FILTERED;
 		Icon icon = loadAndScaleIcon(isVip ? "/Images/logoToaVIP.png" : "/Images/logoToaThuong.png", 56, 36);
 		if (icon != null) lblLogo.setIcon(icon);
 		else { lblLogo.setText(isVip ? "[VIP]" : "[Thường]"); lblLogo.setBorder(new LineBorder(Color.GRAY)); }
 		toaLogos.add(lblLogo);
 		String prefix = isVip ? "Giường nằm: " : (loaiToa.contains("cứng") ? "Ghế cứng: " : "Ghế mềm: ");
-		JLabel lblTitle = new JLabel(prefix + maToa);
-		lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 17));
-		lblTitle.setForeground(NAVY);
+		JLabel lblTitle = new JLabel(prefix + maToa); lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 17)); lblTitle.setForeground(NAVY);
 
-		// Panel bọc logo + title để highlight cả 2
 		JPanel activePanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 6)) {
 		    @Override protected void paintComponent(Graphics g) {
 		        if (activeMaToa != null && activeMaToa.equals(maToa)) {
 		            Graphics2D g2 = (Graphics2D) g.create();
 		            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-		            g2.setColor(new Color(220, 235, 255));
-		            g2.fillRoundRect(0, 0, getWidth(), getHeight(), 12, 12);
-		            g2.setColor(NAVY_SEL);
-		            g2.setStroke(new BasicStroke(2f));
-		            g2.drawRoundRect(1, 1, getWidth()-2, getHeight()-2, 12, 12);
-		            g2.dispose();
+		            g2.setColor(new Color(220, 235, 255)); g2.fillRoundRect(0, 0, getWidth(), getHeight(), 12, 12);
+		            g2.setColor(NAVY_SEL); g2.setStroke(new BasicStroke(2f));
+		            g2.drawRoundRect(1, 1, getWidth()-2, getHeight()-2, 12, 12); g2.dispose();
 		        }
 		        super.paintComponent(g);
 		    }
 		};
-		activePanel.setOpaque(false);
-		activePanel.add(lblLogo);
-		activePanel.add(lblTitle);
+		activePanel.setOpaque(false); activePanel.add(lblLogo); activePanel.add(lblTitle);
+		hdr.add(activePanel); wrapper.add(hdr, BorderLayout.NORTH);
 
-		hdr.add(activePanel);
-		wrapper.add(hdr, BorderLayout.NORTH);
-
-		int maxSeats = isVip ? 18 : 28;
-		int cols = maxSeats / 2;
+		int maxSeats = isVip ? 18 : 28; int cols = maxSeats / 2;
 
 		JPanel grid = new JPanel(new GridLayout(2, cols, 6, 6)) { 
 			protected void paintComponent(Graphics g) {
 				super.paintComponent(g);
 				Graphics2D g2 = (Graphics2D) g.create();
 				g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-				g2.setColor(new Color(200, 205, 225));
-				g2.setStroke(new BasicStroke(1.5f));
-				g2.drawRoundRect(1, 1, getWidth() - 3, getHeight() - 3, 15, 15);
-				g2.dispose();
+				g2.setColor(new Color(200, 205, 225)); g2.setStroke(new BasicStroke(1.5f));
+				g2.drawRoundRect(1, 1, getWidth() - 3, getHeight() - 3, 15, 15); g2.dispose();
 			}
 		};
-		grid.setBackground(Color.WHITE); 
-		grid.setBorder(new EmptyBorder(12, 15, 12, 15));
+		grid.setBackground(Color.WHITE); grid.setBorder(new EmptyBorder(12, 15, 12, 15));
 		final String maToaFinal = maToa;
 		Set<Integer> dadat = gheDaDat(maChuyen, maToa);
 		for (int i = 1; i <= maxSeats; i++) {
-			int gNum = i;
-			boolean taken = dadat.contains(gNum);
+			int gNum = i; boolean taken = dadat.contains(gNum);
 			String seatId = String.format("G%02d%s", gNum, maToa); 
 
 			JButton btn = new JButton(String.valueOf(i)) {
@@ -909,10 +792,8 @@ public class DatVeGUI1 extends JPanel {
 					Graphics2D g2 = (Graphics2D) g.create();
 					g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 					Color bg = taken ? SEAT_TAKEN : gheChon.contains(seatId) ? SEAT_SEL : SEAT_OK;
-					g2.setColor(bg);
-					g2.fillRoundRect(0, 0, getWidth(), getHeight(), 5, 5);
-					g2.setColor(Color.WHITE);
-					g2.setFont(SEAT_FONT); 
+					g2.setColor(bg); g2.fillRoundRect(0, 0, getWidth(), getHeight(), 5, 5);
+					g2.setColor(Color.WHITE); g2.setFont(SEAT_FONT); 
 					FontMetrics fm = g2.getFontMetrics(SEAT_FONT);
 					g2.drawString(getText(), (getWidth() - fm.stringWidth(getText())) / 2, (getHeight() + fm.getAscent() - fm.getDescent()) / 2);
 					g2.dispose();
@@ -923,46 +804,34 @@ public class DatVeGUI1 extends JPanel {
 			
 			if (!taken) {
 				btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-				// SAU
 				btn.addActionListener(ev -> {
 				    if (gheChon.contains(seatId)) gheChon.remove(seatId);
 				    else if (gheChon.size() < soLuong) gheChon.add(seatId);
 
-				    // Active toa này ngay khi click ghế
 				    if (!maToaFinal.equals(activeMaToa)) {
 				        int idx = toaMaToas.indexOf(maToaFinal);
 				        if (idx >= 0) {
-				            currentVisibleToaIndex = idx;
-				            activeMaToa = maToaFinal;
-				            manualToaSelected = true;
+				            currentVisibleToaIndex = idx; activeMaToa = maToaFinal; manualToaSelected = true;
 				            String loai = toaLoaiToas.get(idx);
-				         // SAU
 				            String[][] cur = dangXemChieuVe ? CHUYEN_FILTERED_VE : CHUYEN_FILTERED;
-				            String maChuyenHienTai = (chuyenIdx >= 0 && cur != null && chuyenIdx < cur.length)
-				                ? cur[chuyenIdx][5] : "";
+				            String maChuyenHienTai = (chuyenIdx >= 0 && cur != null && chuyenIdx < cur.length) ? cur[chuyenIdx][5] : "";
 			
 				            Set<Integer> dadatInner = gheDaDat(maChuyenHienTai, maToaFinal);
-				            int maxSeatsInner = loai.equals("VIP") ? 18 : 28;
-				            int trong = 0;
+				            int maxSeatsInner = loai.equals("VIP") ? 18 : 28; int trong = 0;
 				            for (int g = 1; g <= maxSeatsInner; g++) if (!dadatInner.contains(g)) trong++;
 				            lblGheTrong.setText("Số ghế còn trống: " + trong + "/" + maxSeatsInner);
 				            updateVisibleToa();
 				        }
 				    }
-
-				    btn.repaint();
-				    updateGheDaChon();
-				    updateActionBtn();
+				    btn.repaint(); updateGheDaChon(); updateActionBtn();
 				});	
 			}
 			grid.add(btn);
 		}
 
 		JPanel gridCenterWrapper = new JPanel(new GridBagLayout());
-		gridCenterWrapper.setOpaque(false);
-		gridCenterWrapper.setBorder(new EmptyBorder(0, 0, 10, 0));
+		gridCenterWrapper.setOpaque(false); gridCenterWrapper.setBorder(new EmptyBorder(0, 0, 10, 0));
 		gridCenterWrapper.add(grid);
-
 		wrapper.add(gridCenterWrapper, BorderLayout.CENTER);
 		return wrapper;
 	}
@@ -970,13 +839,10 @@ public class DatVeGUI1 extends JPanel {
 	private void updateVisibleToa() {
 	    if (toaBlocks.isEmpty() || toaLogos.isEmpty()) return;
 
-	    JViewport viewport = toaScrollPane.getViewport();
-	    Rectangle viewRect = viewport.getViewRect();
+	    JViewport viewport = toaScrollPane.getViewport(); Rectangle viewRect = viewport.getViewRect();
 	    int centerY = viewRect.y + viewRect.height / 2;
 
-	    // Tính toa gần giữa màn hình nhất
-	    int closestIndex = -1;
-	    int minDiff = Integer.MAX_VALUE;
+	    int closestIndex = -1; int minDiff = Integer.MAX_VALUE;
 	    for (int i = 0; i < toaBlocks.size(); i++) {
 	        JPanel block = toaBlocks.get(i);
 	        int blockCenterY = pnlAllToas.getY() + block.getY() + block.getHeight() / 2;
@@ -987,18 +853,14 @@ public class DatVeGUI1 extends JPanel {
 	    if (closestIndex == -1) return;
 
 	    if (manualToaSelected) {
-	        // Vừa click ghế → giữ activeMaToa, tìm index của toa đó để highlight
 	        manualToaSelected = false;
 	        int manualIdx = toaMaToas.indexOf(activeMaToa);
 	        if (manualIdx >= 0) closestIndex = manualIdx;
 	    } else {
-	        // Scroll tự nhiên → cập nhật theo toa ở giữa màn hình
-	        if (closestIndex == currentVisibleToaIndex) return; // không đổi → bỏ qua
-	        currentVisibleToaIndex = closestIndex;
-	        activeMaToa = toaMaToas.get(closestIndex);
+	        if (closestIndex == currentVisibleToaIndex) return; 
+	        currentVisibleToaIndex = closestIndex; activeMaToa = toaMaToas.get(closestIndex);
 	    }
 
-	    // Highlight activePanel + đổi màu/text label title
 	    for (int i = 0; i < toaBlocks.size(); i++) {
 	        JPanel block = toaBlocks.get(i);
 	        Component hdrComp = ((BorderLayout) block.getLayout()).getLayoutComponent(BorderLayout.NORTH);
@@ -1006,42 +868,33 @@ public class DatVeGUI1 extends JPanel {
 	        JPanel hdrPanel = (JPanel) hdrComp;
 	        for (Component c : hdrPanel.getComponents()) {
 	            if (!(c instanceof JPanel)) continue;
-	            JPanel ap = (JPanel) c;
-	            ap.repaint();
+	            JPanel ap = (JPanel) c; ap.repaint();
 	            for (Component inner : ap.getComponents()) {
 	                if (!(inner instanceof JLabel)) continue;
 	                JLabel lbl = (JLabel) inner;
-	                if (lbl.getIcon() != null) continue; // bỏ qua logo
-	                // Lấy text gốc (bỏ prefix ▶ nếu có)
+	                if (lbl.getIcon() != null) continue; 
 	                String rawText = lbl.getText().replace("", "");
 	                if (i == closestIndex) {
-	                    lbl.setText("" + rawText);
-	                    lbl.setForeground(new Color(0, 100, 200));
-	                    lbl.setFont(new Font("Segoe UI", Font.BOLD, 17));
+	                    lbl.setText("" + rawText); lbl.setForeground(new Color(0, 100, 200)); lbl.setFont(new Font("Segoe UI", Font.BOLD, 17));
 	                } else {
-	                    lbl.setText(rawText);
-	                    lbl.setForeground(NAVY);
-	                    lbl.setFont(new Font("Segoe UI", Font.BOLD, 17));
+	                    lbl.setText(rawText); lbl.setForeground(NAVY); lbl.setFont(new Font("Segoe UI", Font.BOLD, 17));
 	                }
 	            }
 	        }
 	    }
 
-	    // Cập nhật số ghế còn trống theo toa active
 	    String activeLoai = toaLoaiToas.get(closestIndex);
 	    String[][] filtered = dangXemChieuVe ? CHUYEN_FILTERED_VE : CHUYEN_FILTERED;
 	    if (chuyenIdx < 0 || filtered == null || chuyenIdx >= filtered.length) return;
 	    Set<Integer> dadat = gheDaDat(filtered[chuyenIdx][5], activeMaToa);
-	    int maxSeats = activeLoai.equals("VIP") ? 18 : 28;
-	    int trong = 0;
+	    int maxSeats = activeLoai.equals("VIP") ? 18 : 28; int trong = 0;
 	    for (int g = 1; g <= maxSeats; g++) if (!dadat.contains(g)) trong++;
 	    lblGheTrong.setText("Số ghế còn trống: " + trong + "/" + maxSeats);
 	}
 
 	private void switchToChieuVe() {
 		trangDi = trang; chuyenIdxDi = chuyenIdx; gheChonDi.clear(); gheChonDi.addAll(gheChon);
-		dangXemChieuVe = true;
-		applyFilter(cbKhungGio.getSelectedItem().toString());
+		dangXemChieuVe = true; applyFilter(cbKhungGio.getSelectedItem().toString());
 		trang = trangVe; chuyenIdx = chuyenIdxVe; gheChon.clear(); gheChon.addAll(gheChonVe);
 		lblChieuHeader.setText("Chiều về : Ngày " + ngayVe + " từ " + gaDen + " đến " + gaDi);
 		btnChieuToggle.setText("Chiều đi");
@@ -1050,29 +903,22 @@ public class DatVeGUI1 extends JPanel {
 
 	private void switchToChieuDi() {
 		trangVe = trang; chuyenIdxVe = chuyenIdx; gheChonVe.clear(); gheChonVe.addAll(gheChon);
-		dangXemChieuVe = false;
-		trang = trangDi; chuyenIdx = chuyenIdxDi; gheChon.clear(); gheChon.addAll(gheChonDi);
+		dangXemChieuVe = false; trang = trangDi; chuyenIdx = chuyenIdxDi; gheChon.clear(); gheChon.addAll(gheChonDi);
 		lblChieuHeader.setText("Chiều đi : Ngày " + ngayDi + " từ " + gaDi + " đến " + gaDen);
 		btnChieuToggle.setText("Chiều về");
 		refreshChuyen(); refreshToaGhe(); updateActionBtn(); updateGheDaChon();
 	}
 
-	private void chuyenSangGUI2(List<String> listGheChon) {
-		DatVeGUI2 gui2 = new DatVeGUI2(listGheChon, loaiVe, () -> {
+	// ĐÃ SỬA: Hàm này đón thêm danh sách Mã Chuyến
+	private void chuyenSangGUI2(List<String> listGheChon, List<String> listMaChuyen) {
+		DatVeGUI2 gui2 = new DatVeGUI2(listGheChon, listMaChuyen, loaiVe, () -> {
 			Container parent = getParent();
 			if (parent != null) {
 				LayoutManager lm = parent.getLayout();
-				if (lm instanceof CardLayout) {
-					((CardLayout) lm).show(parent, "datveGUI_next"); 
-				} else {
-					for (Component c : parent.getComponents()) {
-						if (c instanceof DatVeGUI2) {
-							parent.remove(c);
-						}
-					}
-					parent.add(this, BorderLayout.CENTER);
-					parent.revalidate();
-					parent.repaint();
+				if (lm instanceof CardLayout) { ((CardLayout) lm).show(parent, "datveGUI_next"); } 
+				else {
+					for (Component c : parent.getComponents()) if (c instanceof DatVeGUI2) parent.remove(c);
+					parent.add(this, BorderLayout.CENTER); parent.revalidate(); parent.repaint();
 				}
 			}
 		});
@@ -1081,98 +927,83 @@ public class DatVeGUI1 extends JPanel {
 		if (parent != null) {
 			LayoutManager lm = parent.getLayout();
 			if (lm instanceof CardLayout) {
-				parent.add(gui2, "datveGUI2_thongtin");
-				((CardLayout) lm).show(parent, "datveGUI2_thongtin");
+				parent.add(gui2, "datveGUI2_thongtin"); ((CardLayout) lm).show(parent, "datveGUI2_thongtin");
 			} else {
-				parent.remove(this); 
-				parent.add(gui2, BorderLayout.CENTER);
-				parent.revalidate();
-				parent.repaint();
+				parent.remove(this); parent.add(gui2, BorderLayout.CENTER); parent.revalidate(); parent.repaint();
 			}
 		}
 	}
 
 	private JPanel buildBotBar() {
 		JPanel bar = new JPanel(new BorderLayout());
-		bar.setBackground(Color.WHITE);
-		bar.setBorder(new MatteBorder(1, 0, 0, 0, BORDER_C));
+		bar.setBackground(Color.WHITE); bar.setBorder(new MatteBorder(1, 0, 0, 0, BORDER_C));
 
-		// SỬA LỖI Ở ĐÂY: Thêm JButton vào trước tên biến
 		JButton btnQuayLai = makeOutlineBtn("Quay lại", loadAndScaleIcon("/Images/logoBack.png", 14, 14));
-		
 		btnQuayLai.addActionListener(e -> {
-			if (!motChieu && dangXemChieuVe) {
-				switchToChieuDi();
-			} else {
-				if (onQuayLai != null) onQuayLai.run();
-			}
+			if (!motChieu && dangXemChieuVe) switchToChieuDi();
+			else if (onQuayLai != null) onQuayLai.run();
 		});
 
 		lblGheDaChon = new JLabel("  Số vé đã chọn: 0/" + soLuong);
-		lblGheDaChon.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-		lblGheDaChon.setForeground(new Color(50, 70, 110));
+		lblGheDaChon.setFont(new Font("Segoe UI", Font.PLAIN, 12)); lblGheDaChon.setForeground(new Color(50, 70, 110));
 
 		btnHuy = makeRedBtn("Hủy", loadAndScaleIcon("/Images/logoThungRac.png", 14, 14));
 		btnHuy.addActionListener(e -> {
-			gheChon.clear();
-			updateGheDaChon();
-			updateActionBtn();
-			pnlAllToas.repaint(); 
-			updateVisibleToa();
+			gheChon.clear(); updateGheDaChon(); updateActionBtn(); pnlAllToas.repaint(); updateVisibleToa();
 		});
 
 		btnAction = makeNavyBtn("Chọn nhanh", loadAndScaleIcon("/Images/logoGhe.png", 14, 14));
-		
 		btnAction.addActionListener(e -> {
 			if (gheChon.size() >= soLuong) {
-				if (!motChieu && !dangXemChieuVe) {
-					switchToChieuVe();
-				} else {
+				if (!motChieu && !dangXemChieuVe) switchToChieuVe();
+				else {
 					if (!motChieu && gheChonDi.size() < soLuong) {
 						JOptionPane.showMessageDialog(this, "Bạn chưa chọn đủ vé chiều đi!", "Cảnh báo", JOptionPane.WARNING_MESSAGE);
-						switchToChieuDi();
-						return;
-					}
-
-					List<String> listGhe = new ArrayList<>();
-					if (motChieu) {
-						listGhe.addAll(gheChon);
-					} else {
-						listGhe.addAll(gheChonDi);
-						gheChonVe.clear();
-						gheChonVe.addAll(gheChon);
-						listGhe.addAll(gheChonVe);
+						switchToChieuDi(); return;
 					}
 					
-					chuyenSangGUI2(listGhe);
+					// ĐÃ SỬA: Tạo thêm giỏ hàng chứa Mã Chuyến song song với Mã Ghế
+					List<String> listGhe = new ArrayList<>();
+					List<String> listMaChuyen = new ArrayList<>();
+					
+					if (motChieu) {
+						listGhe.addAll(gheChon);
+						String maC = CHUYEN_FILTERED[chuyenIdx][5];
+						for(int i=0; i<gheChon.size(); i++) listMaChuyen.add(maC);
+					} else {
+						listGhe.addAll(gheChonDi);
+						String maCDi = CHUYEN_FILTERED[chuyenIdxDi][5];
+						for(int i=0; i<gheChonDi.size(); i++) listMaChuyen.add(maCDi);
+						
+						gheChonVe.clear(); gheChonVe.addAll(gheChon); 
+						listGhe.addAll(gheChonVe);
+						String maCVe = CHUYEN_FILTERED_VE[chuyenIdx][5];
+						for(int i=0; i<gheChonVe.size(); i++) listMaChuyen.add(maCVe);
+					}
+					chuyenSangGUI2(listGhe, listMaChuyen); // Chuyền cả 2 danh sách sang
 				}
 			} else {
 				String[][] filtered = dangXemChieuVe ? CHUYEN_FILTERED_VE : CHUYEN_FILTERED;
 				if (chuyenIdx < 0 || chuyenIdx >= filtered.length) return;
-				String maChuyen = filtered[chuyenIdx][5];
-				gheChon.clear();
+				String maChuyen = filtered[chuyenIdx][5]; gheChon.clear();
 				for (int i = 0; i < toaMaToas.size(); i++) {
 					if (gheChon.size() >= soLuong) break; 
-					String maToa = toaMaToas.get(i);
-					String loaiToa = toaLoaiToas.get(i);
-					int maxSeats = loaiToa.equals("VIP") ? 18 : 28;
-					Set<Integer> dadat = gheDaDat(maChuyen, maToa);
+					String maToa = toaMaToas.get(i); String loaiToa = toaLoaiToas.get(i);
+					int maxSeats = loaiToa.equals("VIP") ? 18 : 28; Set<Integer> dadat = gheDaDat(maChuyen, maToa);
 					for (int g = 1; g <= maxSeats; g++) {
 						if (gheChon.size() >= soLuong) break; 
 						String seatId = String.format("G%02d%s", g, maToa);
 						if (!dadat.contains(g)) gheChon.add(seatId);
 					}
 				}
-				pnlAllToas.repaint();
-				updateGheDaChon(); updateActionBtn(); updateVisibleToa(); 
+				pnlAllToas.repaint(); updateGheDaChon(); updateActionBtn(); updateVisibleToa(); 
 			}
 		});
 
 		JPanel left = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 2)); left.setBackground(Color.WHITE); left.add(btnQuayLai);
 		JPanel right = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 2)); right.setBackground(Color.WHITE);
 		right.add(lblGheDaChon); right.add(btnHuy); right.add(btnAction);
-		bar.add(left, BorderLayout.WEST);
-		bar.add(right, BorderLayout.EAST);
+		bar.add(left, BorderLayout.WEST); bar.add(right, BorderLayout.EAST);
 		return bar;
 	}
 
@@ -1183,13 +1014,9 @@ public class DatVeGUI1 extends JPanel {
 	private void updateActionBtn() {
 		if (btnAction == null) return;
 		if (gheChon.size() >= soLuong) {
-			btnAction.setText("Tiếp tục");
-			btnAction.setIcon(loadAndScaleIcon("/Images/logoGoOn.png", 14, 14));
-			btnAction.setHorizontalTextPosition(SwingConstants.LEFT);
+			btnAction.setText("Tiếp tục"); btnAction.setIcon(loadAndScaleIcon("/Images/logoGoOn.png", 14, 14)); btnAction.setHorizontalTextPosition(SwingConstants.LEFT);
 		} else {
-			btnAction.setText("Chọn nhanh");
-			btnAction.setIcon(loadAndScaleIcon("/Images/logoGhe.png", 14, 14));
-			btnAction.setHorizontalTextPosition(SwingConstants.RIGHT);
+			btnAction.setText("Chọn nhanh"); btnAction.setIcon(loadAndScaleIcon("/Images/logoGhe.png", 14, 14)); btnAction.setHorizontalTextPosition(SwingConstants.RIGHT);
 		}
 		btnAction.revalidate(); btnAction.repaint();
 	}
@@ -1199,19 +1026,14 @@ public class DatVeGUI1 extends JPanel {
 			@Override protected void paintComponent(Graphics g) {
 				Graphics2D g2 = (Graphics2D) g.create();
 				g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-				g2.setColor(isEnabled() ? new Color(215, 228, 248) : new Color(238, 240, 246));
-				g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
-				g2.setColor(isEnabled() ? NAVY : new Color(175, 185, 205));
-				g2.setFont(ARROW_FONT);
+				g2.setColor(isEnabled() ? new Color(215, 228, 248) : new Color(238, 240, 246)); g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
+				g2.setColor(isEnabled() ? NAVY : new Color(175, 185, 205)); g2.setFont(ARROW_FONT);
 				FontMetrics fm = g2.getFontMetrics(ARROW_FONT);
-				g2.drawString(t, (getWidth() - fm.stringWidth(t)) / 2, (getHeight() + fm.getAscent() - fm.getDescent()) / 2);
-				g2.dispose();
+				g2.drawString(t, (getWidth() - fm.stringWidth(t)) / 2, (getHeight() + fm.getAscent() - fm.getDescent()) / 2); g2.dispose();
 			}
 		};
-		b.setPreferredSize(new Dimension(26, 78));
-		b.setContentAreaFilled(false); b.setBorderPainted(false); b.setFocusPainted(false);
-		b.setCursor(new Cursor(Cursor.HAND_CURSOR));
-		return b;
+		b.setPreferredSize(new Dimension(26, 78)); b.setContentAreaFilled(false); b.setBorderPainted(false); b.setFocusPainted(false);
+		b.setCursor(new Cursor(Cursor.HAND_CURSOR)); return b;
 	}
 
 	private JButton makeOutlineBtn(String text, Icon icon) {
@@ -1222,8 +1044,7 @@ public class DatVeGUI1 extends JPanel {
 				boolean en = isEnabled();
 				g2.setColor(en ? (getModel().isPressed() ? new Color(198, 215, 242) : getModel().isRollover() ? new Color(212, 228, 250) : new Color(226, 236, 252)) : new Color(238, 241, 248));
 				g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
-				g2.setColor(en ? NAVY : new Color(175, 185, 205));
-				g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 8, 8);
+				g2.setColor(en ? NAVY : new Color(175, 185, 205)); g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 8, 8);
 				g2.dispose(); super.paintComponent(g);
 			}
 		};
@@ -1239,15 +1060,13 @@ public class DatVeGUI1 extends JPanel {
 				Graphics2D g2 = (Graphics2D) g.create();
 				g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 				g2.setColor(getModel().isPressed() ? new Color(18, 42, 85) : getModel().isRollover() ? new Color(38, 68, 128) : NAVY);
-				g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
-				g2.dispose(); super.paintComponent(g);
+				g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10); g2.dispose(); super.paintComponent(g);
 			}
 		};
 		b.setIcon(icon); b.setFont(new Font("Segoe UI", Font.BOLD, 14)); b.setForeground(Color.WHITE);
 		b.setIconTextGap(8); b.setBorder(new EmptyBorder(6, 16, 6, 16));
 		b.setContentAreaFilled(false); b.setBorderPainted(false); b.setFocusPainted(false);
-		b.setCursor(new Cursor(Cursor.HAND_CURSOR));
-		return b;
+		b.setCursor(new Cursor(Cursor.HAND_CURSOR)); return b;
 	}
 
 	private JButton makeRedBtn(String text, Icon icon) {
@@ -1256,31 +1075,26 @@ public class DatVeGUI1 extends JPanel {
 				Graphics2D g2 = (Graphics2D) g.create();
 				g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 				g2.setColor(getModel().isPressed() ? new Color(180, 20, 30) : getModel().isRollover() ? new Color(220, 40, 50) : new Color(210, 30, 40));
-				g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
-				g2.dispose(); super.paintComponent(g);
+				g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10); g2.dispose(); super.paintComponent(g);
 			}
 		};
 		b.setIcon(icon); b.setFont(new Font("Segoe UI", Font.BOLD, 14)); b.setForeground(Color.WHITE);
 		b.setIconTextGap(8); b.setBorder(new EmptyBorder(6, 16, 6, 16));
 		b.setContentAreaFilled(false); b.setBorderPainted(false); b.setFocusPainted(false);
-		b.setCursor(new Cursor(Cursor.HAND_CURSOR));
-		return b;
+		b.setCursor(new Cursor(Cursor.HAND_CURSOR)); return b;
 	}
 
 	private JPanel makeLegend(Color c, String txt) {
-		JPanel p = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
-		p.setBackground(BG);
+		JPanel p = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0)); p.setBackground(BG);
 		JPanel box = new JPanel() {
 			@Override protected void paintComponent(Graphics g) {
 				Graphics2D g2 = (Graphics2D) g.create();
 				g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-				g2.setColor(c); g2.fillRoundRect(0, 0, getWidth(), getHeight(), 3, 3);
-				g2.dispose();
+				g2.setColor(c); g2.fillRoundRect(0, 0, getWidth(), getHeight(), 3, 3); g2.dispose();
 			}
 		};
 		box.setPreferredSize(new Dimension(16, 16)); box.setOpaque(false);
 		JLabel l = new JLabel(txt); l.setFont(new Font("Segoe UI", Font.PLAIN, 14)); l.setForeground(Color.BLACK);
-		p.add(box); p.add(l);
-		return p;
+		p.add(box); p.add(l); return p;
 	}
 }

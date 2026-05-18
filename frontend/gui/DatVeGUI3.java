@@ -45,7 +45,6 @@ public class DatVeGUI3 extends JPanel {
     private int secondsLeft;
     private ImageIcon originalQRImageIcon = null; 
 
-    // Đồng hồ kiểm tra lịch sử giao dịch ngầm
     private javax.swing.Timer bankCheckTimer;
 
     public DatVeGUI3(DefaultTableModel modelFromGUI2, int secondsLeft, java.util.function.Consumer<Integer> onQuayLai) {
@@ -75,6 +74,35 @@ public class DatVeGUI3 extends JPanel {
 
         tinhToanTaiChinh();
         startCountdown();
+    }
+
+    // 1. Hàm móc Database lấy Loại Ghế và tính Giá Tiền
+    private Object[] layThongTinGheTuDB(String maGhe) {
+        String loaiGhe = "Ghế thường";
+        double giaTien = 300000; 
+        String sql = "SELECT g.loaiGhe, t.heSoLoaiToa FROM Ghe g JOIN ToaTau t ON g.maToaTau = t.maToaTau WHERE g.maGhe = ?";
+        try (java.sql.Connection con = connect_DB.Connect_DB.getInstance().getConnection();
+             java.sql.PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setString(1, maGhe);
+            try (java.sql.ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    loaiGhe = rs.getString("loaiGhe");
+                    double heSo = rs.getDouble("heSoLoaiToa");
+                    giaTien = 300000 * (heSo > 0 ? heSo : 1.0); 
+                }
+            }
+        } catch (Exception e) { e.printStackTrace(); }
+        return new Object[]{loaiGhe, giaTien};
+    }
+
+    // 2. Hàm lấy Tỉ lệ giảm giá theo Đối tượng
+    private double layTyLeGiamTuDB(String loaiDoiTuong) {
+        double tyLe = 0.0;
+        if (loaiDoiTuong.contains("Sinh viên")) tyLe = 0.2;
+        else if (loaiDoiTuong.contains("Trẻ em (<6 tuổi)")) tyLe = 1.0; 
+        else if (loaiDoiTuong.contains("Trẻ em")) tyLe = 0.5;
+        else if (loaiDoiTuong.contains("cao tuổi")) tyLe = 0.3;
+        return tyLe;
     }
 
     private JPanel buildLeftPanel() {
@@ -107,10 +135,12 @@ public class DatVeGUI3 extends JPanel {
             String maGhe = modelFromGUI2.getValueAt(i, 4).toString(); 
             String loaiDoiTuong = modelFromGUI2.getValueAt(i, 8).toString(); 
 
-            String loaiCho = maGhe.contains("T01") ? "Ghế cứng" : maGhe.contains("T05") ? "Ghế mềm" : "Giường nằm";
-            double donGia = loaiCho.equals("Ghế cứng") ? 300000 : loaiCho.equals("Ghế mềm") ? 450000 : 700000;
+            // Lấy trực tiếp từ Database
+            Object[] thongTinGhe = layThongTinGheTuDB(maGhe);
+            String loaiCho = (String) thongTinGhe[0];
+            double donGia = (Double) thongTinGhe[1];
             
-            double tyLeGiam = loaiDoiTuong.contains("Sinh viên") ? 0.2 : loaiDoiTuong.contains("Trẻ em") ? 0.5 : loaiDoiTuong.contains("cao tuổi") ? 0.3 : 0;
+            double tyLeGiam = layTyLeGiamTuDB(loaiDoiTuong);
             double giamGia = donGia * tyLeGiam;
             double thanhTien = donGia - giamGia;
 
@@ -193,11 +223,22 @@ public class DatVeGUI3 extends JPanel {
         String tenKH = modelFromGUI2.getRowCount() > 0 ? modelFromGUI2.getValueAt(0, 5).toString() : "N/A";
         String sdtKH = modelFromGUI2.getRowCount() > 0 ? modelFromGUI2.getValueAt(0, 7).toString() : "N/A";
 
-        content.add(createDetailLabel("Mã nhân viên:", "NV001"));
+        String maKhachHangThucTe = "N/A";
+        if (!sdtKH.equals("N/A") && !sdtKH.isEmpty()) {
+            entity.KhachHang kh = new dao.KhachHangDAO().timTheoSDT(sdtKH);
+            if (kh != null) {
+                maKhachHangThucTe = kh.getMaKH();
+            }
+        }
+
+        String maNhanVienDangNhap = "NV001";
+        String tenNhanVienDangNhap = "Nhân viên Bán Vé";
+
+        content.add(createDetailLabel("Mã nhân viên:", maNhanVienDangNhap));
         content.add(Box.createVerticalStrut(4));
-        content.add(createDetailLabel("Tên nhân viên:", "Nhân viên Bán Vé"));
+        content.add(createDetailLabel("Tên nhân viên:", tenNhanVienDangNhap));
         content.add(Box.createVerticalStrut(4));
-        content.add(createDetailLabel("Mã khách hàng:", "KH099"));
+        content.add(createDetailLabel("Mã khách hàng:", maKhachHangThucTe));
         content.add(Box.createVerticalStrut(4));
         content.add(createDetailLabel("Tên khách hàng:", tenKH));
         content.add(Box.createVerticalStrut(4));
@@ -290,7 +331,7 @@ public class DatVeGUI3 extends JPanel {
         pnlThua.setOpaque(false);
         pnlThua.setBorder(new MatteBorder(0, 0, 1, 0, Color.GRAY));
         
-        JLabel lblThuaTitle = new JLabel("Tiền thừa:");
+        JLabel lblThuaTitle = new JLabel("Tiền thừa trả khách:");
         lblThuaTitle.setFont(FONT_14);
         lblTienThua = new JLabel("0 VNĐ");
         lblTienThua.setFont(FONT_B14);
@@ -491,10 +532,99 @@ public class DatVeGUI3 extends JPanel {
         return bar;
     }
 
+    // =================================================================
+    // MỚI: HÀM LƯU DATABASE SIÊU BỌC THÉP (CÓ BÁO LỖI CHI TIẾT)
+    // =================================================================
+    private boolean luuDuLieuVaoDatabase(String hinhThucThanhToan) {
+        java.sql.Connection con = null;
+        try {
+            con = connect_DB.Connect_DB.getInstance().getConnection();
+            con.setAutoCommit(false); 
+
+            // 0. BẢO MẬT KHÓA NGOẠI: Lấy 1 nhân viên mặc định có sẵn trong DB để tránh lỗi "Vi phạm khóa ngoại NhanVien"
+            String maNV = "NV001";
+            try (java.sql.Statement st = con.createStatement();
+                 java.sql.ResultSet rsNV = st.executeQuery("SELECT TOP 1 maNV FROM NhanVien")) {
+                if (rsNV.next()) maNV = rsNV.getString(1);
+            }
+
+            // 1. LƯU HÓA ĐƠN
+            String sqlHoaDon = "INSERT INTO HoaDon (maHoaDon, ngayLapHD, maNV, maKH, tongTien, tienNhan, phuongThucThanhToan) VALUES (?, GETDATE(), ?, ?, ?, ?, ?)";
+            try (java.sql.PreparedStatement psHD = con.prepareStatement(sqlHoaDon)) {
+                psHD.setString(1, maHD);
+                psHD.setString(2, maNV);
+                
+                String sdtKhach = modelFromGUI2.getRowCount() > 0 ? modelFromGUI2.getValueAt(0, 7).toString() : "";
+                entity.KhachHang kh = new dao.KhachHangDAO().timTheoSDT(sdtKhach);
+                if (kh != null) {
+                    psHD.setString(3, kh.getMaKH());
+                } else {
+                    psHD.setNull(3, java.sql.Types.VARCHAR); 
+                }
+                
+                psHD.setDouble(4, tongThanhToan);
+                
+                // Lấy đúng số tiền khách đưa (nếu là chuyển khoản thì bằng tổng tiền)
+                double tienKhach = hinhThucThanhToan.contains("Chuyển khoản") ? tongThanhToan : parseMoney(txtTienKhachDua.getText());
+                psHD.setDouble(5, tienKhach);
+                
+                psHD.setString(6, hinhThucThanhToan.contains("Tiền mặt") ? "TIEN_MAT" : "CHUYEN_KHOAN");
+                psHD.executeUpdate();
+            }
+
+            // 2. LƯU TỪNG VÉ
+         // 2. LƯU TỪNG VÉ
+            String sqlVe = "INSERT INTO Ve (maVe, ngayMua, loaiVe, trangThaiVe, giaVe, maGhe, maHoaDon, maChuyenTau) VALUES (?, GETDATE(), ?, N'Đã thanh toán', ?, ?, ?, ?)";
+            try (java.sql.PreparedStatement psVe = con.prepareStatement(sqlVe)) {
+                for (int i = 0; i < modelChiTiet.getRowCount(); i++) {
+                    String maVe = modelChiTiet.getValueAt(i, 1).toString();
+                    String maGhe = modelFromGUI2.getValueAt(i, 4).toString(); 
+                    double giaGoc = parseMoney(modelChiTiet.getValueAt(i, 4).toString());
+                    
+                    String loaiVeGUI2 = modelFromGUI2.getValueAt(i, 2).toString();
+                    String loaiVeDB = loaiVeGUI2.contains("hồi") ? "KHU_HOI" : "MOT_CHIEU";
+
+                    // ĐÃ TỐI ƯU CỰC MẠNH: Lấy trực tiếp mã chuyến tàu từ cột ẩn do GUI 1 truyền qua
+                    String maChuyenTau = modelFromGUI2.getValueAt(i, 12).toString(); 
+
+                    psVe.setString(1, maVe);
+                    psVe.setString(2, loaiVeDB);
+                    psVe.setDouble(3, giaGoc);
+                    psVe.setString(4, maGhe);
+                    psVe.setString(5, maHD);
+                    psVe.setString(6, maChuyenTau);
+                    psVe.addBatch();
+                }
+                psVe.executeBatch();
+            }
+            
+            con.commit(); // Cả 2 thao tác thành công thì chốt dữ liệu xuống ổ cứng
+            return true;
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            if (con != null) {
+                try { con.rollback(); } catch (Exception ex) {} // Lỗi thì hủy hết, chống rác dữ liệu
+            }
+            // ĐÃ FIX: In thẳng nguyên nhân lỗi SQL ra màn hình để ta biết đường mà sửa
+            JOptionPane.showMessageDialog(this, "Chi tiết mã lỗi SQL Server:\n" + e.getMessage(), "Lỗi Database", JOptionPane.ERROR_MESSAGE);
+            return false;
+        } finally {
+            if (con != null) {
+                try { con.setAutoCommit(true); con.close(); } catch (Exception ex) {}
+            }
+        }
+    }
+
     private void xửLýHoànTấtThanhToán(String hìnhThức) {
         stopAllTimers();
-        JOptionPane.showMessageDialog(this, "Thanh toán thành công qua [" + hìnhThức + "]!\nHệ thống đang tự động in hóa đơn vé tàu...", "Thành công", JOptionPane.INFORMATION_MESSAGE);
-        inHoaDon();
+        
+        boolean isSaved = luuDuLieuVaoDatabase(hìnhThức);
+        
+        if (isSaved) {
+            JOptionPane.showMessageDialog(this, "Thanh toán thành công qua [" + hìnhThức + "]!\nHệ thống đang tự động in hóa đơn vé tàu...", "Thành công", JOptionPane.INFORMATION_MESSAGE);
+            inHoaDon();
+        } 
     }
 
     private void inHoaDon() {
@@ -620,8 +750,8 @@ public class DatVeGUI3 extends JPanel {
             lblQR.setText("Đang tạo mã VietQR...");
             SwingWorker<ImageIcon, Void> worker = new SwingWorker<>() {
                 @Override protected ImageIcon doInBackground() throws Exception {
-                    String bankID = "970422";       // MB Bank BIN 
-                    String accountNo = "0382588430"; // STK MB Bank của bác
+                    String bankID = "970422";       
+                    String accountNo = "0382588430"; 
                     String amount = String.valueOf((long) tongThanhToan);
                     String info = URLEncoder.encode("Thanh toan ve tau " + maHD, StandardCharsets.UTF_8);
                     String qrUrl = String.format("https://img.vietqr.io/image/%s-%s-compact2.png?amount=%s&addInfo=%s", bankID, accountNo, amount, info);

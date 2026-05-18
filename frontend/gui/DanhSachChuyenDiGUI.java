@@ -311,8 +311,8 @@ final class DanhSachChuyenDiGUI extends JPanel {
         btn.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
         btn.setIconTextGap(8);
         
-        if (text.contains("Tìm kiếm")) btn.setIcon(GuiIcons.loadIcon(DanhSachChuyenDiGUI.class, "/Images/traCuu.png", 16, 16));
-        else if (text.contains("Xóa trắng")) btn.setIcon(GuiIcons.loadIcon(DanhSachChuyenDiGUI.class, "/Images/logoLammoi.png", 16, 16));
+        if (text.contains("Tìm kiếm")) btn.setIcon(GuiIcons.loadIcon(DanhSachChuyenDiGUI.class, "search", 16, 16));
+        else if (text.contains("Xóa trắng")) btn.setIcon(GuiIcons.loadIcon(DanhSachChuyenDiGUI.class, "reset", 16, 16));
         
         return btn;
     }

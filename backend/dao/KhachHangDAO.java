@@ -43,6 +43,22 @@ public class KhachHangDAO implements DAO<KhachHang, String> {
         return null;
     }
 
+    public KhachHang timTheoSDT(String sdt) {
+        String sql = "SELECT * FROM KhachHang WHERE sdt = ?";
+        try (Connection con = Connect_DB.getInstance().getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setString(1, sdt);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return new KhachHang(rs.getString("maKH"), rs.getString("hoTenKH"), rs.getString("cccd"), rs.getString("sdt"), rs.getString("email"), rs.getDate("namSinh") != null ? rs.getDate("namSinh").toLocalDate() : null, rs.getBoolean("laSinhVien"));
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
     @Override
     public boolean insert(KhachHang entity) {
         String sql = "INSERT INTO KhachHang (maKH, hoTenKH, cccd, sdt, email, namSinh, laSinhVien) VALUES (?, ?, ?, ?, ?, ?, ?)";
@@ -64,16 +80,15 @@ public class KhachHangDAO implements DAO<KhachHang, String> {
 
     @Override
     public boolean update(KhachHang entity) {
-        String sql = "UPDATE KhachHang SET hoTenKH = ?, cccd = ?, sdt = ?, email = ?, namSinh = ?, laSinhVien = ? WHERE maKH = ?";
+        String sql = "UPDATE KhachHang SET hoTenKH = ?, cccd = ?, email = ?, namSinh = ?, laSinhVien = ? WHERE sdt = ?";
         try (Connection con = Connect_DB.getInstance().getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setString(1, entity.getHoTenKH());
             ps.setString(2, entity.getCccd());
-            ps.setString(3, entity.getSdt());
-            ps.setString(4, entity.getEmail());
-            ps.setDate(5, entity.getNamSinh() != null ? java.sql.Date.valueOf(entity.getNamSinh()) : null);
-            ps.setBoolean(6, entity.getLaSinhVien());
-            ps.setString(7, entity.getMaKH());
+            ps.setString(3, entity.getEmail());
+            ps.setDate(4, entity.getNamSinh() != null ? java.sql.Date.valueOf(entity.getNamSinh()) : null);
+            ps.setBoolean(5, entity.getLaSinhVien());
+            ps.setString(6, entity.getSdt());
             return ps.executeUpdate() > 0;
         } catch (Exception e) {
             e.printStackTrace();
