@@ -17,7 +17,7 @@ final class TauGUI extends JPanel {
     private DefaultTableModel tblModel;
     private JTable tblData;
     
-    private JTextField txtMaTau, txtTenTau, txtMinToa, txtMinGhe;
+    private JTextField txtMaTau, txtTenTau;
     private JComboBox<String> cboStatus;
     
     private JPanel pnlTrainCards;
@@ -120,7 +120,7 @@ final class TauGUI extends JPanel {
         pnlGrid.setOpaque(false);
 
         GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(5, 10, 5, 10);
+        gbc.insets = new Insets(10, 10, 10, 10);
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.weightx = 1.0;
         gbc.gridy = 0;
@@ -133,13 +133,6 @@ final class TauGUI extends JPanel {
         
         cboStatus = buildStatusCombo();
         gbc.gridx = 2; pnlGrid.add(buildField("Trạng thái:", cboStatus), gbc);
-
-        gbc.gridy = 1;
-        txtMinToa = buildTextField(160);
-        gbc.gridx = 0; pnlGrid.add(buildField("Số toa tối thiểu:", txtMinToa), gbc);
-        
-        txtMinGhe = buildTextField(160);
-        gbc.gridx = 1; pnlGrid.add(buildField("Số ghế tối thiểu:", txtMinGhe), gbc);
 
         pnlOuter.add(pnlGrid, BorderLayout.CENTER);
         
@@ -196,7 +189,6 @@ final class TauGUI extends JPanel {
         btnSearch.addActionListener(e -> loadDataToTableAndCards());
         btnReset.addActionListener(e -> {
             txtMaTau.setText(""); txtTenTau.setText("");
-            txtMinToa.setText(""); txtMinGhe.setText("");
             cboStatus.setSelectedIndex(0);
             loadDataToTableAndCards();
         });
@@ -295,26 +287,9 @@ final class TauGUI extends JPanel {
         pnlHeader.setOpaque(false);
         pnlHeader.setBorder(new EmptyBorder(5, 5, 5, 5));
 
-        // Nhãn tiêu đề tàu và Nút quay lại
+        // Nhãn tiêu đề tàu (Bỏ nút Quay lại theo yêu cầu)
         JPanel pnlLeftHeader = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
         pnlLeftHeader.setOpaque(false);
-
-        JButton btnBack = new JButton("Quay lại") {
-            @Override protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(getModel().isPressed() ? GuiTheme.NAVY.darker() : getModel().isRollover() ? GuiTheme.NAVY_HOVER : GuiTheme.NAVY);
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
-                g2.dispose();
-                super.paintComponent(g);
-            }
-        };
-        btnBack.setForeground(Color.WHITE);
-        btnBack.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 11));
-        btnBack.setPreferredSize(new Dimension(90, 26));
-        btnBack.setContentAreaFilled(false); btnBack.setBorderPainted(false); btnBack.setFocusPainted(false);
-        btnBack.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        btnBack.addActionListener(e -> showSearchView());
 
         lblDetailTitle = new JLabel("Tàu SEA0001");
         lblDetailTitle.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 14));
@@ -323,7 +298,6 @@ final class TauGUI extends JPanel {
         lblDetailTitle.setBackground(PRIMARY);
         lblDetailTitle.setBorder(new EmptyBorder(4, 10, 4, 10));
 
-        pnlLeftHeader.add(btnBack);
         pnlLeftHeader.add(lblDetailTitle);
         pnlHeader.add(pnlLeftHeader, BorderLayout.WEST);
 
@@ -585,12 +559,6 @@ final class TauGUI extends JPanel {
             if (statusFilter != null && !statusFilter.isEmpty()) {
                 sql += " AND trangThai = ?";
             }
-            
-            String minToa = txtMinToa.getText().trim();
-            if (!minToa.isEmpty()) sql += " AND soToa >= " + minToa;
-            
-            String minGhe = txtMinGhe.getText().trim();
-            if (!minGhe.isEmpty()) sql += " AND tongSoGhe >= " + minGhe;
 
             PreparedStatement stmt = conn.prepareStatement(sql);
             stmt.setString(1, "%" + txtMaTau.getText().trim() + "%");
@@ -731,10 +699,15 @@ final class TauGUI extends JPanel {
             add(lblStatus);
 
             // Click vào card Tàu để nhảy sang trang xem chi tiết các Toa tàu trong tàu đó!
+            // Click lại chính card Tàu đang xem đó một lần nữa để quay trở lại!
             addMouseListener(new MouseAdapter() {
                 @Override
                 public void mouseClicked(MouseEvent e) {
-                    showDetailView(cardId);
+                    if (cardId.equals(selectedTrainIdForDetail)) {
+                        showSearchView();
+                    } else {
+                        showDetailView(cardId);
+                    }
                 }
             });
             setCursor(new Cursor(Cursor.HAND_CURSOR));
