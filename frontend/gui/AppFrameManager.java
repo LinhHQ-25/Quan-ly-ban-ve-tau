@@ -15,40 +15,47 @@ public class AppFrameManager extends JFrame {
 	public AppFrameManager() {
 		setTitle("Hệ thống quản lý bán vé tàu - Dành cho Quản lý");
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		setSize(1366, 768); 
-		setMinimumSize(new Dimension(1366, 768)); 
-		setExtendedState(JFrame.MAXIMIZED_BOTH); 
-		setLocationRelativeTo(null); 
+		setSize(1366, 768);
+		setMinimumSize(new Dimension(1366, 768));
+		setExtendedState(JFrame.MAXIMIZED_BOTH);
+		setLocationRelativeTo(null);
 
+		try {
+			UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+		} catch (Exception ignored) {
+		}
 		JPanel root = new JPanel(new BorderLayout());
 		root.setBackground(GuiTheme.LIGHT_BG);
 		setContentPane(root);
-		
+
 		root.add(buildSidebar(), BorderLayout.WEST);
 		root.add(buildMainArea(), BorderLayout.CENTER);
 
 		registerCards();
-		
-		// Mặc định hiển thị Dashboard đầu tiên. 
-		// Vì không có nút "dashboard" trên menu nên sẽ không có nút nào sáng lên.
-		showCard("dashboard"); 
+
+		// Mặc định hiển thị Dashboard đầu tiên.
+		showCard("dashboard");
 	}
 
 	private JPanel buildSidebar() {
 		JPanel sb = new JPanel();
 		sb.setBackground(GuiTheme.NAVY);
 		sb.setPreferredSize(new Dimension(GuiTheme.SIDEBAR_W, 0));
+		sb.setMinimumSize(new Dimension(GuiTheme.SIDEBAR_W, 0));
+		sb.setMaximumSize(new Dimension(GuiTheme.SIDEBAR_W, Integer.MAX_VALUE));
 		sb.setLayout(new BoxLayout(sb, BoxLayout.Y_AXIS));
 		sb.setBorder(new EmptyBorder(0, 0, 18, 0));
 
-		// Logo Area
 		JPanel logoArea = new JPanel();
 		logoArea.setBackground(GuiTheme.NAVY);
-		logoArea.setLayout(new BoxLayout(logoArea, BoxLayout.Y_AXIS));
-		logoArea.setPreferredSize(new Dimension(GuiTheme.SIDEBAR_W, 70));
-		
-		JLabel labelLogo = new JLabel(GuiIcons.loadIcon(AppFrameManager.class, "/Images/logoTrain.png", 80, 80));
-		labelLogo.setBorder(new EmptyBorder(0, 20, 0, 0));
+		logoArea.setLayout(new FlowLayout(FlowLayout.CENTER, 0, 10));
+		logoArea.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+		int logoHeight = 100;
+		logoArea.setMaximumSize(new Dimension(GuiTheme.SIDEBAR_W, logoHeight));
+		logoArea.setPreferredSize(new Dimension(GuiTheme.SIDEBAR_W, logoHeight));
+
+		JLabel labelLogo = new JLabel(GuiIcons.loadIcon(AppFrameManager.class, "/Images/logoTrain.png", 90, 90));
 		logoArea.add(labelLogo);
 		sb.add(logoArea);
 
@@ -56,25 +63,26 @@ public class AppFrameManager extends JFrame {
 		sep.setMaximumSize(new Dimension(Integer.MAX_VALUE, 1));
 		sep.setForeground(new Color(200, 200, 200));
 		sb.add(sep);
-        sb.add(Box.createVerticalStrut(10));
+		sb.add(Box.createVerticalStrut(10));
 
-		// Menu Quản lý (Đã bỏ nút Trang chủ, chừa đường dẫn icon cho bác tự chèn)
+		// Menu Quản lý
 		sb.add(mkBtn("ql-nhanvien", "Quản lý nhân viên", "/Images/iconNV.png"));
 		sb.add(mkBtn("ql-calam", "Quản lý ca làm", "/Images/logoCaLam.png"));
 		sb.add(mkBtn("ql-chuyentau", "Quản lý chuyến tàu", "/Images/iconChuyenTau.png"));
 		sb.add(mkBtn("ql-khuyenmai", "Quản lý khuyến mãi", "/Images/KhuyenMai.png"));
 		sb.add(mkBtn("thong-ke", "Thống kê", "/Images/ThongKe.png"));
 		sb.add(mkBtn("ho-tro", "Hỗ trợ", "/Images/HoTro.png"));
-		
+
 		sb.add(Box.createVerticalGlue());
+		sb.add(Box.createVerticalStrut(16));
 
 		// Nút Đăng xuất
 		SidebarButton logout = new SidebarButton("Đăng xuất", false, "/Images/DangXuat.png");
 		logout.addActionListener(e -> {
 			int choice = JOptionPane.showConfirmDialog(this, "Bạn có chắc chắn muốn đăng xuất?", "Xác nhận", JOptionPane.YES_NO_OPTION);
 			if (choice == JOptionPane.YES_OPTION) {
-				new AppFrame().setVisible(true); 
-				this.dispose(); 
+				new AppFrame().setVisible(true);
+				this.dispose();
 			}
 		});
 		sb.add(logout);
@@ -91,7 +99,7 @@ public class AppFrameManager extends JFrame {
 	public void showCard(String card) {
 		cardLayout.show(contentCards, card);
 		updateTitle(card);
-		
+
 		// Tắt hết trạng thái sáng của các nút
 		routeButtons.forEach((r, b) -> b.setActive(false));
 		// Chỉ làm sáng nút nếu nút đó có tồn tại trên menu
@@ -115,6 +123,7 @@ public class AppFrameManager extends JFrame {
 
 	private JPanel buildMainArea() {
 		JPanel main = new JPanel(new BorderLayout());
+		main.setBackground(GuiTheme.LIGHT_BG);
 		main.add(buildTopHeader(), BorderLayout.NORTH);
 
 		JPanel center = new JPanel(new BorderLayout());
@@ -131,12 +140,14 @@ public class AppFrameManager extends JFrame {
 		h.setBackground(Color.WHITE);
 		h.setPreferredSize(new Dimension(0, 72));
 		h.setBorder(BorderFactory.createMatteBorder(2, 0, 0, 0, new Color(180, 185, 195)));
+		JPanel topRow = new JPanel(new BorderLayout());
+		topRow.setOpaque(false);
 
 		headerTitle.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 28));
 		headerTitle.setForeground(GuiTheme.TEXT);
 		headerTitle.setBorder(new EmptyBorder(0, 28, 0, 0));
 
-		// Profile Area cho Quản lý (Đã chỉnh format Font chữ giống y hệt Nhân viên)
+		// Profile Area
 		JPanel profile = new JPanel(new BorderLayout(10, 0));
 		profile.setOpaque(false);
 		profile.setBorder(new EmptyBorder(10, 0, 10, 22));
@@ -147,15 +158,15 @@ public class AppFrameManager extends JFrame {
 		JPanel pt = new JPanel();
 		pt.setOpaque(false);
 		pt.setLayout(new BoxLayout(pt, BoxLayout.Y_AXIS));
-		
+
 		JLabel role = new JLabel("Quản lý");
-		role.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 16)); // Font mỏng giống nhân viên
+		role.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 16));
 		role.setForeground(GuiTheme.TEXT);
-		
-		JLabel name = new JLabel("Tên quản lý"); // Sau này load từ DB
+
+		JLabel name = new JLabel("Tên quản lý");
 		name.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 13));
 		name.setForeground(GuiTheme.SUB_TEXT);
-		
+
 		pt.add(role);
 		pt.add(name);
 		profile.add(pt, BorderLayout.CENTER);
@@ -163,28 +174,32 @@ public class AppFrameManager extends JFrame {
 		// Click vào profile để xem Hồ sơ quản lý
 		profile.addMouseListener(new java.awt.event.MouseAdapter() {
 			@Override public void mouseClicked(java.awt.event.MouseEvent e) {
-				showCard("ho-so"); 
+				showCard("ho-so");
 			}
 		});
 
-		h.add(headerTitle, BorderLayout.WEST);
-		h.add(profile, BorderLayout.EAST);
-		
+		// Thêm Đồng hồ kế bên Profile
+		JPanel rightContent = new JPanel(new FlowLayout(FlowLayout.RIGHT, 25, 0));
+		rightContent.setOpaque(false);
+		rightContent.add(new DigitalClockWidget());
+		rightContent.add(profile);
+
+		topRow.add(headerTitle, BorderLayout.WEST);
+		topRow.add(rightContent, BorderLayout.EAST);
+
 		JSeparator sep = new JSeparator(SwingConstants.HORIZONTAL);
 		sep.setForeground(new Color(210, 215, 224));
+		sep.setBackground(Color.WHITE);
+		h.add(topRow, BorderLayout.CENTER);
 		h.add(sep, BorderLayout.SOUTH);
 		return h;
 	}
 
 	private void registerCards() {
 		// Đăng ký các khung trắng (Stub)
+		contentCards.setBackground(GuiTheme.LIGHT_BG);
 		contentCards.add(createBlankPage("Giao diện Tổng quan (Dashboard) đang xây dựng..."), "dashboard");
-
-		// ---------------------------------------------------------
-		// [SỬA Ở ĐÂY] - Thay trang trắng bằng giao diện QLyNhanVienGUI
-		// ---------------------------------------------------------
 		contentCards.add(new QLyNhanVienGUI(), "ql-nhanvien");
-
 		contentCards.add(createBlankPage("Giao diện Quản lý Ca làm đang xây dựng..."), "ql-calam");
 		contentCards.add(createBlankPage("Giao diện Quản lý Chuyến tàu đang xây dựng..."), "ql-chuyentau");
 		contentCards.add(new KhuyenMaiGUI(), "ql-khuyenmai");

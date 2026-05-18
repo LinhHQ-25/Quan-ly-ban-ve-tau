@@ -9,13 +9,19 @@ import javax.swing.ImageIcon;
 final class GuiIcons {
     private GuiIcons() {}
 
-    static Icon loadIcon(Class<?> anchor, String path, int width, int height) {
-        URL url = anchor.getResource(path);
-        if (url != null) {
-            Image img = new ImageIcon(url).getImage().getScaledInstance(width, height, Image.SCALE_SMOOTH);
-            return new ImageIcon(img);
+    public static ImageIcon loadIcon(Class<?> clazz, String path, int width, int height) {
+        try {
+            java.net.URL url = clazz.getResource(path);
+            if (url != null) {
+                Image img = new ImageIcon(url).getImage();
+                // QUAN TRỌNG NHẤT LÀ DÒNG NÀY: Dùng Image.SCALE_SMOOTH
+                Image scaledImg = img.getScaledInstance(width, height, Image.SCALE_SMOOTH);
+                return new ImageIcon(scaledImg);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
-        return fallbackIcon(path, width, height);
+        return null;
     }
 
     private static Icon fallbackIcon(String path, int width, int height) {

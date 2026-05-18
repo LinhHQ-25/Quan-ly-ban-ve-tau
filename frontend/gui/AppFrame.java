@@ -78,31 +78,24 @@ public class AppFrame extends JFrame {
 
 		JPanel logoArea = new JPanel();
 		logoArea.setBackground(GuiTheme.NAVY);
-		logoArea.setLayout(new BoxLayout(logoArea, BoxLayout.Y_AXIS));
+		logoArea.setLayout(new FlowLayout(FlowLayout.CENTER, 0, 10));
 		logoArea.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-		int logoHeight = 70;
+		int logoHeight = 100;
 		logoArea.setMaximumSize(new Dimension(GuiTheme.SIDEBAR_W, logoHeight));
 		logoArea.setPreferredSize(new Dimension(GuiTheme.SIDEBAR_W, logoHeight));
-		logoArea.setBorder(new EmptyBorder(0, 0, 0, 0));
 
 		// Tạo Label Logo
-		JLabel labelLogo = new JLabel(GuiIcons.loadIcon(AppFrame.class, "/Images/logoTrain.png", 80, 80));
-
-		labelLogo.setAlignmentX(Component.LEFT_ALIGNMENT);
-
-		labelLogo.setBorder(new EmptyBorder(0, 20, 0, 0));
-
+		JLabel labelLogo = new JLabel(GuiIcons.loadIcon(AppFrame.class, "/Images/logoTrain.png", 90, 90));
 		logoArea.add(labelLogo);
 		sb.add(logoArea);
+
 		JSeparator sep = new JSeparator();
 		sep.setMaximumSize(new Dimension(Integer.MAX_VALUE, 1));
 		sep.setForeground(new Color(200, 200, 200));
-
 		sb.add(sep);
 
 		searchMainButton = mkBtn("tra-cuu", "Tra cứu", "/Images/traCuu.png", true);
-		// TODO: thay "/Image/iconTraCuu.png" bằng icon tra cứu thực tế
 		searchMainButton.addActionListener(e -> toggleSearch());
 		sb.add(searchMainButton);
 
@@ -122,24 +115,27 @@ public class AppFrame extends JFrame {
 		mkSub("tra-cuu-ve", "Vé", "/Images/Ve.png");
 		mkSub("tra-cuu-khach", "Khách hàng", "/Images/KhachHang.png");
 		sb.add(searchSubmenuPanel);
+
 		sb.add(mkBtn("dat-ve", "Đặt vé tàu", "/Images/trainTicket.png", false));
 		sb.add(mkBtn("doi-tra", "Đổi/Trả vé", "/Images/change.png", false));
 		sb.add(mkBtn("thong-ke", "Thống kê ca làm", "/Images/ThongKe.png", false));
 		sb.add(mkBtn("ho-tro", "Hỗ trợ", "/Images/HoTro.png", false));
 		sb.add(Box.createVerticalGlue());
 		sb.add(Box.createVerticalStrut(16));
+
 		SidebarButton logout = new SidebarButton("Đăng xuất", false, "/Images/DangXuat.png");
 		logout.addActionListener(e -> {
 			int choice = JOptionPane.showConfirmDialog(this, "Bạn có chắc chắn muốn đăng xuất?", "Xác nhận",
 					JOptionPane.YES_NO_OPTION);
 			if (choice == JOptionPane.YES_OPTION) {
-				// Chỉ cần gọi hàm showCard chuyển về lá bài "login"
 				showCard("login");
 			}
 		});
 		sb.add(logout);
+
 		return sb;
 	}
+
 
 	private SidebarButton mkBtn(String route, String label, String iconPath, boolean isSearchMain) {
 		SidebarButton btn = new SidebarButton(label, false, iconPath);

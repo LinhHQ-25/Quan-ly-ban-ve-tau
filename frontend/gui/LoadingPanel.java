@@ -16,7 +16,7 @@ public class LoadingPanel extends JPanel {
         centerBox.setOpaque(false);
 
         // Logo hoặc Icon Tàu (Có thể dùng icon khác tùy bác)
-        JLabel iconTrain = new JLabel(GuiIcons.loadIcon(LoadingPanel.class, "/Images/logoTrain.png", 120, 120));
+        JLabel iconTrain = new JLabel(GuiIcons.loadIcon(LoadingPanel.class, "/Images/logoTrain.png", 150, 150));
         iconTrain.setAlignmentX(Component.CENTER_ALIGNMENT);
 
         JLabel lblTitle = new JLabel("ĐANG THIẾT LẬP CA LÀM VIỆC...");

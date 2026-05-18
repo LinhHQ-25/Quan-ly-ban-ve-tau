@@ -29,14 +29,12 @@ public class QLyNhanVienGUI extends JPanel {
     private static final Color TAG_OFF_BG  = new Color(255, 237, 213);
     private static final Color TAG_OFF_FG  = new Color(180, 80, 0);
     private static final int   BTN_H       = 38;
-    private static final int   PAGE_SIZE   = 10;
 
     // =========================================================
     // STATE
     // =========================================================
     private String filterStatus = "ALL";
     private String searchText   = "";
-    private int    currentPage  = 0;
 
     // =========================================================
     // COMPONENTS
@@ -44,9 +42,6 @@ public class QLyNhanVienGUI extends JPanel {
     private JTable table;
     private DefaultTableModel tableModel;
     private JTextField tfSearch;
-    private JLabel lblPageInfo;
-    private JButton btnPrev, btnNext;
-    private JPanel pnlPageNumbers;
 
     private JPopupMenu popupMenu;
     private JMenuItem  menuSua, menuXoa;
@@ -76,7 +71,7 @@ public class QLyNhanVienGUI extends JPanel {
     }
 
     // =========================================================
-    // POPUP MENU
+    // POPUP MENU (Chỉ Sửa và Xóa)
     // =========================================================
     private void initPopupMenu() {
         popupMenu = new JPopupMenu();
@@ -102,12 +97,14 @@ public class QLyNhanVienGUI extends JPanel {
         top.setOpaque(false);
         top.setBorder(new EmptyBorder(0, 0, 12, 0));
 
+        // Filter tags
         JPanel tagPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
         tagPanel.setOpaque(false);
         tagPanel.add(makeFilterTag("Tất cả",         "ALL",      TAG_ALL_BG, TAG_ALL_FG));
         tagPanel.add(makeFilterTag("Đang làm việc",  "ACTIVE",   TAG_ACT_BG, TAG_ACT_FG));
         tagPanel.add(makeFilterTag("Ngừng làm việc", "INACTIVE", TAG_OFF_BG, TAG_OFF_FG));
 
+        // Search
         JPanel searchRight = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
         searchRight.setOpaque(false);
 
@@ -151,35 +148,15 @@ public class QLyNhanVienGUI extends JPanel {
     }
 
     // =========================================================
-    // BOTTOM BAR
+    // BOTTOM BAR: (Đã xóa phân trang)
     // =========================================================
     private JPanel buildBottomBar() {
         JPanel bar = new JPanel(new BorderLayout());
         bar.setOpaque(false);
-        bar.setBorder(new EmptyBorder(12, 0, 0, 0));
+        bar.setBorder(new MatteBorder(1, 0, 0, 0, BORDER_C));
 
-        JPanel leftPaging = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
-        leftPaging.setOpaque(false);
-
-        lblPageInfo = new JLabel("", SwingConstants.LEFT);
-        lblPageInfo.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 13));
-        lblPageInfo.setForeground(GuiTheme.SUB_TEXT);
-
-        pnlPageNumbers = new JPanel(new FlowLayout(FlowLayout.CENTER, 4, 0));
-        pnlPageNumbers.setOpaque(false);
-
-        btnPrev = makePageBtn("‹");
-        btnNext = makePageBtn("›");
-        btnPrev.addActionListener(e -> { if (currentPage > 0) { currentPage--; renderPage(); } });
-        btnNext.addActionListener(e -> { if (currentPage < getTotalPages() - 1) { currentPage++; renderPage(); } });
-
-        leftPaging.add(lblPageInfo);
-        leftPaging.add(btnPrev);
-        leftPaging.add(pnlPageNumbers);
-        leftPaging.add(btnNext);
-
-        JPanel rightBtns = new JPanel(new FlowLayout(FlowLayout.RIGHT, 12, 0));
-        rightBtns.setOpaque(false);
+        JPanel padBar = new JPanel(new FlowLayout(FlowLayout.RIGHT, 15, 10));
+        padBar.setOpaque(false);
 
         JButton btnExcel = makeRoundBtn("Xuất Excel", false, 120, 40);
         btnExcel.addActionListener(e -> xuatExcel());
@@ -187,11 +164,10 @@ public class QLyNhanVienGUI extends JPanel {
         JButton btnThem = makeRoundBtn("+ Thêm nhân viên", true, 160, 40);
         btnThem.addActionListener(e -> openFormThem());
 
-        rightBtns.add(btnExcel);
-        rightBtns.add(btnThem);
+        padBar.add(btnExcel);
+        padBar.add(btnThem);
 
-        bar.add(leftPaging, BorderLayout.WEST);
-        bar.add(rightBtns,  BorderLayout.EAST);
+        bar.add(padBar, BorderLayout.CENTER);
         return bar;
     }
 
@@ -199,7 +175,6 @@ public class QLyNhanVienGUI extends JPanel {
     // TABLE
     // =========================================================
     private JPanel buildTableArea() {
-        // ĐÃ SỬA: Đổi tên MaNV thành "Mã Nhân Viên", gộp Họ đệm + Tên thành "Họ và tên" (tổng 9 cột)
         String[] cols = {"Mã Nhân Viên", "Họ và tên", "Giới tính", "Ngày sinh",
                 "Số điện thoại", "Email", "Chức vụ", "Trạng thái", "Thao tác"};
         tableModel = new DefaultTableModel(cols, 0) {
@@ -217,10 +192,11 @@ public class QLyNhanVienGUI extends JPanel {
             }
         };
 
+        table.setAutoCreateRowSorter(true);
         table.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
         table.setRowHeight(36);
 
-        // ĐÃ SỬA: Hiển thị lưới rõ ràng giữa các ô
+        // Hiện viền chia ô
         table.setShowGrid(true);
         table.setGridColor(new Color(230, 233, 238));
         table.setIntercellSpacing(new Dimension(1, 1));
@@ -230,18 +206,35 @@ public class QLyNhanVienGUI extends JPanel {
         table.setBackground(Color.WHITE);
 
         JTableHeader header = table.getTableHeader();
-        header.setReorderingAllowed(false); // (Đã có sẵn) Không cho phép kéo thả đổi chỗ cột
-        header.setResizingAllowed(false);   // THÊM DÒNG NÀY: Khóa không cho kéo giãn/thu hẹp độ rộng cột
+        header.setReorderingAllowed(false);
+        header.setResizingAllowed(false);
         header.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 13));
         header.setBackground(new Color(241, 244, 250));
         header.setForeground(GuiTheme.TEXT);
         header.setPreferredSize(new Dimension(0, 38));
         header.setBorder(new MatteBorder(0, 0, 1, 0, BORDER_C));
-        header.setReorderingAllowed(false);
 
-        // Render cột Trạng thái (cột thứ 7 - index 7)
+        // Căn giữa văn bản cho cột 0 đến 5
+        DefaultTableCellRenderer centerRenderer = new DefaultTableCellRenderer();
+        centerRenderer.setHorizontalAlignment(SwingConstants.CENTER);
+        for(int i = 0; i <= 5; i++) {
+            table.getColumnModel().getColumn(i).setCellRenderer(centerRenderer);
+        }
+
+        // Render cột Chức vụ
+        table.getColumnModel().getColumn(6).setCellRenderer((tbl, val, sel, foc, row, col) -> {
+            String txt = val == null ? "" : val.toString();
+            JLabel lbl = new JLabel(txt, SwingConstants.CENTER);
+            lbl.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
+            lbl.setBorder(new EmptyBorder(6, 12, 6, 12));
+            lbl.setOpaque(true);
+            lbl.setBackground(tbl.isRowSelected(row) ? new Color(219, 234, 254) : (row % 2 == 0 ? Color.WHITE : new Color(248, 250, 252)));
+            lbl.setForeground(NAVY);
+            return lbl;
+        });
+
+        // Render cột Trạng thái
         table.getColumnModel().getColumn(7).setCellRenderer((tbl, val, sel, foc, row, col) -> {
-
             String txt = val == null ? "" : val.toString();
             JLabel lbl = new JLabel(txt, SwingConstants.CENTER) {
                 @Override protected void paintComponent(Graphics g) {
@@ -266,19 +259,7 @@ public class QLyNhanVienGUI extends JPanel {
             return lbl;
         });
 
-        // Render cột Chức vụ (cột thứ 6 - index 6)
-        table.getColumnModel().getColumn(6).setCellRenderer((tbl, val, sel, foc, row, col) -> {
-            String txt = val == null ? "" : val.toString();
-            JLabel lbl = new JLabel(txt, SwingConstants.LEFT);
-            lbl.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
-            lbl.setBorder(new EmptyBorder(6, 12, 6, 12));
-            lbl.setOpaque(true);
-            lbl.setBackground(tbl.isRowSelected(row) ? new Color(219, 234, 254) : (row % 2 == 0 ? Color.WHITE : new Color(248, 250, 252)));
-            lbl.setForeground(NAVY);
-            return lbl;
-        });
-
-        // Render cột ⋮ (Thao tác - index 8)
+        // Render cột ⋮ (Thao tác)
         table.getColumnModel().getColumn(8).setCellRenderer((tbl, val, sel, foc, row, col) -> {
             JLabel lbl = new JLabel("...", SwingConstants.CENTER);
             lbl.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 20));
@@ -289,26 +270,21 @@ public class QLyNhanVienGUI extends JPanel {
             return lbl;
         });
 
-        // Độ rộng 9 cột
         int[] widths = {100, 160, 70, 90, 110, 170, 100, 110, 60};
         for (int i = 0; i < widths.length; i++) {
             table.getColumnModel().getColumn(i).setPreferredWidth(widths[i]);
-            DefaultTableCellRenderer centerRenderer = new DefaultTableCellRenderer();
-            centerRenderer.setHorizontalAlignment(SwingConstants.CENTER);
         }
 
+        // Bỏ chức năng click đúp vào dòng, chỉ hiện popup khi nhấn vào cột Thao tác (cột 8)
         table.addMouseListener(new MouseAdapter() {
             @Override public void mouseClicked(MouseEvent e) {
                 int r = table.rowAtPoint(e.getPoint());
                 int c = table.columnAtPoint(e.getPoint());
-                // Cột Thao tác hiện là index 8
                 if (r >= 0 && c == 8) {
-                    popupRow = r;
+                    popupRow = table.convertRowIndexToModel(r);
                     table.setRowSelectionInterval(r, r);
                     Rectangle cell = table.getCellRect(r, c, true);
                     popupMenu.show(table, cell.x + cell.width / 2, cell.y + cell.height / 2);
-                } else if (e.getClickCount() == 2 && r >= 0) {
-                    openFormSua(r);
                 }
             }
         });
@@ -330,7 +306,6 @@ public class QLyNhanVienGUI extends JPanel {
     private void loadData() {
         allRows.clear();
         String sql = "SELECT maNV, hoTenNV, ngaySinh, gioiTinh, soDT, email, loaiNV FROM NhanVien ORDER BY maNV ASC";
-
         SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
 
         try (Connection con = Connect_DB.getInstance().getConnection();
@@ -355,7 +330,6 @@ public class QLyNhanVienGUI extends JPanel {
                 String ttDisplay = "Đang làm việc";
                 String chucVu = "NHAN_VIEN_BAN_VE".equals(loaiNV) ? "Bán vé" : "NHAN_VIEN_QUAN_LY".equals(loaiNV) ? "Quản lý" : loaiNV;
 
-                // Gộp họ đệm và tên -> lấy thẳng hoTenNV
                 allRows.add(new Object[]{
                         maNV, hoTenNV, gioiTinh ? "Nam" : "Nữ",
                         ngaySinhStr, soDT, email, chucVu, ttDisplay, ""
@@ -369,14 +343,13 @@ public class QLyNhanVienGUI extends JPanel {
 
     private void applySearch() {
         searchText = tfSearch == null ? "" : tfSearch.getText().trim().toLowerCase();
-        currentPage = 0;
         renderPage();
     }
 
     private List<Object[]> getFilteredRows() {
         List<Object[]> result = new ArrayList<>();
         for (Object[] row : allRows) {
-            String tt = row[7].toString(); // Trạng thái dời sang index 7
+            String tt = row[7].toString();
             if ("ACTIVE".equals(filterStatus) && !"Đang làm việc".equals(tt)) continue;
             if ("INACTIVE".equals(filterStatus) && !"Ngừng làm việc".equals(tt)) continue;
 
@@ -394,66 +367,13 @@ public class QLyNhanVienGUI extends JPanel {
         return result;
     }
 
-    private int getTotalPages() {
-        int total = getFilteredRows().size();
-        return Math.max(1, (int) Math.ceil((double) total / PAGE_SIZE));
-    }
-
+    // Hiển thị tất cả dữ liệu (không phân trang)
     private void renderPage() {
         tableModel.setRowCount(0);
         List<Object[]> filtered = getFilteredRows();
-
-        int from = currentPage * PAGE_SIZE;
-        int to   = Math.min(from + PAGE_SIZE, filtered.size());
-        for (int i = from; i < to; i++) tableModel.addRow(filtered.get(i));
-
-        int totalPages = getTotalPages();
-        int totalRows  = filtered.size();
-
-        if (lblPageInfo != null) {
-            lblPageInfo.setText(String.format("Hiển thị %d–%d / %d nhân viên", Math.min(from + 1, totalRows), to, totalRows));
+        for (Object[] row : filtered) {
+            tableModel.addRow(row);
         }
-        if (btnPrev != null) btnPrev.setEnabled(currentPage > 0);
-        if (btnNext != null) btnNext.setEnabled(currentPage < totalPages - 1);
-
-        renderPageNumbers(totalPages);
-    }
-
-    private void renderPageNumbers(int totalPages) {
-        if (pnlPageNumbers == null) return;
-        pnlPageNumbers.removeAll();
-        int start = Math.max(0, currentPage - 2);
-        int end   = Math.min(totalPages, start + 5);
-        start = Math.max(0, end - 5);
-
-        for (int i = start; i < end; i++) {
-            final int page = i;
-            boolean isCur = (i == currentPage);
-            JButton pb = new JButton(String.valueOf(i + 1)) {
-                @Override protected void paintComponent(Graphics g) {
-                    Graphics2D g2 = (Graphics2D) g.create();
-                    g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                    g2.setColor(isCur ? NAVY : (getModel().isRollover() ? new Color(230, 236, 248) : Color.WHITE));
-                    g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
-                    if (!isCur) {
-                        g2.setColor(BORDER_C);
-                        g2.drawRoundRect(0, 0, getWidth()-1, getHeight()-1, 8, 8);
-                    }
-                    g2.setColor(isCur ? Color.WHITE : GuiTheme.TEXT);
-                    g2.setFont(GuiTheme.font("Segoe UI", isCur ? Font.BOLD : Font.PLAIN, 13));
-                    FontMetrics fm = g2.getFontMetrics(); String t = getText();
-                    g2.drawString(t, (getWidth()-fm.stringWidth(t))/2, (getHeight()+fm.getAscent()-fm.getDescent())/2);
-                    g2.dispose();
-                }
-            };
-            pb.setPreferredSize(new Dimension(36, 32));
-            pb.setContentAreaFilled(false); pb.setBorderPainted(false); pb.setFocusPainted(false);
-            pb.setCursor(new Cursor(Cursor.HAND_CURSOR));
-            if (!isCur) pb.addActionListener(e -> { currentPage = page; renderPage(); });
-            pnlPageNumbers.add(pb);
-        }
-        pnlPageNumbers.revalidate();
-        pnlPageNumbers.repaint();
     }
 
     // =========================================================
@@ -465,16 +385,16 @@ public class QLyNhanVienGUI extends JPanel {
         if (dialog.isConfirmed()) loadData();
     }
 
-    private void openFormSua(int tableRow) {
-        String maNV = tableModel.getValueAt(tableRow, 0).toString();
+    private void openFormSua(int modelRow) {
+        String maNV = tableModel.getValueAt(modelRow, 0).toString();
         NhanVienFormDialog dialog = new NhanVienFormDialog(getParentFrame(), maNV);
         dialog.setVisible(true);
         if (dialog.isConfirmed()) loadData();
     }
 
-    private void xoaNhanVien(int row) {
-        String maNV = tableModel.getValueAt(row, 0).toString();
-        String ten  = tableModel.getValueAt(row, 1).toString();
+    private void xoaNhanVien(int modelRow) {
+        String maNV = tableModel.getValueAt(modelRow, 0).toString();
+        String ten  = tableModel.getValueAt(modelRow, 1).toString();
 
         int ch = JOptionPane.showConfirmDialog(this,
                 "<html><b>Xóa nhân viên " + ten + " (" + maNV + ")?</b><br>" +
@@ -506,26 +426,6 @@ public class QLyNhanVienGUI extends JPanel {
     // =========================================================
     // UI HELPERS
     // =========================================================
-    private JButton makePageBtn(String label) {
-        JButton b = new JButton(label) {
-            @Override protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(isEnabled() ? (getModel().isRollover() ? new Color(230,236,248) : Color.WHITE) : new Color(245, 246, 248));
-                g2.fillRoundRect(0,0,getWidth(),getHeight(),8,8);
-                g2.setColor(BORDER_C); g2.drawRoundRect(0,0,getWidth()-1,getHeight()-1,8,8);
-                g2.setColor(isEnabled() ? NAVY : new Color(180,180,180));
-                g2.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 16));
-                FontMetrics fm = g2.getFontMetrics(); String t = getText();
-                g2.drawString(t, (getWidth()-fm.stringWidth(t))/2, (getHeight()+fm.getAscent()-fm.getDescent())/2);
-                g2.dispose();
-            }
-        };
-        b.setPreferredSize(new Dimension(36, 32));
-        b.setContentAreaFilled(false); b.setBorderPainted(false);
-        b.setFocusPainted(false); b.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        return b;
-    }
 
     private JButton makeFilterTag(String label, String status, Color bg, Color fg) {
         JButton b = new JButton(label) {
@@ -548,7 +448,6 @@ public class QLyNhanVienGUI extends JPanel {
         b.setFocusPainted(false); b.setCursor(new Cursor(Cursor.HAND_CURSOR));
         b.addActionListener(e -> {
             filterStatus = status;
-            currentPage = 0;
             renderPage();
             Container parent = b.getParent();
             if (parent != null) parent.repaint();
@@ -630,7 +529,7 @@ public class QLyNhanVienGUI extends JPanel {
 
             tfMaNV      = inputField();
             tfHoTen     = inputField();
-            dcNgaySinh  = buildDateChooser(true); // Dùng JDateChooser
+            dcNgaySinh  = buildDateChooser(true);
             tfSoDT      = inputField();
             tfEmail     = inputField();
             tfDiaChi    = inputField();
@@ -751,7 +650,6 @@ public class QLyNhanVienGUI extends JPanel {
                 return;
             }
 
-            // Lấy chuỗi ngày sinh định dạng chuẩn DB (yyyy-MM-dd)
             java.util.Date uDate = dcNgaySinh.getDate();
             String ngaySinh = null;
             if (uDate != null) {
