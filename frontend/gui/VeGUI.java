@@ -222,8 +222,8 @@ final class VeGUI extends JPanel {
         btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
         btn.setIconTextGap(8);
         
-        if (text.contains("Tìm kiếm")) btn.setIcon(GuiIcons.loadIcon(VeGUI.class, "search", 16, 16));
-        else if (text.contains("Xóa trắng")) btn.setIcon(GuiIcons.loadIcon(VeGUI.class, "reset", 16, 16));
+        if (text.contains("Tìm kiếm")) btn.setIcon(GuiIcons.loadIcon(VeGUI.class, "/Images/traCuu.png", 16, 16));
+        else if (text.contains("Xóa trắng")) btn.setIcon(GuiIcons.loadIcon(VeGUI.class, "/Images/logoLammoi.png", 16, 16));
         
         return btn;
     }
