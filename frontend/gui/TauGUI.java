@@ -19,6 +19,8 @@ final class TauGUI extends JPanel {
     
     private JTextField txtMaTau, txtTenTau, txtMinToa, txtMinGhe;
     private JComboBox<String> cboStatus;
+    
+    private JPanel pnlTrainCards;
 
     TauGUI() {
         setBackground(GuiTheme.LIGHT_BG);
@@ -38,34 +40,32 @@ final class TauGUI extends JPanel {
         
         JPanel pnlCenter = new JPanel(new BorderLayout(0, 12));
         pnlCenter.setOpaque(false);
-        pnlCenter.add(buildIdleTrainsSection(), BorderLayout.NORTH);
+        pnlCenter.add(buildTrainCardsSection(), BorderLayout.NORTH);
         pnlCenter.add(buildTablePanel(), BorderLayout.CENTER);
         
         pnlPage.add(pnlCenter, BorderLayout.CENTER);
 
         add(pnlPage, BorderLayout.CENTER);
         
-        loadDataToTable();
-        loadIdleTrains();
+        loadDataToTableAndCards();
     }
 
-    private JPanel pnlIdleCards;
-    private JPanel buildIdleTrainsSection() {
+    private JPanel buildTrainCardsSection() {
         JPanel pnl = new JPanel(new BorderLayout(0, 8));
         pnl.setOpaque(false);
         
         JPanel pnlTitle = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
         pnlTitle.setOpaque(false);
-        JLabel lbl = new JLabel("Tàu tại ga (Đang rãnh)");
+        JLabel lbl = new JLabel("Danh sách tàu (Dạng thẻ)");
         lbl.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 14));
         lbl.setForeground(GuiTheme.TEXT);
         pnlTitle.add(lbl);
         pnl.add(pnlTitle, BorderLayout.NORTH);
 
-        pnlIdleCards = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 5));
-        pnlIdleCards.setOpaque(false);
+        pnlTrainCards = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 5));
+        pnlTrainCards.setOpaque(false);
         
-        JScrollPane scroll = new JScrollPane(pnlIdleCards);
+        JScrollPane scroll = new JScrollPane(pnlTrainCards);
         scroll.setBorder(null);
         scroll.setOpaque(false);
         scroll.getViewport().setOpaque(false);
@@ -78,40 +78,6 @@ final class TauGUI extends JPanel {
         return pnl;
     }
 
-    private void loadIdleTrains() {
-        if (pnlIdleCards == null) return;
-        pnlIdleCards.removeAll();
-        
-        try (Connection conn = Connect_DB.getInstance().getConnection()) {
-            // Lấy các tàu không có chuyến nào trong tương lai
-            String sql = "SELECT t.* FROM Tau t WHERE t.trangThai = N'Đang hoạt động' " +
-                         "AND NOT EXISTS (SELECT 1 FROM ChuyenTau ct JOIN ChiTietChuyenTau cct ON ct.maChuyenTau = cct.maChuyenTau " +
-                         "WHERE ct.maTau = t.maTau AND cct.thoiGianKhoiHanh > GETDATE())";
-            
-            try (Statement stmt = conn.createStatement(); ResultSet rs = stmt.executeQuery(sql)) {
-                boolean hasIdle = false;
-                while (rs.next()) {
-                    hasIdle = true;
-                    pnlIdleCards.add(new TrainCard(
-                        rs.getString("maTau"),
-                        rs.getString("tenTau"),
-                        rs.getInt("soToa"),
-                        rs.getInt("tongSoGhe")
-                    ));
-                }
-                if (!hasIdle) {
-                    JLabel lbl = new JLabel("Hiện không có tàu nào đang rãnh.");
-                    lbl.setFont(GuiTheme.font("Segoe UI", Font.ITALIC, 13));
-                    lbl.setForeground(GuiTheme.SUB_TEXT);
-                    pnlIdleCards.add(lbl);
-                }
-            }
-        } catch (SQLException e) { e.printStackTrace(); }
-        
-        pnlIdleCards.revalidate();
-        pnlIdleCards.repaint();
-    }
-
     private JPanel buildFilterPanel() {
         RoundedPanel pnlOuter = new RoundedPanel(12, Color.WHITE, GuiTheme.SEARCH_FIELD_BORDER, 1.0f);
         pnlOuter.setLayout(new BorderLayout(0, 5));
@@ -120,7 +86,7 @@ final class TauGUI extends JPanel {
         lblTitle.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 15));
         lblTitle.setForeground(GuiTheme.TEXT);
         lblTitle.setBorder(new EmptyBorder(10, 15, 0, 15));
-        lblTitle.setIcon(GuiIcons.loadIcon(TauGUI.class, "filter", 18, 18));
+        lblTitle.setIcon(GuiIcons.loadIcon(TauGUI.class, "/Images/traCuu.png", 18, 18));
         lblTitle.setIconTextGap(8);
         pnlOuter.add(lblTitle, BorderLayout.NORTH);
 
@@ -201,12 +167,12 @@ final class TauGUI extends JPanel {
         JButton btnSearch = buildNavyButton("Tìm kiếm", GuiTheme.NAVY, GuiTheme.NAVY_HOVER);
         JButton btnReset = buildNavyButton("Xóa trắng", GuiTheme.NAVY, GuiTheme.NAVY_HOVER);
 
-        btnSearch.addActionListener(e -> loadDataToTable());
+        btnSearch.addActionListener(e -> loadDataToTableAndCards());
         btnReset.addActionListener(e -> {
             txtMaTau.setText(""); txtTenTau.setText("");
             txtMinToa.setText(""); txtMinGhe.setText("");
             cboStatus.setSelectedIndex(0);
-            loadDataToTable();
+            loadDataToTableAndCards();
         });
 
         pnlButtons.add(btnSearch);
@@ -293,9 +259,14 @@ final class TauGUI extends JPanel {
         return pnlWrap;
     }
 
-    private void loadDataToTable() {
+    private void loadDataToTableAndCards() {
         if (tblModel == null) return;
         tblModel.setRowCount(0);
+        
+        if (pnlTrainCards != null) {
+            pnlTrainCards.removeAll();
+        }
+
         Connection conn = Connect_DB.getInstance().getConnection();
         if (conn == null) return;
 
@@ -329,14 +300,39 @@ final class TauGUI extends JPanel {
                 hasGhiChu = true;
             } catch (SQLException e) {}
 
+            boolean hasTrains = false;
             while (rs.next()) {
+                hasTrains = true;
+                String maTau = rs.getString("maTau");
+                String tenTau = rs.getString("tenTau");
+                int soToa = rs.getInt("soToa");
+                int tongSoGhe = rs.getInt("tongSoGhe");
+                String trangThai = rs.getString("trangThai");
+                String ghiChu = hasGhiChu ? rs.getString("ghiChu") : "";
+
+                // Add to table
                 tblModel.addRow(new Object[] {
-                    stt++, rs.getString("maTau"), rs.getString("tenTau"),
-                    rs.getInt("soToa"), rs.getInt("tongSoGhe"),
-                    rs.getString("trangThai"), hasGhiChu ? rs.getString("ghiChu") : ""
+                    stt++, maTau, tenTau, soToa, tongSoGhe, trangThai, ghiChu
                 });
+
+                // Add to card panel
+                if (pnlTrainCards != null) {
+                    pnlTrainCards.add(new TrainCard(maTau, tenTau, soToa, tongSoGhe, trangThai));
+                }
+            }
+
+            if (!hasTrains && pnlTrainCards != null) {
+                JLabel lbl = new JLabel("Hiện không có tàu nào phù hợp với bộ lọc.");
+                lbl.setFont(GuiTheme.font("Segoe UI", Font.ITALIC, 13));
+                lbl.setForeground(GuiTheme.SUB_TEXT);
+                pnlTrainCards.add(lbl);
             }
         } catch (SQLException e) { e.printStackTrace(); }
+
+        if (pnlTrainCards != null) {
+            pnlTrainCards.revalidate();
+            pnlTrainCards.repaint();
+        }
     }
 
     private JPanel buildSectionTitle(String title) {
@@ -382,8 +378,8 @@ final class TauGUI extends JPanel {
     }
 
     private final class TrainCard extends JPanel {
-        TrainCard(String id, String name, int toa, int ghe) {
-            setPreferredSize(new Dimension(180, 140));
+        TrainCard(String id, String name, int toa, int ghe, String status) {
+            setPreferredSize(new Dimension(185, 140));
             setBackground(Color.WHITE);
             setLayout(new BorderLayout());
             setBorder(new LineBorder(new Color(230, 233, 238), 1, true));
@@ -404,32 +400,24 @@ final class TauGUI extends JPanel {
             JLabel lblDetails = new JLabel(toa + " Toa | " + ghe + " Ghế");
             lblDetails.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 11));
             lblDetails.setForeground(GuiTheme.SUB_TEXT);
+            
+            JLabel lblStatus = new JLabel(status);
+            lblStatus.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 12));
+            if (status != null && (status.contains("hoạt động") || status.contains("Hoạt động"))) {
+                lblStatus.setForeground(new Color(40, 167, 69)); // Green
+            } else {
+                lblStatus.setForeground(new Color(220, 53, 69)); // Red
+            }
 
             pnlInfo.add(lblId);
             pnlInfo.add(Box.createVerticalStrut(4));
             pnlInfo.add(lblName);
-            pnlInfo.add(Box.createVerticalStrut(8));
+            pnlInfo.add(Box.createVerticalStrut(4));
             pnlInfo.add(lblDetails);
-
-            JButton btnAction = new JButton("Điều động") {
-                @Override protected void paintComponent(Graphics g) {
-                    Graphics2D g2 = (Graphics2D) g.create();
-                    g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                    g2.setColor(getModel().isRollover() ? GuiTheme.NAVY_HOVER : GuiTheme.NAVY);
-                    g2.fillRoundRect(0,0,getWidth(),getHeight(),8,8);
-                    g2.dispose();
-                    super.paintComponent(g);
-                }
-            };
-            btnAction.setForeground(Color.WHITE);
-            btnAction.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 10));
-            btnAction.setPreferredSize(new Dimension(0, 28));
-            btnAction.setContentAreaFilled(false); btnAction.setBorderPainted(false); btnAction.setFocusPainted(false);
-            btnAction.setCursor(new Cursor(Cursor.HAND_CURSOR));
-            btnAction.addActionListener(e -> JOptionPane.showMessageDialog(this, "Chức năng điều động tàu " + id + " đang được phát triển!"));
+            pnlInfo.add(Box.createVerticalStrut(10));
+            pnlInfo.add(lblStatus);
 
             add(pnlInfo, BorderLayout.CENTER);
-            add(btnAction, BorderLayout.SOUTH);
         }
 
         @Override protected void paintComponent(Graphics g) {
