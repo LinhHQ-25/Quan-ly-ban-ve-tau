@@ -6,12 +6,10 @@ import java.sql.SQLException;
 
 /**
  * Class quản lý kết nối đến SQL Server
- * Sử dụng Singleton Pattern
  */
 public class Connect_DB {
-    private static Connection con = null;
     private static final Connect_DB instance = new Connect_DB();
-    
+
     // Thông tin kết nối
     private static final String URL = "jdbc:sqlserver://localhost:1433;databaseName=QuanLyBanVeTau;encrypt=false;trustServerCertificate=true;";
     private static final String USER = "sa";
@@ -35,14 +33,21 @@ public class Connect_DB {
         return instance;
     }
 
+    public static Connection getConnection() {
+        try {
+            return DriverManager.getConnection(URL, USER, PASSWORD);
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
     /**
-     * Tạo kết nối mới đến database
+     * Tạo kết nối (Giữ lại để tương thích với code cũ)
      */
     public void connect() {
-        try {
-            // Nếu chưa có hoặc đã đóng thì mở lại
-            if (con == null || con.isClosed()) {
-                con = DriverManager.getConnection(URL, USER, PASSWORD);
+        try (Connection test = getConnection()) {
+            if (test != null && !test.isClosed()) {
                 System.out.println("Kết nối SQL Server thành công!");
             }
         } catch (SQLException e) {
@@ -52,57 +57,22 @@ public class Connect_DB {
     }
 
     /**
-     * Lấy Connection hiện tại (tự động tạo mới nếu chưa có hoặc đã đóng)
-     * @return Connection object
-     */
-    public static Connection getConnection() {
-        try {
-            if (con == null || con.isClosed()) {
-                con = DriverManager.getConnection(URL, USER, PASSWORD);
-            }
-            return con;
-        } catch (SQLException e) {
-            e.printStackTrace();
-            return null;
-        }
-    }
-
-    /**
-     * Đóng kết nối đến database
+     * Đóng kết nối (Giữ lại để tương thích với code cũ)
      */
     public void disconnect() {
-        try {
-            if (con != null && !con.isClosed()) {
-                con.close();
-                con = null; // Set về null sau khi đóng
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
+        // Vì giờ chúng ta dùng try-with-resources ở các file GUI,
+        // connection sẽ tự động đóng. Hàm này không cần làm gì cả.
     }
 
     /**
-     * Kiểm tra trạng thái kết nối
-     * @return true nếu đang kết nối, false nếu không
+     * Kiểm tra trạng thái kết nối (Giữ lại để tương thích với code cũ)
      */
     public boolean isConnected() {
-        try {
-            return con != null && !con.isClosed();
+        try (Connection test = getConnection()) {
+            return test != null && !test.isClosed();
         } catch (SQLException e) {
             return false;
         }
     }
 
-    /**
-     * Test kết nối
-     */
-    public static void main(String[] args) {
-        Connect_DB connectDB = Connect_DB.getInstance();
-        
-        // Test lấy connection
-        Connection connection = connectDB.getConnection();
-
-        // Đóng kết nối
-        connectDB.disconnect();
-    }
 }
