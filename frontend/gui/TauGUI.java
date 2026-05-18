@@ -30,17 +30,19 @@ final class TauGUI extends JPanel {
         pnlPage.setOpaque(false);
         pnlPage.setLayout(new BorderLayout(0, 12));
         pnlPage.setBorder(new EmptyBorder(
-            0,
+            10,
             GuiTheme.PAGE_PAD_LEFT,
             GuiTheme.PAGE_PAD_BOTTOM,
             GuiTheme.PAGE_PAD_LEFT
         ));
 
-        pnlPage.add(buildFilterPanel(), BorderLayout.NORTH);
+        // Đặt Danh sách thẻ tàu lên TRƯỚC bộ lọc thông tin (BorderLayout.NORTH)
+        pnlPage.add(buildTrainCardsSection(), BorderLayout.NORTH);
         
+        // Phần Center chứa Bộ lọc ở TRÊN và Bảng ở DƯỚI
         JPanel pnlCenter = new JPanel(new BorderLayout(0, 12));
         pnlCenter.setOpaque(false);
-        pnlCenter.add(buildTrainCardsSection(), BorderLayout.NORTH);
+        pnlCenter.add(buildFilterPanel(), BorderLayout.NORTH);
         pnlCenter.add(buildTablePanel(), BorderLayout.CENTER);
         
         pnlPage.add(pnlCenter, BorderLayout.CENTER);
@@ -56,7 +58,7 @@ final class TauGUI extends JPanel {
         
         JPanel pnlTitle = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
         pnlTitle.setOpaque(false);
-        JLabel lbl = new JLabel("Danh sách tàu (Dạng thẻ)");
+        JLabel lbl = new JLabel("Danh sách tàu");
         lbl.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 14));
         lbl.setForeground(GuiTheme.TEXT);
         pnlTitle.add(lbl);
@@ -71,7 +73,7 @@ final class TauGUI extends JPanel {
         scroll.getViewport().setOpaque(false);
         scroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
         scroll.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_NEVER);
-        scroll.setPreferredSize(new Dimension(0, 160));
+        scroll.setPreferredSize(new Dimension(0, 120)); // Chiều cao tối ưu cho thiết kế card mới
         scroll.getHorizontalScrollBar().setUnitIncrement(15);
         
         pnl.add(scroll, BorderLayout.CENTER);
@@ -287,7 +289,6 @@ final class TauGUI extends JPanel {
             stmt.setString(1, "%" + txtMaTau.getText().trim() + "%");
             stmt.setString(2, "%" + txtTenTau.getText().trim() + "%");
             if (statusFilter != null && !statusFilter.isEmpty()) {
-                // Sync with localized status in DB
                 String dbStatus = statusFilter.equals("Hoạt động") ? "Đang hoạt động" : "Bảo trì";
                 stmt.setString(3, dbStatus);
             }
@@ -377,55 +378,104 @@ final class TauGUI extends JPanel {
         }
     }
 
+    // TÁI TẠO CARD TÀU ĐỘC ĐÁO THEO HÌNH DẠNG "ĐẦU TÀU" NHƯ ẢNH MẪU
     private final class TrainCard extends JPanel {
         TrainCard(String id, String name, int toa, int ghe, String status) {
-            setPreferredSize(new Dimension(185, 140));
-            setBackground(Color.WHITE);
-            setLayout(new BorderLayout());
-            setBorder(new LineBorder(new Color(230, 233, 238), 1, true));
+            setPreferredSize(new Dimension(110, 90));
+            setOpaque(false);
+            setLayout(null); // Sử dụng absolute layout để định vị chính xác tuyệt đối các nhãn
 
-            JPanel pnlInfo = new JPanel();
-            pnlInfo.setLayout(new BoxLayout(pnlInfo, BoxLayout.Y_AXIS));
-            pnlInfo.setOpaque(false);
-            pnlInfo.setBorder(new EmptyBorder(12, 12, 12, 12));
+            // 1. Nhãn mã tàu bo tròn nằm nhô lên ở góc trên cùng
+            JLabel lblId = new JLabel(id, SwingConstants.CENTER) {
+                @Override protected void paintComponent(Graphics g) {
+                    Graphics2D g2 = (Graphics2D) g.create();
+                    g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                    g2.setColor(Color.WHITE);
+                    g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
+                    g2.setColor(new Color(210, 214, 219));
+                    g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 10, 10);
+                    g2.dispose();
+                    super.paintComponent(g);
+                }
+            };
+            lblId.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 10));
+            lblId.setForeground(Color.BLACK);
+            lblId.setBounds(20, 3, 70, 18);
+            add(lblId);
 
-            JLabel lblId = new JLabel(id);
-            lblId.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 14));
-            lblId.setForeground(GuiTheme.NAVY);
-
-            JLabel lblName = new JLabel(name);
-            lblName.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 12));
-            lblName.setForeground(GuiTheme.TEXT);
-
-            JLabel lblDetails = new JLabel(toa + " Toa | " + ghe + " Ghế");
-            lblDetails.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 11));
-            lblDetails.setForeground(GuiTheme.SUB_TEXT);
-            
-            JLabel lblStatus = new JLabel(status);
+            // 2. Khung màu trắng bo tròn ở giữa chứa chữ "Hoạt Động" hoặc "Bảo Trì"
+            String textStatus = status.contains("hoạt động") || status.contains("Hoạt động") ? "Hoạt Động" : "Bảo Trì";
+            JLabel lblStatus = new JLabel(textStatus, SwingConstants.CENTER) {
+                @Override protected void paintComponent(Graphics g) {
+                    Graphics2D g2 = (Graphics2D) g.create();
+                    g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                    g2.setColor(Color.WHITE);
+                    g2.fillRoundRect(0, 0, getWidth(), getHeight(), 12, 12);
+                    g2.dispose();
+                    super.paintComponent(g);
+                }
+            };
             lblStatus.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 12));
-            if (status != null && (status.contains("hoạt động") || status.contains("Hoạt động"))) {
-                lblStatus.setForeground(new Color(40, 167, 69)); // Green
-            } else {
-                lblStatus.setForeground(new Color(220, 53, 69)); // Red
-            }
+            lblStatus.setForeground(new Color(27, 85, 131)); // Màu chữ xanh dương đậm sang trọng
+            lblStatus.setBounds(10, 26, 90, 44);
+            add(lblStatus);
 
-            pnlInfo.add(lblId);
-            pnlInfo.add(Box.createVerticalStrut(4));
-            pnlInfo.add(lblName);
-            pnlInfo.add(Box.createVerticalStrut(4));
-            pnlInfo.add(lblDetails);
-            pnlInfo.add(Box.createVerticalStrut(10));
-            pnlInfo.add(lblStatus);
-
-            add(pnlInfo, BorderLayout.CENTER);
+            // 3. Sự kiện Click chuột vào card để tự động điền Mã tàu vào bộ lọc thông tin
+            addMouseListener(new MouseAdapter() {
+                @Override
+                public void mouseClicked(MouseEvent e) {
+                    if (txtMaTau.getText().trim().equals(id)) {
+                        txtMaTau.setText("");
+                    } else {
+                        txtMaTau.setText(id);
+                    }
+                    loadDataToTableAndCards();
+                }
+            });
+            setCursor(new Cursor(Cursor.HAND_CURSOR));
         }
 
         @Override protected void paintComponent(Graphics g) {
             Graphics2D g2 = (Graphics2D) g.create();
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-            g2.setColor(getBackground());
-            g2.fillRoundRect(0,0,getWidth(),getHeight(),12,12);
+
+            // Màu của thân tàu (Khung ngoài): Màu Xám cho chiếc đầu tiên hoặc khi được click chọn, màu Xanh Dương cho các chiếc khác
+            Color bodyColor;
+            String currentFilter = txtMaTau.getText().trim();
+            
+            // Nếu card này đang được click chọn (hoặc nếu là chiếc đầu tiên và bộ lọc trống)
+            if (currentFilter.equals(tblModel.getValueAt(0, 1)) && tblModel.getRowCount() > 0 && currentFilter.equals(tblModel.getValueAt(0, 1)) && currentFilter.isEmpty()) {
+                bodyColor = new Color(156, 163, 175); // Màu xám nhạt cao cấp
+            } else if (!currentFilter.isEmpty() && currentFilter.equals(tblModel.getValueAt(0, 1))) {
+                bodyColor = new Color(156, 163, 175);
+            } else if (tblModel.getRowCount() > 0 && tblModel.getValueAt(0, 1).equals(tblModel.getValueAt(0, 1)) && currentFilter.isEmpty() && pnlTrainCards.getComponent(0) == this) {
+                // Chiếc card đầu tiên mặc định xám như ảnh mẫu khi chưa lọc gì
+                bodyColor = new Color(156, 163, 175);
+            } else if (!currentFilter.isEmpty() && currentFilter.equalsIgnoreCase((String)tblModel.getValueAt(0, 1))) {
+                bodyColor = new Color(156, 163, 175);
+            } else {
+                bodyColor = new Color(70, 130, 180); // Màu xanh dương dịu mắt (Steel Blue)
+            }
+
+            // A. Vẽ thân tàu chính (Rounded Rectangle)
+            g2.setColor(bodyColor);
+            g2.fillRoundRect(5, 12, 100, 66, 16, 16);
+
+            // B. Vẽ 2 bánh xe nhỏ màu trắng ở đáy thân tàu (wheels)
+            g2.setColor(Color.WHITE);
+            // Bánh xe trái
+            g2.fillOval(25, 74, 10, 10);
+            g2.setColor(bodyColor);
+            g2.drawOval(25, 74, 10, 10);
+
+            // Bánh xe phải
+            g2.setColor(Color.WHITE);
+            g2.fillOval(75, 74, 10, 10);
+            g2.setColor(bodyColor);
+            g2.drawOval(75, 74, 10, 10);
+
             g2.dispose();
+            super.paintComponent(g);
         }
     }
 }
