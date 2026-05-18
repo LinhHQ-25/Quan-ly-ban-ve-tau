@@ -1223,7 +1223,9 @@ public class DatVeGUI2 extends JPanel {
 		lblCountdown.setBorder(new EmptyBorder(6, 14, 6, 14));
 
 		btnTiepTuc = makeNavyBtn("Tiếp tục", loadIcon("/Images/logoGoOn.png", 14, 14));
+		btnTiepTuc.setHorizontalTextPosition(SwingConstants.LEFT); // Ép icon mũi tên qua phải
 		btnTiepTuc.addActionListener(e -> {
+			// 1. Kiểm tra xem đã điền đủ thông tin cho TẤT CẢ các vé chưa
 			for (int i = 0; i < modelVe.getRowCount(); i++) {
 				String ten = (String) modelVe.getValueAt(i, COL_HOTEN);
 				if (ten == null || ten.isEmpty()) {
@@ -1238,10 +1240,12 @@ public class DatVeGUI2 extends JPanel {
 					return;
 				}
 			}
-			if (countdownTimer != null)
-				countdownTimer.stop();
-			JOptionPane.showMessageDialog(this, "Thông tin hợp lệ!\nChuyển sang màn hình Thanh Toán...");
-			// TODO: sang GUI3
+			
+			// 2. Thông tin hợp lệ -> Dừng đồng hồ đếm ngược
+			if (countdownTimer != null) countdownTimer.stop();
+			
+			// 3. Đẩy sang màn hình Thanh Toán (GUI3)
+			chuyenSangGUI3();
 		});
 
 		JPanel left = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 4));
@@ -1321,7 +1325,47 @@ public class DatVeGUI2 extends JPanel {
 		b.setCursor(new Cursor(Cursor.HAND_CURSOR));
 		return b;
 	}
+	// =========================================================
+		// CHUYỂN SANG GUI3 (THANH TOÁN)
+		private void chuyenSangGUI3() {
+			// Thay Runnable bằng Consumer<Integer> để hứng số giây chạy tiếp từ GUI3 trả về
+			DatVeGUI3 gui3 = new DatVeGUI3(modelVe, secondsLeft, (remainingSeconds) -> {
+				// Đồng bộ lại thời gian thực tế và kích hoạt đồng hồ GUI2 chạy tiếp tục
+				this.secondsLeft = remainingSeconds;
+				this.startCountdown();
 
+				Container parent = getParent();
+				if (parent != null) {
+					LayoutManager lm = parent.getLayout();
+					if (lm instanceof CardLayout) {
+						((CardLayout) lm).show(parent, "datveGUI2_thongtin"); 
+					} else {
+						for (Component c : parent.getComponents()) {
+							if (c instanceof DatVeGUI3) {
+								parent.remove(c);
+							}
+						}
+						parent.add(this, BorderLayout.CENTER);
+						parent.revalidate();
+						parent.repaint();
+					}
+				}
+			});
+
+			Container parent = getParent();
+			if (parent != null) {
+				LayoutManager lm = parent.getLayout();
+				if (lm instanceof CardLayout) {
+					parent.add(gui3, "datveGUI3_thanhtoan");
+					((CardLayout) lm).show(parent, "datveGUI3_thanhtoan");
+				} else {
+					parent.remove(this); 
+					parent.add(gui3, BorderLayout.CENTER);
+					parent.revalidate();
+					parent.repaint();
+				}
+			}
+		}
 	private JButton makeOutlineBtn(String text, Icon icon) {
 		JButton b = new JButton(text) {
 			@Override
