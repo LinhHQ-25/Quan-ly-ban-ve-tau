@@ -2,7 +2,6 @@ package gui;
 
 import java.awt.*;
 import java.awt.event.*;
-import java.util.function.Consumer;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 
@@ -74,19 +73,24 @@ public class DatVeGUI0 extends JPanel {
         gc.gridy = 0;
         gc.anchor = GridBagConstraints.CENTER;
 
-        // 1. NHÃN ICON
+        // 1. NHÃN ICON (ĐÃ FIX LỖI NULL POINTER TẠI ĐÂY)
         JLabel lblPlaceholder = new JLabel();
         lblPlaceholder.setHorizontalAlignment(SwingConstants.CENTER);
-        // Đã giảm chiều cao xuống 120 để kéo chữ lên sát mép icon
         lblPlaceholder.setPreferredSize(new Dimension(250, 120)); 
-         lblPlaceholder.setIcon(new ImageIcon(getClass().getResource("/Images/khongcochuyen.png"))); 
+        
+        // Load icon an toàn, nếu không có ảnh sẽ không bị sập app
+        Icon ic = loadAndScaleIcon("/Images/khongcochuyen.png", 80, 80);
+        if (ic != null) {
+            lblPlaceholder.setIcon(ic);
+        } else {
+            lblPlaceholder.setText("[Không tìm thấy icon]");
+        }
         
         gc.insets = new Insets(0, 0, 0, 0);
         centerContent.add(lblPlaceholder, gc);
 
         // 2. TEXT THÔNG BÁO
         gc.gridy = 1;
-        // Khoảng cách bên dưới (110) bù lại phần đã cắt của Icon để giữ Nút Quay lại đứng yên ở đúng vị trí cũ
         gc.insets = new Insets(5, 0, 110, 0);
         String msg = "<html><div style='text-align: center;'>Rất tiếc, hiện không có chuyến tàu nào phù hợp<br>ngày " + ngayDi + "</div></html>";
         JLabel lblMessage = new JLabel(msg);
@@ -94,7 +98,7 @@ public class DatVeGUI0 extends JPanel {
         lblMessage.setForeground(Color.BLACK);
         centerContent.add(lblMessage, gc);
 
-        // 3. NÚT QUAY LẠI (Tự động co giãn theo chữ, không ép size)
+        // 3. NÚT QUAY LẠI 
         gc.gridy = 2;
         gc.insets = new Insets(0, 0, 0, 0);
         Icon icQuayLai = loadAndScaleIcon("/Images/logoBack.png", 14, 14);
@@ -104,7 +108,6 @@ public class DatVeGUI0 extends JPanel {
         });
         centerContent.add(btnQuay, gc);
 
-        // Thêm khối centerContent vào giữa màn hình bên phải
         outer.add(centerContent, BorderLayout.CENTER);
         return outer;
     }
@@ -139,11 +142,10 @@ public class DatVeGUI0 extends JPanel {
                 super.paintComponent(g); 
             }
         };
-        b.setIcon(icon);
+        if (icon != null) b.setIcon(icon);
         b.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         b.setForeground(new Color(28, 57, 110));
         b.setIconTextGap(8); 
-        // Đệm tự động cho nút để vừa khít nội dung
         b.setBorder(new EmptyBorder(6, 16, 6, 16)); 
         b.setContentAreaFilled(false);
         b.setFocusPainted(false);

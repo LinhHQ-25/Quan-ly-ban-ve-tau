@@ -9,6 +9,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.List;
+import java.util.function.Consumer;
 import javax.swing.*;
 import javax.swing.border.*;
 
@@ -44,7 +45,7 @@ public class DatVeGUI1 extends JPanel {
 	private final Set<String> gheChonDi = new LinkedHashSet<>();
 	private int trangVe = 0, chuyenIdxVe = -1;
 	private final Set<String> gheChonVe = new LinkedHashSet<>();
-
+	private boolean manualToaSelected = false;
 	private int trang = 0;
 	private int chuyenIdx = -1;
 	private final Set<String> gheChon = new LinkedHashSet<>();
@@ -66,14 +67,13 @@ public class DatVeGUI1 extends JPanel {
 	private String activeMaToa = null;
 
 	private JLabel lblGheTrong, lblGheDaChon, lblChieuHeader;
-	private JButton btnPrev, btnNext, btnAction, btnHuy, btnChieuToggle, btnQuayLai;
+	private JButton btnPrev, btnNext, btnAction, btnHuy, btnChieuToggle;
 	private JComboBox<String> cbKhungGio, cbLoaiToa;
 	private JPanel pnlChuyen;
 
 	private final Font SEAT_FONT = new Font("Segoe UI", Font.BOLD, 12);
 	private final Font ARROW_FONT = new Font("Segoe UI", Font.BOLD, 18);
 
-	// ĐÃ SỬA: Xóa tham số Consumer onTiepTuc để khớp với DatVeGUI.java
 	public DatVeGUI1(String gaDi, String gaDen, String loaiVe, String ngayDi, String ngayVe, int soLuong,
 			Runnable onQuayLai) {
 		this.gaDi = gaDi;
@@ -379,14 +379,14 @@ public class DatVeGUI1 extends JPanel {
 		return btn;
 	}
 
+	// SAU
 	class SmoothScrollPanel extends JPanel implements Scrollable {
-		public Dimension getPreferredScrollableViewportSize() { return getPreferredSize(); }
-		public int getScrollableUnitIncrement(Rectangle visibleRect, int orientation, int direction) { return 20; }
-		public int getScrollableBlockIncrement(Rectangle visibleRect, int orientation, int direction) { return Math.max(visibleRect.height / 2, 20); }
-		public boolean getScrollableTracksViewportWidth() { return true; } 
-		public boolean getScrollableTracksViewportHeight() { return false; }
+	    public Dimension getPreferredScrollableViewportSize() { return getPreferredSize(); }
+	    public int getScrollableUnitIncrement(Rectangle visibleRect, int orientation, int direction) { return 16; }
+	    public int getScrollableBlockIncrement(Rectangle visibleRect, int orientation, int direction) { return Math.max(visibleRect.height * 2 / 3, 60); }
+	    public boolean getScrollableTracksViewportWidth() { return true; }
+	    public boolean getScrollableTracksViewportHeight() { return false; }
 	}
-
 	private JPanel buildCenter() {
 		JPanel c = new JPanel(new BorderLayout(0, 0));
 		c.setBackground(BG);
@@ -453,12 +453,60 @@ public class DatVeGUI1 extends JPanel {
 		pnlAllToas.setBackground(BG);
 		pnlScrollContent.add(pnlAllToas);
 
+		// SAU
 		toaScrollPane = new JScrollPane(pnlScrollContent);
 		toaScrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
 		toaScrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
 		toaScrollPane.setBorder(new LineBorder(BORDER_C, 1));
-		
-		toaScrollPane.getViewport().addChangeListener(e -> handleScrollEvents());
+
+		// ===== SMOOTH SCROLL =====
+		toaScrollPane.getVerticalScrollBar().setUnitIncrement(16);
+		toaScrollPane.getVerticalScrollBar().setBlockIncrement(120);
+		toaScrollPane.getViewport().setScrollMode(JViewport.BLIT_SCROLL_MODE);
+
+		final double[] currentPos = { 0 };
+		final double[] targetPos  = { 0 };
+		final boolean[] timerRunning = { false };
+		final javax.swing.Timer[] timer = { null };
+
+		Runnable startAnim = () -> {
+		    if (timerRunning[0]) return;
+		    timerRunning[0] = true;
+		    timer[0] = new javax.swing.Timer(8, null);
+		    timer[0].addActionListener(tick -> {
+		        double diff = targetPos[0] - currentPos[0];
+		        if (Math.abs(diff) < 0.5) {
+		            currentPos[0] = targetPos[0];
+		            timerRunning[0] = false;
+		            timer[0].stop();
+		            // Chỉ gọi handleScrollEvents SAU KHI animate xong
+		            handleScrollEvents();
+		        } else {
+		            currentPos[0] += diff * 0.18;
+		            toaScrollPane.getVerticalScrollBar().setValue((int) Math.round(currentPos[0]));
+		        }
+		    });
+		    timer[0].start();
+		};
+
+		toaScrollPane.addMouseWheelListener(e -> {
+		    e.consume();
+		    JScrollBar bar = toaScrollPane.getVerticalScrollBar();
+		    // Sync currentPos với vị trí thực tế nếu timer chưa chạy
+		    if (!timerRunning[0]) currentPos[0] = bar.getValue();
+
+		    targetPos[0] += e.getUnitsToScroll() * 35;
+		    targetPos[0] = Math.max(bar.getMinimum(),
+		                   Math.min(bar.getMaximum() - bar.getVisibleAmount(), targetPos[0]));
+		    startAnim.run();
+		});
+		// =========================
+
+		// Chỉ gọi handleScrollEvents khi KHÔNG đang animate
+		toaScrollPane.getViewport().addChangeListener(e -> {
+		    if (!timerRunning[0]) handleScrollEvents();
+		});
+
 
 		body.add(toaScrollPane, BorderLayout.CENTER);
 
@@ -491,38 +539,44 @@ public class DatVeGUI1 extends JPanel {
 		return c;
 	}
 
-	private void handleScrollEvents() {
-		int scrollY = toaScrollPane.getViewport().getViewPosition().y;
-		int threshold = pnlChuyenWrapper.getHeight() + 6;
-		if (threshold <= 6) threshold = 146;
+	private boolean stickyActive = false; // thêm field này ở đầu class
 
-		if (scrollY >= threshold) {
-			if (hdrToa.getParent() != stickyHeaderContainer) {
-				pnlToaHeaderWrapper.setPreferredSize(hdrToa.getSize());
-				pnlToaHeaderWrapper.setMinimumSize(hdrToa.getSize());
-				pnlToaHeaderWrapper.setMaximumSize(hdrToa.getSize());
-				
-				stickyHeaderContainer.add(hdrToa, BorderLayout.CENTER);
-				stickyHeaderContainer.revalidate();
-				stickyHeaderContainer.repaint();
-			}
-		} else {
-			if (hdrToa.getParent() != pnlToaHeaderWrapper) {
-				pnlToaHeaderWrapper.setPreferredSize(null);
-				pnlToaHeaderWrapper.setMinimumSize(null);
-				pnlToaHeaderWrapper.setMaximumSize(new Dimension(Integer.MAX_VALUE, Integer.MAX_VALUE));
-				
-				pnlToaHeaderWrapper.add(hdrToa, BorderLayout.CENTER);
-				pnlToaHeaderWrapper.revalidate();
-				pnlToaHeaderWrapper.repaint();
-				
-				stickyHeaderContainer.removeAll();
-				stickyHeaderContainer.revalidate();
-				stickyHeaderContainer.repaint();
-			}
-		}
-		
-		updateVisibleToa();
+	private void handleScrollEvents() {
+	    int scrollY = toaScrollPane.getViewport().getViewPosition().y;
+	    int threshold = pnlChuyenWrapper.getHeight() + 6;
+	    if (threshold <= 6) threshold = 146;
+
+	    boolean shouldSticky = scrollY >= threshold;
+
+	    // Chỉ xử lý khi trạng thái THỰC SỰ thay đổi
+	    if (shouldSticky != stickyActive) {
+	        stickyActive = shouldSticky;
+
+	        if (shouldSticky) {
+	            Dimension sz = hdrToa.getPreferredSize();
+	            pnlToaHeaderWrapper.setPreferredSize(sz);
+	            pnlToaHeaderWrapper.setMinimumSize(sz);
+	            pnlToaHeaderWrapper.setMaximumSize(sz);
+
+	            stickyHeaderContainer.add(hdrToa, BorderLayout.CENTER);
+	            stickyHeaderContainer.revalidate();
+	            stickyHeaderContainer.repaint();
+	        } else {
+	            pnlToaHeaderWrapper.setPreferredSize(null);
+	            pnlToaHeaderWrapper.setMinimumSize(null);
+	            pnlToaHeaderWrapper.setMaximumSize(new Dimension(Integer.MAX_VALUE, Integer.MAX_VALUE));
+
+	            pnlToaHeaderWrapper.add(hdrToa, BorderLayout.CENTER);
+	            pnlToaHeaderWrapper.revalidate();
+	            pnlToaHeaderWrapper.repaint();
+
+	            stickyHeaderContainer.removeAll();
+	            stickyHeaderContainer.revalidate();
+	            stickyHeaderContainer.repaint();
+	        }
+	    }
+
+	    updateVisibleToa();
 	}
 
 	private JPanel buildToaHeader() {
@@ -628,17 +682,29 @@ public class DatVeGUI1 extends JPanel {
 			private boolean isHover = false;
 			{
 				addMouseListener(new MouseAdapter() {
-					@Override public void mouseEntered(MouseEvent e) { isHover = true; repaint(); }
-					@Override public void mouseExited(MouseEvent e) { isHover = false; repaint(); }
+					// SAU
+					@Override public void mouseEntered(MouseEvent e) { isHover = true; repaint(); setCursor(new Cursor(Cursor.HAND_CURSOR)); }
+					@Override public void mouseExited(MouseEvent e) { isHover = false; repaint(); setCursor(new Cursor(Cursor.DEFAULT_CURSOR)); }
 					@Override public void mouseClicked(MouseEvent e) {
-						if (!motChieu) {
-							try {
-								if (!dangXemChieuVe) selectedArrivalDi = LocalDateTime.parse(ch[2], fmt);
-							} catch (Exception ex) {}
-						}
-						chuyenIdx = ci; activeMaToa = null; gheChon.clear();
-						toaScrollPane.getVerticalScrollBar().setValue(0);
-						refreshChuyen(); refreshToaGhe(); updateActionBtn();
+					    // 1. Cập nhật state ngay lập tức
+					    if (!motChieu) {
+					        try {
+					            if (!dangXemChieuVe) selectedArrivalDi = LocalDateTime.parse(ch[2], fmt);
+					        } catch (Exception ex) {}
+					    }
+					    chuyenIdx = ci;
+					    activeMaToa = null;
+					    gheChon.clear();
+					    toaScrollPane.getVerticalScrollBar().setValue(0);
+
+					    // 2. Highlight card ngay — không chờ refreshChuyen()
+					    refreshChuyen();
+
+					    // 3. Load toa/ghế nặng hơn → defer sang sau
+					    SwingUtilities.invokeLater(() -> {
+					        refreshToaGhe();
+					        updateActionBtn();
+					    });
 					}
 				});
 			}
@@ -646,7 +712,7 @@ public class DatVeGUI1 extends JPanel {
 				Graphics2D g2 = (Graphics2D) g.create();
 				g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 				int w = getWidth(), h = getHeight(), trainH = h - 20;
-				Color mainColor = sel ? new Color(0, 150, 215) : isHover ? new Color(255, 200, 0) : new Color(160, 160, 160);
+				Color mainColor = sel ? new Color(0, 150, 215) : isHover ? new Color(255, 200, 80) : new Color(160, 160, 160);
 				
 				g2.setColor(mainColor);
 				g2.fillRoundRect(2, 2, w - 4, trainH, 25, 25);
@@ -772,32 +838,47 @@ public class DatVeGUI1 extends JPanel {
 		wrapper.setBackground(BG);
 		wrapper.setBorder(new EmptyBorder(15, 20, 15, 20)); 
 
+		// SAU
 		JPanel hdr = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 0));
 		hdr.setOpaque(false);
-		hdr.setBorder(new EmptyBorder(0, 0, 5, 0)); 
+		hdr.setBorder(new EmptyBorder(0, 0, 5, 0));
 
 		JLabel lblLogo = new JLabel();
 		lblLogo.setHorizontalAlignment(SwingConstants.CENTER);
-		lblLogo.setBorder(new EmptyBorder(6, 6, 6, 6)); 
-		
-		boolean isVip = loaiToa.equals("VIP");
-		Icon icon = loadAndScaleIcon(isVip ? "/Images/logoToaVIP.png" : "/Images/logoToaThuong.png", 56, 36);
-		
-		if (icon != null) {
-			lblLogo.setIcon(icon);
-		} else {
-			lblLogo.setText(isVip ? "[Logo VIP]" : "[Logo Thường]");
-			lblLogo.setBorder(new LineBorder(Color.GRAY));
-		}
-		toaLogos.add(lblLogo); 
 
+		boolean isVip = loaiToa.equals("VIP");
+		// ↓ thêm vào đây
+		String[][] filtered = dangXemChieuVe ? CHUYEN_FILTERED_VE : CHUYEN_FILTERED;
+		Icon icon = loadAndScaleIcon(isVip ? "/Images/logoToaVIP.png" : "/Images/logoToaThuong.png", 56, 36);
+		if (icon != null) lblLogo.setIcon(icon);
+		else { lblLogo.setText(isVip ? "[VIP]" : "[Thường]"); lblLogo.setBorder(new LineBorder(Color.GRAY)); }
+		toaLogos.add(lblLogo);
 		String prefix = isVip ? "Giường nằm: " : (loaiToa.contains("cứng") ? "Ghế cứng: " : "Ghế mềm: ");
 		JLabel lblTitle = new JLabel(prefix + maToa);
 		lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 17));
 		lblTitle.setForeground(NAVY);
 
-		hdr.add(lblLogo);
-		hdr.add(lblTitle);
+		// Panel bọc logo + title để highlight cả 2
+		JPanel activePanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 6)) {
+		    @Override protected void paintComponent(Graphics g) {
+		        if (activeMaToa != null && activeMaToa.equals(maToa)) {
+		            Graphics2D g2 = (Graphics2D) g.create();
+		            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+		            g2.setColor(new Color(220, 235, 255));
+		            g2.fillRoundRect(0, 0, getWidth(), getHeight(), 12, 12);
+		            g2.setColor(NAVY_SEL);
+		            g2.setStroke(new BasicStroke(2f));
+		            g2.drawRoundRect(1, 1, getWidth()-2, getHeight()-2, 12, 12);
+		            g2.dispose();
+		        }
+		        super.paintComponent(g);
+		    }
+		};
+		activePanel.setOpaque(false);
+		activePanel.add(lblLogo);
+		activePanel.add(lblTitle);
+
+		hdr.add(activePanel);
 		wrapper.add(hdr, BorderLayout.NORTH);
 
 		int maxSeats = isVip ? 18 : 28;
@@ -816,7 +897,7 @@ public class DatVeGUI1 extends JPanel {
 		};
 		grid.setBackground(Color.WHITE); 
 		grid.setBorder(new EmptyBorder(12, 15, 12, 15));
-
+		final String maToaFinal = maToa;
 		Set<Integer> dadat = gheDaDat(maChuyen, maToa);
 		for (int i = 1; i <= maxSeats; i++) {
 			int gNum = i;
@@ -842,13 +923,37 @@ public class DatVeGUI1 extends JPanel {
 			
 			if (!taken) {
 				btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+				// SAU
 				btn.addActionListener(ev -> {
-					if (gheChon.contains(seatId)) gheChon.remove(seatId);
-					else if (gheChon.size() < soLuong) gheChon.add(seatId);
-					btn.repaint();
-					updateGheDaChon();
-					updateActionBtn();
-				});
+				    if (gheChon.contains(seatId)) gheChon.remove(seatId);
+				    else if (gheChon.size() < soLuong) gheChon.add(seatId);
+
+				    // Active toa này ngay khi click ghế
+				    if (!maToaFinal.equals(activeMaToa)) {
+				        int idx = toaMaToas.indexOf(maToaFinal);
+				        if (idx >= 0) {
+				            currentVisibleToaIndex = idx;
+				            activeMaToa = maToaFinal;
+				            manualToaSelected = true;
+				            String loai = toaLoaiToas.get(idx);
+				         // SAU
+				            String[][] cur = dangXemChieuVe ? CHUYEN_FILTERED_VE : CHUYEN_FILTERED;
+				            String maChuyenHienTai = (chuyenIdx >= 0 && cur != null && chuyenIdx < cur.length)
+				                ? cur[chuyenIdx][5] : "";
+			
+				            Set<Integer> dadatInner = gheDaDat(maChuyenHienTai, maToaFinal);
+				            int maxSeatsInner = loai.equals("VIP") ? 18 : 28;
+				            int trong = 0;
+				            for (int g = 1; g <= maxSeatsInner; g++) if (!dadatInner.contains(g)) trong++;
+				            lblGheTrong.setText("Số ghế còn trống: " + trong + "/" + maxSeatsInner);
+				            updateVisibleToa();
+				        }
+				    }
+
+				    btn.repaint();
+				    updateGheDaChon();
+				    updateActionBtn();
+				});	
 			}
 			grid.add(btn);
 		}
@@ -863,55 +968,74 @@ public class DatVeGUI1 extends JPanel {
 	}
 
 	private void updateVisibleToa() {
-		if (toaBlocks.isEmpty() || toaLogos.isEmpty()) return;
+	    if (toaBlocks.isEmpty() || toaLogos.isEmpty()) return;
 
-		JViewport viewport = toaScrollPane.getViewport();
-		Rectangle viewRect = viewport.getViewRect();
-		int centerY = viewRect.y + viewRect.height / 2;
+	    JViewport viewport = toaScrollPane.getViewport();
+	    Rectangle viewRect = viewport.getViewRect();
+	    int centerY = viewRect.y + viewRect.height / 2;
 
-		int closestIndex = -1;
-		int minDiff = Integer.MAX_VALUE;
+	    // Tính toa gần giữa màn hình nhất
+	    int closestIndex = -1;
+	    int minDiff = Integer.MAX_VALUE;
+	    for (int i = 0; i < toaBlocks.size(); i++) {
+	        JPanel block = toaBlocks.get(i);
+	        int blockCenterY = pnlAllToas.getY() + block.getY() + block.getHeight() / 2;
+	        int diff = Math.abs(blockCenterY - centerY);
+	        if (diff < minDiff) { minDiff = diff; closestIndex = i; }
+	    }
 
-		for (int i = 0; i < toaBlocks.size(); i++) {
-			JPanel block = toaBlocks.get(i);
-			int blockCenterY = pnlAllToas.getY() + block.getY() + block.getHeight() / 2;
-			int diff = Math.abs(blockCenterY - centerY);
-			if (diff < minDiff) {
-				minDiff = diff;
-				closestIndex = i;
-			}
-		}
+	    if (closestIndex == -1) return;
 
-		if (closestIndex != -1 && closestIndex != currentVisibleToaIndex) {
-			currentVisibleToaIndex = closestIndex;
-			activeMaToa = toaMaToas.get(closestIndex);
-			String activeLoai = toaLoaiToas.get(closestIndex);
+	    if (manualToaSelected) {
+	        // Vừa click ghế → giữ activeMaToa, tìm index của toa đó để highlight
+	        manualToaSelected = false;
+	        int manualIdx = toaMaToas.indexOf(activeMaToa);
+	        if (manualIdx >= 0) closestIndex = manualIdx;
+	    } else {
+	        // Scroll tự nhiên → cập nhật theo toa ở giữa màn hình
+	        if (closestIndex == currentVisibleToaIndex) return; // không đổi → bỏ qua
+	        currentVisibleToaIndex = closestIndex;
+	        activeMaToa = toaMaToas.get(closestIndex);
+	    }
 
-			for (int i = 0; i < toaLogos.size(); i++) {
-				JLabel lblLogo = toaLogos.get(i);
-				if (i == closestIndex) {
-					lblLogo.setBorder(BorderFactory.createCompoundBorder(
-							new LineBorder(NAVY_SEL, 2, true),
-							new EmptyBorder(4, 4, 4, 4)));
-					lblLogo.setBackground(new Color(230, 240, 255));
-					lblLogo.setOpaque(true);
-				} else {
-					lblLogo.setBorder(new EmptyBorder(6, 6, 6, 6)); 
-					lblLogo.setBackground(BG);
-					lblLogo.setOpaque(false);
-				}
-				lblLogo.repaint();
-			}
+	    // Highlight activePanel + đổi màu/text label title
+	    for (int i = 0; i < toaBlocks.size(); i++) {
+	        JPanel block = toaBlocks.get(i);
+	        Component hdrComp = ((BorderLayout) block.getLayout()).getLayoutComponent(BorderLayout.NORTH);
+	        if (!(hdrComp instanceof JPanel)) continue;
+	        JPanel hdrPanel = (JPanel) hdrComp;
+	        for (Component c : hdrPanel.getComponents()) {
+	            if (!(c instanceof JPanel)) continue;
+	            JPanel ap = (JPanel) c;
+	            ap.repaint();
+	            for (Component inner : ap.getComponents()) {
+	                if (!(inner instanceof JLabel)) continue;
+	                JLabel lbl = (JLabel) inner;
+	                if (lbl.getIcon() != null) continue; // bỏ qua logo
+	                // Lấy text gốc (bỏ prefix ▶ nếu có)
+	                String rawText = lbl.getText().replace("", "");
+	                if (i == closestIndex) {
+	                    lbl.setText("" + rawText);
+	                    lbl.setForeground(new Color(0, 100, 200));
+	                    lbl.setFont(new Font("Segoe UI", Font.BOLD, 17));
+	                } else {
+	                    lbl.setText(rawText);
+	                    lbl.setForeground(NAVY);
+	                    lbl.setFont(new Font("Segoe UI", Font.BOLD, 17));
+	                }
+	            }
+	        }
+	    }
 
-			String[][] filtered = dangXemChieuVe ? CHUYEN_FILTERED_VE : CHUYEN_FILTERED;
-			String maChuyen = filtered[chuyenIdx][5];
-			Set<Integer> dadat = gheDaDat(maChuyen, activeMaToa);
-			
-			int maxSeats = activeLoai.equals("VIP") ? 18 : 28;
-			int trong = 0;
-			for (int g = 1; g <= maxSeats; g++) if (!dadat.contains(g)) trong++;
-			lblGheTrong.setText("Số ghế còn trống: " + trong + "/" + maxSeats);
-		}
+	    // Cập nhật số ghế còn trống theo toa active
+	    String activeLoai = toaLoaiToas.get(closestIndex);
+	    String[][] filtered = dangXemChieuVe ? CHUYEN_FILTERED_VE : CHUYEN_FILTERED;
+	    if (chuyenIdx < 0 || filtered == null || chuyenIdx >= filtered.length) return;
+	    Set<Integer> dadat = gheDaDat(filtered[chuyenIdx][5], activeMaToa);
+	    int maxSeats = activeLoai.equals("VIP") ? 18 : 28;
+	    int trong = 0;
+	    for (int g = 1; g <= maxSeats; g++) if (!dadat.contains(g)) trong++;
+	    lblGheTrong.setText("Số ghế còn trống: " + trong + "/" + maxSeats);
 	}
 
 	private void switchToChieuVe() {
@@ -973,9 +1097,9 @@ public class DatVeGUI1 extends JPanel {
 		bar.setBackground(Color.WHITE);
 		bar.setBorder(new MatteBorder(1, 0, 0, 0, BORDER_C));
 
-		btnQuayLai = makeOutlineBtn("Quay lại", loadAndScaleIcon("/Images/logoBack.png", 14, 14));
+		// SỬA LỖI Ở ĐÂY: Thêm JButton vào trước tên biến
+		JButton btnQuayLai = makeOutlineBtn("Quay lại", loadAndScaleIcon("/Images/logoBack.png", 14, 14));
 		
-		// ĐÃ CẬP NHẬT LOGIC NÚT QUAY LẠI 
 		btnQuayLai.addActionListener(e -> {
 			if (!motChieu && dangXemChieuVe) {
 				switchToChieuDi();
@@ -988,7 +1112,7 @@ public class DatVeGUI1 extends JPanel {
 		lblGheDaChon.setFont(new Font("Segoe UI", Font.PLAIN, 12));
 		lblGheDaChon.setForeground(new Color(50, 70, 110));
 
-		btnHuy = makeRedBtn("Hủy", loadAndScaleIcon("/Images/logoHuy.png", 14, 14));
+		btnHuy = makeRedBtn("Hủy", loadAndScaleIcon("/Images/logoThungRac.png", 14, 14));
 		btnHuy.addActionListener(e -> {
 			gheChon.clear();
 			updateGheDaChon();
@@ -999,11 +1123,9 @@ public class DatVeGUI1 extends JPanel {
 
 		btnAction = makeNavyBtn("Chọn nhanh", loadAndScaleIcon("/Images/logoGhe.png", 14, 14));
 		
-		// ĐÃ FIX: TRẢ LẠI LOGIC ÉP CHỌN CẢ 2 CHIỀU NẾU LÀ KHỨ HỒI KHÔNG DÙNG POPUP NẾU CHỌN ĐÚNG
 		btnAction.addActionListener(e -> {
 			if (gheChon.size() >= soLuong) {
 				if (!motChieu && !dangXemChieuVe) {
-					// Chuyển thẳng sang tab chiều về không hiện popup
 					switchToChieuVe();
 				} else {
 					if (!motChieu && gheChonDi.size() < soLuong) {
@@ -1058,7 +1180,6 @@ public class DatVeGUI1 extends JPanel {
 		if (lblGheDaChon != null) lblGheDaChon.setText("  Số vé đã chọn: " + gheChon.size() + "/" + soLuong);
 	}
 
-	// ĐÃ ĐỔI TÊN NÚT VỀ "TIẾP TỤC" NHƯ BÌNH THƯỜNG
 	private void updateActionBtn() {
 		if (btnAction == null) return;
 		if (gheChon.size() >= soLuong) {
