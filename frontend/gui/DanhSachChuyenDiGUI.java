@@ -53,8 +53,6 @@ final class DanhSachChuyenDiGUI extends JPanel {
     private JComboBox<String> cboGaDi, cboGaDen, cboTau;
     private JDateChooser dcNgayDi;
     private JSpinner spnSeat;
-    private JRadioButton rdoThuong, rdoVip;
-
     private SmartFilterCard cardHnay;
     private SmartFilterCard cardSapChay;
     private SmartFilterCard cardTre;
@@ -160,9 +158,6 @@ final class DanhSachChuyenDiGUI extends JPanel {
         spnSeat.setBorder(new LineBorder(GuiTheme.SEARCH_FIELD_BORDER, 1, true));
         gbc.gridx = 1; pnlGrid.add(buildField("Ghế trống tối thiểu:", spnSeat), gbc);
         
-        gbc.gridx = 2;
-        pnlGrid.add(buildTypeBlock(), gbc);
-        
         pnlOuter.add(pnlGrid, BorderLayout.CENTER);
         
         JPanel pnlAction = buildActionBlock();
@@ -235,27 +230,7 @@ final class DanhSachChuyenDiGUI extends JPanel {
         return dc;
     }
 
-    private JPanel buildTypeBlock() {
-        JPanel pnlBlock = new JPanel(new BorderLayout(0, 4));
-        pnlBlock.setOpaque(false);
-        JLabel lbBlock = new JLabel("Loại toa");
-        lbBlock.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 14));
-        lbBlock.setForeground(GuiTheme.NAVY);
-        JPanel pnlOptions = new JPanel();
-        pnlOptions.setOpaque(false);
-        pnlOptions.setLayout(new FlowLayout(FlowLayout.LEFT, 15, 0));
-        ButtonGroup grp = new ButtonGroup();
-        rdoThuong = buildRadio("Toa thường");
-        rdoVip = buildRadio("Toa Vip");
-        grp.add(rdoThuong);
-        grp.add(rdoVip);
-        rdoThuong.setSelected(true);
-        pnlOptions.add(rdoThuong);
-        pnlOptions.add(rdoVip);
-        pnlBlock.add(lbBlock, BorderLayout.NORTH);
-        pnlBlock.add(pnlOptions, BorderLayout.CENTER);
-        return pnlBlock;
-    }
+
 
     private JPanel buildActionBlock() {
         JPanel pnlButtons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 15, 10));
@@ -273,7 +248,6 @@ final class DanhSachChuyenDiGUI extends JPanel {
             cboTau.setSelectedIndex(0);
             dcNgayDi.setDate(null);
             spnSeat.setValue(0);
-            rdoThuong.setSelected(true);
             activeCard = "ALL";
             loadDataToTable();
         });

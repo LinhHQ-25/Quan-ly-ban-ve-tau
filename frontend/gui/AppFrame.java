@@ -272,6 +272,12 @@ public class AppFrame extends JFrame {
 		return searchSubButtons.containsKey(c);
 	}
 
+    public void showTemporaryCard(Component panel, String cardName) {
+        contentCards.add(panel, cardName);
+        cardLayout.show(contentCards, cardName);
+        updateTitle(cardName);
+    }
+
 	private JPanel buildMainArea() {
 		JPanel main = new JPanel(new BorderLayout());
 		main.setBackground(GuiTheme.LIGHT_BG);

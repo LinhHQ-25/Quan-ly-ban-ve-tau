@@ -69,7 +69,21 @@ public class VeDAO {
         return result;
     }
 
+    public static void capNhatTrangThaiVeHetHan() {
+        String sqlRename = "UPDATE Ve SET trangThaiVe = N'Chờ thanh toán' WHERE trangThaiVe = N'Chưa thanh toán'";
+        String sql = "UPDATE Ve SET trangThaiVe = N'Đã hủy' WHERE trangThaiVe = N'Chờ thanh toán' AND DATEDIFF(minute, ngayMua, GETDATE()) >= 30";
+        try (Connection con = Connect_DB.getInstance().getConnection();
+             PreparedStatement psRename = con.prepareStatement(sqlRename);
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            psRename.executeUpdate();
+            ps.executeUpdate();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
     public List<String> layDanhSachMaGheDaDat(String maChuyenTau) {
+        capNhatTrangThaiVeHetHan();
         List<String> listGheDaDat = new ArrayList<>();
         String sql = "SELECT maGhe FROM Ve WHERE maChuyenTau = ? AND trangThaiVe IN (N'Đã thanh toán', 'DA_THANH_TOAN', N'Chờ thanh toán')";
         try (Connection con = Connect_DB.getInstance().getConnection();

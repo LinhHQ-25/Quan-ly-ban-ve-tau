@@ -50,7 +50,6 @@ final class VeGUI extends JPanel {
         add(pnlPage, BorderLayout.CENTER);
 
         loadDataToTable();
-        updateSmartFilters();
     }
 
     private JPanel buildFilterPanel() {
@@ -83,7 +82,7 @@ final class VeGUI extends JPanel {
         dcNgayMua = buildDateField();
         gbc.gridx = 2; pnlGrid.add(buildField("Ngày mua:", dcNgayMua), gbc);
         
-        cboTrangThai = buildCombo("", "Chưa thanh toán", "Đã thanh toán", "Đã hủy");
+        cboTrangThai = buildCombo("", "Chờ thanh toán", "Đã thanh toán", "Đã hủy");
         gbc.gridx = 3; pnlGrid.add(buildField("Trạng thái vé:", cboTrangThai), gbc);
 
         gbc.gridy = 1;
@@ -103,11 +102,14 @@ final class VeGUI extends JPanel {
         txtViTri = buildTextField();
         gbc.gridx = 0; pnlGrid.add(buildField("Vị trí ghế:", txtViTri), gbc);
         
-        pnlOuter.add(pnlGrid, BorderLayout.CENTER);
-        
         JPanel pnlAction = buildActionBlock();
         pnlAction.setOpaque(false);
-        pnlOuter.add(pnlAction, BorderLayout.SOUTH);
+        gbc.gridx = 1;
+        gbc.gridwidth = 3;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        pnlGrid.add(pnlAction, gbc);
+
+        pnlOuter.add(pnlGrid, BorderLayout.CENTER);
         
         return pnlOuter;
     }
@@ -116,8 +118,8 @@ final class VeGUI extends JPanel {
         JPanel pnlFilters = new JPanel(new GridLayout(1, 0, 15, 0));
         pnlFilters.setOpaque(false);
 
-        cardChoThanhToan = new SmartFilterCard("Vé chưa thanh toán", "0", new Color(253, 126, 20));
-        cardKhoiHanhGan = new SmartFilterCard("Sắp khởi hành < 24h", "0", new Color(220, 53, 69));
+        cardChoThanhToan = new SmartFilterCard("Vé chờ thanh toán", "0", new Color(253, 126, 20));
+        cardKhoiHanhGan = new SmartFilterCard("Sắp khởi hành < 5h", "0", new Color(220, 53, 69));
 
         cardChoThanhToan.addMouseListener(new MouseAdapter() {
             @Override public void mouseClicked(MouseEvent e) {
@@ -262,6 +264,24 @@ final class VeGUI extends JPanel {
         for (int i = 0; i < tblData.getColumnCount(); i++) {
             tblData.getColumnModel().getColumn(i).setCellRenderer(zebraRenderer);
         }
+        
+        tblData.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                if (e.getClickCount() == 2) {
+                    int row = tblData.getSelectedRow();
+                    if (row != -1) {
+                        String maVe = (String) tblModel.getValueAt(row, 1);
+                        AppFrame appFrame = (AppFrame) SwingUtilities.getWindowAncestor(VeGUI.this);
+                        if (appFrame != null) {
+                            ChiTietVeDialog dialog = new ChiTietVeDialog(appFrame, maVe);
+                            dialog.setVisible(true);
+                        }
+                    }
+                }
+            }
+        });
+        
         SwingUtilities.invokeLater(() -> {
             if (tblData.getColumnModel().getColumnCount() >= 10) {
                 tblData.getColumnModel().getColumn(0).setPreferredWidth(40);
@@ -285,8 +305,22 @@ final class VeGUI extends JPanel {
         return pnlOuter;
     }
 
+    private void xoaVeHetHan() {
+        String sqlRename = "UPDATE Ve SET trangThaiVe = N'Chờ thanh toán' WHERE trangThaiVe = N'Chưa thanh toán'";
+        String sql = "UPDATE Ve SET trangThaiVe = N'Đã hủy' WHERE trangThaiVe = N'Chờ thanh toán' AND DATEDIFF(minute, ngayMua, GETDATE()) >= 30";
+        try (Connection con = Connect_DB.getInstance().getConnection();
+             PreparedStatement psRename = con.prepareStatement(sqlRename);
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            psRename.executeUpdate();
+            ps.executeUpdate();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
     private void loadDataToTable() {
         if (tblModel == null) return;
+        xoaVeHetHan();
         tblModel.setRowCount(0);
         Connection conn = Connect_DB.getInstance().getConnection();
         if (conn == null) return;
@@ -304,9 +338,9 @@ final class VeGUI extends JPanel {
                          "WHERE v.maVe LIKE ? AND kh.hoTenKH LIKE ? AND v.maGhe LIKE ? AND gDi.tenGa LIKE ? AND gDen.tenGa LIKE ?";
             
             if (activeCard.equals("CHO")) {
-                sql += " AND v.trangThaiVe = N'Chưa thanh toán'";
+                sql += " AND v.trangThaiVe = N'Chờ thanh toán'";
             } else if (activeCard.equals("SAP")) {
-                sql += " AND dt.thoiGianKhoiHanh >= GETDATE() AND dt.thoiGianKhoiHanh <= DATEADD(hour, 24, GETDATE())";
+                sql += " AND v.trangThaiVe = N'Đã thanh toán' AND dt.thoiGianKhoiHanh >= GETDATE() AND dt.thoiGianKhoiHanh <= DATEADD(hour, 5, GETDATE())";
             }
 
             String trangThai = (String) cboTrangThai.getSelectedItem();
@@ -339,18 +373,19 @@ final class VeGUI extends JPanel {
                 });
             }
         } catch (SQLException e) { e.printStackTrace(); }
+        updateSmartFilters();
     }
 
     private void updateSmartFilters() {
         Connection conn = Connect_DB.getInstance().getConnection();
         if (conn == null) return;
         try {
-            String sql1 = "SELECT COUNT(*) FROM Ve WHERE trangThaiVe = N'Chưa thanh toán'";
+            String sql1 = "SELECT COUNT(*) FROM Ve WHERE trangThaiVe = N'Chờ thanh toán'";
             try (PreparedStatement pst = conn.prepareStatement(sql1); ResultSet rs = pst.executeQuery()) {
                 if (rs.next()) cardChoThanhToan.setCount(String.valueOf(rs.getInt(1)));
             }
             String sql2 = "SELECT COUNT(v.maVe) FROM Ve v JOIN ChiTietChuyenTau dt ON v.maChuyenTau = dt.maChuyenTau " +
-                          "WHERE dt.thoiGianKhoiHanh >= GETDATE() AND dt.thoiGianKhoiHanh <= DATEADD(hour, 24, GETDATE())";
+                          "WHERE v.trangThaiVe = N'Đã thanh toán' AND dt.thoiGianKhoiHanh >= GETDATE() AND dt.thoiGianKhoiHanh <= DATEADD(hour, 5, GETDATE())";
             try (PreparedStatement pst = conn.prepareStatement(sql2); ResultSet rs = pst.executeQuery()) {
                 if (rs.next()) cardKhoiHanhGan.setCount(String.valueOf(rs.getInt(1)));
             }

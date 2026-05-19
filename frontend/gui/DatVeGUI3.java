@@ -501,7 +501,14 @@ public class DatVeGUI3 extends JPanel {
         lblCountdown.setBorder(new EmptyBorder(6, 12, 6, 12));
 
         JButton btnLuuTam = makeNavyBtn("Lưu tạm", loadIcon("/Images/logoBack.png", 14, 14));
-        btnLuuTam.addActionListener(e -> JOptionPane.showMessageDialog(this, "Đã lưu hóa đơn chờ xử lý!"));
+        btnLuuTam.addActionListener(e -> {
+            boolean isSaved = luuDuLieuVaoDatabase("Lưu tạm");
+            if (isSaved) {
+                JOptionPane.showMessageDialog(this, "Đã lưu vé chờ thanh toán!");
+                stopAllTimers();
+                if (onQuayLai != null) onQuayLai.accept(secondsLeft);
+            }
+        });
 
         JButton btnThanhToan = makeNavyBtn("Thanh toán", loadIcon("/Images/logoGoOn.png", 14, 14));
         btnThanhToan.setHorizontalTextPosition(SwingConstants.LEFT); 
@@ -568,14 +575,15 @@ public class DatVeGUI3 extends JPanel {
                 double tienKhach = hinhThucThanhToan.contains("Chuyển khoản") ? tongThanhToan : parseMoney(txtTienKhachDua.getText());
                 psHD.setDouble(5, tienKhach);
                 
-                psHD.setString(6, hinhThucThanhToan.contains("Tiền mặt") ? "TIEN_MAT" : "CHUYEN_KHOAN");
+                String ptThanhToan = hinhThucThanhToan.contains("Tiền mặt") ? "TIEN_MAT" : (hinhThucThanhToan.equals("Lưu tạm") ? "LUU_TAM" : "CHUYEN_KHOAN");
+                psHD.setString(6, ptThanhToan);
                 psHD.executeUpdate();
             }
 
             // 2. LƯU TỪNG VÉ
-         // 2. LƯU TỪNG VÉ
-            String sqlVe = "INSERT INTO Ve (maVe, ngayMua, loaiVe, trangThaiVe, giaVe, maGhe, maHoaDon, maChuyenTau) VALUES (?, GETDATE(), ?, N'Đã thanh toán', ?, ?, ?, ?)";
+            String sqlVe = "INSERT INTO Ve (maVe, ngayMua, loaiVe, trangThaiVe, giaVe, maGhe, maHoaDon, maChuyenTau) VALUES (?, GETDATE(), ?, ?, ?, ?, ?, ?)";
             try (java.sql.PreparedStatement psVe = con.prepareStatement(sqlVe)) {
+                String trangThaiVe = hinhThucThanhToan.equals("Lưu tạm") ? "Chờ thanh toán" : "Đã thanh toán";
                 for (int i = 0; i < modelChiTiet.getRowCount(); i++) {
                     String maVe = modelChiTiet.getValueAt(i, 1).toString();
                     String maGhe = modelFromGUI2.getValueAt(i, 4).toString(); 
@@ -589,10 +597,11 @@ public class DatVeGUI3 extends JPanel {
 
                     psVe.setString(1, maVe);
                     psVe.setString(2, loaiVeDB);
-                    psVe.setDouble(3, giaGoc);
-                    psVe.setString(4, maGhe);
-                    psVe.setString(5, maHD);
-                    psVe.setString(6, maChuyenTau);
+                    psVe.setString(3, trangThaiVe);
+                    psVe.setDouble(4, giaGoc);
+                    psVe.setString(5, maGhe);
+                    psVe.setString(6, maHD);
+                    psVe.setString(7, maChuyenTau);
                     psVe.addBatch();
                 }
                 psVe.executeBatch();

@@ -13,7 +13,7 @@ public class Connect_DB {
     // Thông tin kết nối
     private static final String URL = "jdbc:sqlserver://localhost:1433;databaseName=QuanLyBanVeTau;encrypt=false;trustServerCertificate=true;";
     private static final String USER = "sa";
-    private static final String PASSWORD = "sapassword";
+    private static final String PASSWORD = "123456789";
 
     // Constructor private để implement Singleton
     private Connect_DB() {
