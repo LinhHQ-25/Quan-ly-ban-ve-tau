@@ -208,7 +208,21 @@ final class KhachHangGUI extends JPanel {
         tblData.setSelectionForeground(GuiTheme.TEXT);
         
         tblData.addMouseListener(new MouseAdapter() {
-            @Override public void mouseClicked(MouseEvent e) { fillFieldsFromTable(); }
+            @Override 
+            public void mouseClicked(MouseEvent e) { 
+                fillFieldsFromTable(); 
+                if (e.getClickCount() == 2) {
+                    int row = tblData.getSelectedRow();
+                    if (row != -1) {
+                        String maKH = tblModel.getValueAt(row, 1).toString();
+                        Window parentWindow = SwingUtilities.getWindowAncestor(KhachHangGUI.this);
+                        if (parentWindow instanceof Frame) {
+                            LichSuMuaVeDialog dialog = new LichSuMuaVeDialog((Frame) parentWindow, maKH);
+                            dialog.setVisible(true);
+                        }
+                    }
+                }
+            }
         });
 
         DefaultTableCellRenderer zebraRenderer = new DefaultTableCellRenderer() {
