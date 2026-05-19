@@ -9,6 +9,7 @@ import java.awt.event.*;
 import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.util.ArrayList; // Thêm import cho ArrayList phục vụ khai báo mới
 import java.util.List;
 
 import javax.swing.*;
@@ -33,6 +34,11 @@ public final class ThongKeGUI extends JPanel {
     private int  veBan    = 0;
     private int  veHuy    = 0;
 
+    // Các field mới thêm vào đầu class:
+    private String currentFilter = null; // null = tất cả, "ban" = đã bán, "huy" = đã hủy
+    private List<Object[]> hdBanList  = new ArrayList<>();
+    private List<Object[]> hdHuyList  = new ArrayList<>();
+
     private ChartPanel chartPanel;
     private final JLabel[] lblStatValues = new JLabel[4];
     private DefaultTableModel tblModel;
@@ -45,7 +51,7 @@ public final class ThongKeGUI extends JPanel {
     public void setTienMoCa(long tien) {
         this.tienMoCa = tien;
     }
-//i
+
     public ThongKeGUI() {
         setBackground(GuiTheme.LIGHT_BG);
         setLayout(new BorderLayout());
@@ -114,29 +120,33 @@ public final class ThongKeGUI extends JPanel {
         return pnl;
     }
 
+    // Method loadData đã sửa theo yêu cầu:
     public void loadData(LocalDate ngay, String ca) {
         new Thread(() -> {
             try {
                 int   vh  = VeDAO.getSoLuongVeTheoCa(ngay, ca, currentMaNV, "Đã hủy");
                 int[] ghe = VeDAO.getSoGheTheoLoaiTheoCa(ngay, ca, currentMaNV);
-                List<Object[]> hdList = HoaDonDAO.getDanhSachHoaDonTheoCa(ngay, ca, currentMaNV);
+                List<Object[]> hdList    = HoaDonDAO.getDanhSachHoaDonTheoCa(ngay, ca, currentMaNV);
+                List<Object[]> hdHuyTemp = HoaDonDAO.getDanhSachHoaDonHuyTheoCa(ngay, ca, currentMaNV); // NEW
 
-                // Tính từ hdList — chỉ gồm vé đã thanh toán (đã lọc trong SQL)
                 long ln = 0;
                 int  vb = 0;
                 for (Object[] row : hdList) {
-                    ln += ((Double) row[5]).longValue(); // row[5] = tongTien
-                    vb += (int) row[4];                 // row[4] = soGhe
+                    ln += ((Double) row[5]).longValue();
+                    vb += (int) row[4];
                 }
                 final long loiNhuanFinal = ln;
                 final long doanhThuFinal = ln + tienMoCa;
                 final int  veBanFinal    = vb;
 
                 SwingUtilities.invokeLater(() -> {
-                    this.loiNhuan = loiNhuanFinal;
-                    this.doanhThu = doanhThuFinal;
-                    this.veBan    = veBanFinal;
-                    this.veHuy    = vh;
+                    this.loiNhuan  = loiNhuanFinal;
+                    this.doanhThu  = doanhThuFinal;
+                    this.veBan     = veBanFinal;
+                    this.veHuy     = vh;
+                    this.hdBanList = hdList;      // NEW
+                    this.hdHuyList = hdHuyTemp;   // NEW
+                    this.currentFilter = null;    // reset filter khi load lại
 
                     lblStatValues[0].setText(String.format("%,.0f đ", (double) doanhThuFinal));
                     lblStatValues[1].setText(String.format("%,.0f đ", (double) loiNhuanFinal));
@@ -144,39 +154,52 @@ public final class ThongKeGUI extends JPanel {
                     lblStatValues[3].setText(vh + " vé");
 
                     chartPanel.setData(ghe[0], ghe[1], ghe[2]);
-                    tblModel.setRowCount(0);
-                    for (Object[] row : hdList) {
-                        row[5] = String.format("%,.0f đ", (Double) row[5]); // format tiền
-                        tblModel.addRow(new Object[]{row[0], row[1], row[2], row[3], row[4], row[5]});
-                    }
+                    hienThiBang(hdList); // dùng method mới
                 });
             } catch (SQLException e) { e.printStackTrace(); }
         }).start();
     }
 
+    // Method helper hiển thị bảng mới thêm:
+    private void hienThiBang(List<Object[]> list) {
+        tblModel.setRowCount(0);
+        for (Object[] row : list) {
+            Object tongTien = row[5] instanceof Double
+                ? String.format("%,.0f đ", (Double) row[5])
+                : row[5];
+            tblModel.addRow(new Object[]{row[0], row[1], row[2], row[3], row[4], tongTien});
+        }
+    }
+
+    // Method buildSummaryBar đã sửa:
     private JPanel buildSummaryBar() {
         JPanel pnl = new JPanel();
         pnl.setLayout(new BoxLayout(pnl, BoxLayout.X_AXIS));
         pnl.setOpaque(false);
-        pnl.add(buildStatCard("Tổng doanh thu",  "0 đ",  new Color(71,  71, 156), 0));
+        pnl.add(buildStatCard("Tổng doanh thu", "0 đ",  new Color(71,  71, 156), 0, false));
         pnl.add(Box.createHorizontalStrut(16));
-        pnl.add(buildStatCard("Tổng lợi nhuận",  "0 đ",  new Color(34, 120, 180), 1));
+        pnl.add(buildStatCard("Tổng lợi nhuận", "0 đ",  new Color(34, 120, 180), 1, false));
         pnl.add(Box.createHorizontalStrut(16));
-        pnl.add(buildStatCard("Vé đã bán",        "0 vé", new Color(34, 139,  87), 2));
+        pnl.add(buildStatCard("Vé đã bán",      "0 vé", new Color(34, 139,  87), 2, true));
         pnl.add(Box.createHorizontalStrut(16));
-        pnl.add(buildStatCard("Vé đã hủy",        "0 vé", new Color(210,  50,  50), 3));
+        pnl.add(buildStatCard("Vé đã hủy",      "0 vé", new Color(210, 50,  50), 3, true));
         pnl.add(Box.createHorizontalGlue());
         return pnl;
     }
 
-    private JPanel buildStatCard(String label, String value, Color accent, int idx) {
+    // Method buildStatCard đã sửa tích hợp logic click toggle viền và đổi bộ dữ liệu bảng:
+    private JPanel buildStatCard(String label, String value, Color accent, int idx, boolean clickable) {
         JPanel card = new JPanel() {
             @Override protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                 g2.setColor(Color.WHITE);
                 g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
-                g2.setColor(new Color(220, 224, 232));
+                // Viền sáng hơn khi đang được chọn
+                boolean selected = (idx == 2 && "ban".equals(currentFilter))
+                                || (idx == 3 && "huy".equals(currentFilter));
+                g2.setColor(selected ? accent : new Color(220, 224, 232));
+                g2.setStroke(new BasicStroke(selected ? 2f : 1f));
                 g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 10, 10);
                 g2.setColor(accent);
                 g2.fillRect(0, 0, 5, getHeight());
@@ -188,6 +211,7 @@ public final class ThongKeGUI extends JPanel {
         card.setBorder(new EmptyBorder(10, 18, 10, 22));
         card.setPreferredSize(new Dimension(220, 78));
         card.setMaximumSize(new Dimension(220, 78));
+        if (clickable) card.setCursor(new Cursor(Cursor.HAND_CURSOR));
 
         JLabel lbLabel = new JLabel(label.toUpperCase());
         lbLabel.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 12));
@@ -201,6 +225,35 @@ public final class ThongKeGUI extends JPanel {
         card.add(lbLabel);
         card.add(Box.createVerticalStrut(2));
         card.add(lbValue);
+
+        if (clickable) {
+            card.addMouseListener(new MouseAdapter() {
+                @Override public void mouseClicked(MouseEvent e) {
+                    if (idx == 2) { // Vé đã bán
+                        if ("ban".equals(currentFilter)) {
+                            currentFilter = null;
+                            hienThiBang(hdBanList);
+                        } else {
+                            currentFilter = "ban";
+                            hienThiBang(hdBanList);
+                        }
+                    } else if (idx == 3) { // Vé đã hủy
+                        if ("huy".equals(currentFilter)) {
+                            currentFilter = null;
+                            hienThiBang(hdBanList);
+                        } else {
+                            currentFilter = "huy";
+                            hienThiBang(hdHuyList);
+                        }
+                    }
+                    // Repaint để cập nhật viền card
+                    card.repaint();
+                    // Repaint card kia để bỏ highlight
+                    Container parent = card.getParent();
+                    if (parent != null) parent.repaint();
+                }
+            });
+        }
         return card;
     }
 

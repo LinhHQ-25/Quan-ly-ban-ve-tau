@@ -139,4 +139,42 @@ public class HoaDonDAO implements DAO<HoaDon, String> {
         }
         return rows;
     }
+    public static List<Object[]> getDanhSachHoaDonHuyTheoCa(java.time.LocalDate ngay, String ca, String maNV) throws SQLException {
+        String timeCondition = ca.equalsIgnoreCase("Sáng")
+                ? " BETWEEN '00:00:00' AND '11:59:59'"
+                : " BETWEEN '12:00:00' AND '23:59:59'";
+
+        String sql = "SELECT h.maHoaDon, " +
+                "       CONVERT(varchar, h.ngayLapHD, 108) AS gioBan, " +
+                "       k.hoTenKH, " +
+                "       (SELECT TOP 1 g.loaiGhe FROM Ve v JOIN Ghe g ON v.maGhe = g.maGhe WHERE v.maHoaDon = h.maHoaDon AND v.trangThaiVe = N'Đã hủy') AS loaiGhe, " +
+                "       (SELECT COUNT(*) FROM Ve v WHERE v.maHoaDon = h.maHoaDon AND v.trangThaiVe = N'Đã hủy') AS soGhe, " +
+                "       (SELECT ISNULL(SUM(v.giaVe), 0) FROM Ve v WHERE v.maHoaDon = h.maHoaDon AND v.trangThaiVe = N'Đã hủy') AS tongTien " +
+                "FROM HoaDon h " +
+                "JOIN KhachHang k ON h.maKH = k.maKH " +
+                "WHERE CAST(h.ngayLapHD AS DATE) = ? AND h.maNV = ? " +
+                "AND CAST(h.ngayLapHD AS TIME)" + timeCondition +
+                " AND EXISTS (SELECT 1 FROM Ve v WHERE v.maHoaDon = h.maHoaDon AND v.trangThaiVe = N'Đã hủy')" +
+                " ORDER BY h.ngayLapHD DESC";
+
+        List<Object[]> rows = new ArrayList<>();
+        try (Connection con = Connect_DB.getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setDate(1, java.sql.Date.valueOf(ngay));
+            ps.setString(2, maNV);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    rows.add(new Object[]{
+                            rs.getString("maHoaDon"),
+                            rs.getString("gioBan"),
+                            rs.getString("hoTenKH"),
+                            rs.getString("loaiGhe"),
+                            rs.getInt("soGhe"),
+                            rs.getDouble("tongTien")
+                    });
+                }
+            }
+        }
+        return rows;
+    }
 }
