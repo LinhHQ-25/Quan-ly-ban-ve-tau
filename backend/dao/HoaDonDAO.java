@@ -34,7 +34,7 @@ public class HoaDonDAO implements DAO<HoaDon, String> {
         } catch (Exception e) { e.printStackTrace(); }
         return list;
     }
-
+//i
     @Override
     public HoaDon selectById(String id) {
         String sql = "SELECT * FROM HoaDon WHERE maHoaDon = ?";

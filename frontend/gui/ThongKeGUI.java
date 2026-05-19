@@ -45,7 +45,7 @@ public final class ThongKeGUI extends JPanel {
     public void setTienMoCa(long tien) {
         this.tienMoCa = tien;
     }
-
+//i
     public ThongKeGUI() {
         setBackground(GuiTheme.LIGHT_BG);
         setLayout(new BorderLayout());
