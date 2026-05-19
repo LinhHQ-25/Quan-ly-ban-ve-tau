@@ -810,4 +810,34 @@ public class DatVeGUI extends JPanel {
             g2.dispose();
         }
     }
+ // Thêm vào cuối class DatVeGUI, trước dấu }
+
+    /**
+     * Reset form về trạng thái ban đầu (ga đi giữ nguyên, reset các trường còn lại).
+     */
+    public void resetForm() {
+        // Reset ga đến
+        suppressDocListener = true;
+        txtGaDen.setText("");
+        suppressDocListener = false;
+        cbGaDen.setSelectedIndex(-1);
+
+        // Reset map
+        if (mapPanel != null) mapPanel.setSelectedGaDen(null);
+
+        // Reset loại vé về một chiều
+        rbMotChieu.setSelected(true);
+        setNgayVeEnabled(false);
+
+        // Reset ngày
+        dcNgayDi.setDate(null);
+        dcNgayVe.setDate(null);
+
+        // Reset số lượng
+        txtSoLuong.setText("1");
+
+        // Đóng popup autocomplete nếu còn mở
+        if (autocompletePopup != null && autocompletePopup.isVisible())
+            autocompletePopup.setVisible(false);
+    }
 }
