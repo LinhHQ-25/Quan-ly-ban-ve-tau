@@ -17,24 +17,23 @@ import java.util.Locale;
 
 public class BaoCaoPDF {
 
-    // ── Kích thước trang A4 (points) ─────────────────────────────────────────
-    private static final float W  = PDRectangle.A4.getWidth();   // 595.28
-    private static final float H  = PDRectangle.A4.getHeight();  // 841.89
-    private static final float M  = 42f;   // lề trái / phải
-    private static final float CW = W - 2 * M;  // chiều rộng nội dung
+    private static final float W  = PDRectangle.A4.getWidth();
+    private static final float H  = PDRectangle.A4.getHeight();
+    private static final float M  = 42f;
+    private static final float CW = W - 2 * M;
 
-    // ── Bảng màu (RGB 0–1) ───────────────────────────────────────────────────
-    private static final float[] NAVY   = {0.10f, 0.13f, 0.50f};   // #1A2180
-    private static final float[] NAVY_L = {0.13f, 0.17f, 0.62f};   // header accent
+    private static final float[] NAVY   = {0.10f, 0.13f, 0.50f};
+    private static final float[] NAVY_L = {0.13f, 0.17f, 0.62f};
     private static final float[] WHITE  = {1f, 1f, 1f};
     private static final float[] LGRAY  = {0.94f, 0.95f, 0.97f};
     private static final float[] MGRAY  = {0.80f, 0.82f, 0.86f};
     private static final float[] DTEXT  = {0.10f, 0.12f, 0.18f};
     private static final float[] MTEXT  = {0.45f, 0.47f, 0.54f};
 
-    // ─────────────────────────────────────────────────────────────────────────
+    // THÊM tham số loiNhuan vào đây
     public static void export(String tenNhanVien,
-                               long doanhThu, int veBan, int veHuy,
+                               long doanhThu, long loiNhuan,
+                               int veBan, int veHuy,
                                int soGiuong, int soGheMem, int soGheCung) {
         try (PDDocument doc = new PDDocument()) {
             PDPage page = new PDPage(PDRectangle.A4);
@@ -48,9 +47,10 @@ public class BaoCaoPDF {
                 String strDate      = now.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
                 String strTime      = now.format(DateTimeFormatter.ofPattern("HH:mm:ss"));
                 NumberFormat nf     = NumberFormat.getInstance(new Locale("vi", "VN"));
-                String strDoanh     = nf.format(doanhThu) + " \u0111";
+                String strDoanh     = nf.format(doanhThu)  + " \u0111";
+                String strLoiNhuan  = nf.format(loiNhuan)  + " \u0111"; // THÊM MỚI
 
-                float y = H;  // cursor từ đỉnh xuống
+                float y = H;
 
                 // ── HEADER BAND ──────────────────────────────────────────────
                 float hdrH = 72f;
@@ -58,7 +58,6 @@ public class BaoCaoPDF {
                 fillRect(cs, 0, H - 5, W, 5, NAVY_L);
                 fillRect(cs, M, H - hdrH, CW, 0.8f, new float[]{1f, 1f, 1f, 0.25f});
 
-                // ── Tiêu đề trong header ──────────────────────────────────────
                 drawTextCentered(cs, fBold, 17f, W, H - 30f, WHITE,
                         "HỆ THỐNG QUẢN LÝ BÁN VÉ TÀU HỎA");
                 drawTextCentered(cs, fReg,  11f, W, H - 52f, new float[]{0.72f, 0.80f, 1.0f},
@@ -73,7 +72,7 @@ public class BaoCaoPDF {
                 drawHLine(cs, M, y, CW, MGRAY, 0.6f);
                 y -= 18f;
 
-                // ── INFO ROW ────────────────────────
+                // ── INFO ROW ─────────────────────────────────────────────────
                 fillRect(cs, M, y - 9f, CW, 27f, LGRAY);
                 drawRect(cs, M, y - 9f, CW, 27f, MGRAY, 0.5f);
 
@@ -86,50 +85,56 @@ public class BaoCaoPDF {
                         "Giờ xuất: ", strTime);
                 y -= 28f;
 
-                // ── SECTION 1 ────────────────────────
+                // ── SECTION 1: TỔNG QUAN ──────────────────────────────────────
                 y = drawSectionHeader(cs, fBold, M, y, CW,
                         "TỔNG QUAN CA LÀM VIỆC");
                 y -= 10f;
 
-                float bw = CW / 3f - 7f, bh = 70f;
+                // 4 card: Doanh thu | Lợi nhuận | Vé đã bán | Vé đã hủy
+                float bw = CW / 4f - 6f, bh = 70f, gap = 8f;
                 drawStatCard(cs, fReg, fBold,
-                        M,              y - bh, bw, bh,
+                        M,                        y - bh, bw, bh,
                         "TỔNG DOANH THU", strDoanh,
-                        new float[]{0.10f,0.13f,0.50f},
-                        new float[]{0.93f,0.94f,0.99f});
+                        new float[]{0.10f, 0.13f, 0.50f},
+                        new float[]{0.93f, 0.94f, 0.99f});
                 drawStatCard(cs, fReg, fBold,
-                        M + bw + 10.5f, y - bh, bw, bh,
+                        M + (bw + gap),            y - bh, bw, bh,
+                        "TỔNG LỢI NHUẬN", strLoiNhuan,
+                        new float[]{0.08f, 0.35f, 0.60f},
+                        new float[]{0.91f, 0.95f, 0.99f});
+                drawStatCard(cs, fReg, fBold,
+                        M + (bw + gap) * 2,        y - bh, bw, bh,
                         "VÉ ĐÃ BÁN", veBan + " v\u00e9",
-                        new float[]{0.08f,0.48f,0.20f},
-                        new float[]{0.92f,0.98f,0.93f});
+                        new float[]{0.08f, 0.48f, 0.20f},
+                        new float[]{0.92f, 0.98f, 0.93f});
                 drawStatCard(cs, fReg, fBold,
-                        M + (bw+10.5f)*2, y - bh, bw, bh,
+                        M + (bw + gap) * 3,        y - bh, bw, bh,
                         "VÉ ĐÃ HỦY", veHuy + " v\u00e9",
-                        new float[]{0.70f,0.14f,0.14f},
-                        new float[]{0.99f,0.92f,0.92f});
+                        new float[]{0.70f, 0.14f, 0.14f},
+                        new float[]{0.99f, 0.92f, 0.92f});
                 y -= bh + 22f;
 
-                // ── SECTION 2 ─────────────────────────────────
+                // ── SECTION 2: PHÂN LOẠI GHẾ ─────────────────────────────────
                 y = drawSectionHeader(cs, fBold, M, y, CW,
                         "PHÂN LOẠI VÉ THEO LOẠI GHẾ");
                 y -= 10f;
 
                 float bw2 = CW / 3f - 7f, bh2 = 70f;
                 drawStatCard(cs, fReg, fBold,
-                        M,               y - bh2, bw2, bh2,
+                        M,                y - bh2, bw2, bh2,
                         "GIƯỜNG", soGiuong + " v\u00e9",
-                        new float[]{0.25f,0.45f,0.78f},
-                        new float[]{0.92f,0.95f,0.99f});
+                        new float[]{0.25f, 0.45f, 0.78f},
+                        new float[]{0.92f, 0.95f, 0.99f});
                 drawStatCard(cs, fReg, fBold,
-                        M + bw2 + 10.5f, y - bh2, bw2, bh2,
+                        M + bw2 + 10.5f,  y - bh2, bw2, bh2,
                         "GHẾ MỀM", soGheMem + " v\u00e9",
-                        new float[]{0.84f,0.50f,0.06f},
-                        new float[]{0.99f,0.96f,0.90f});
+                        new float[]{0.84f, 0.50f, 0.06f},
+                        new float[]{0.99f, 0.96f, 0.90f});
                 drawStatCard(cs, fReg, fBold,
                         M + (bw2+10.5f)*2, y - bh2, bw2, bh2,
                         "GHẾ CỨNG", soGheCung + " v\u00e9",
-                        new float[]{0.12f,0.56f,0.33f},
-                        new float[]{0.91f,0.98f,0.93f});
+                        new float[]{0.12f, 0.56f, 0.33f},
+                        new float[]{0.91f, 0.98f, 0.93f});
                 y -= bh2 + 24f;
 
                 // ── SUMMARY LINE ──────────────────────────────────────────────
@@ -139,7 +144,7 @@ public class BaoCaoPDF {
                     drawRect(cs, M, y - 8f, CW, 24f, MGRAY, 0.5f);
                     String summaryLeft = "T\u1ED5ng h\u1EE3p: " + veBan + " v\u00e9 b\u00e1n  \u2022  "
                             + veHuy + " v\u00e9 h\u1EE7y";
-                    String summaryRight = "Doanh thu: " + strDoanh;
+                    String summaryRight = "Doanh thu: " + strDoanh + "  |  L\u1EE3i nhu\u1EADn: " + strLoiNhuan;
                     drawText(cs, fReg, 9.5f, M + 10f, y + 3f, MTEXT, summaryLeft);
                     float rw = textWidth(fReg, 9.5f, summaryRight);
                     drawText(cs, fBold, 9.5f, M + CW - rw - 10f, y + 3f, NAVY, summaryRight);
@@ -152,8 +157,6 @@ public class BaoCaoPDF {
                         + "   \u2022   T\u00e0i li\u1EC7u n\u1ED9i b\u1ED9";
                 drawTextCentered(cs, fReg, 8f, W, 43f,
                         new float[]{0.58f, 0.58f, 0.62f}, footer);
-
-                // page number
                 drawText(cs, fReg, 8f, W - M - 20f, 43f,
                         new float[]{0.58f, 0.58f, 0.62f}, "1 / 1");
             }
@@ -181,7 +184,7 @@ public class BaoCaoPDF {
         }
     }
 
-    // ── Font loader (hỗ trợ tiếng Việt qua Arial) ────────────────────────────
+    // ── Font loader ───────────────────────────────────────────────────────────
     private static PDType0Font loadFont(PDDocument doc, boolean bold) throws IOException {
         String[] candidates = bold
             ? new String[]{
@@ -201,9 +204,8 @@ public class BaoCaoPDF {
             File f = new File(path);
             if (f.exists()) return PDType0Font.load(doc, f);
         }
-        
+
         String res = bold ? "/fonts/ArialBold.ttf" : "/fonts/Arial.ttf";
-        // Lưu ý: Nếu bạn dùng Java 8, hãy sửa 'var' thành 'java.io.InputStream'
         java.io.InputStream stream = BaoCaoPDF.class.getResourceAsStream(res);
         if (stream != null) return PDType0Font.load(doc, stream);
 
@@ -212,7 +214,7 @@ public class BaoCaoPDF {
             + "Vui l\u00f2ng \u0111\u1EB7t arial.ttf v\u00e0 arialbd.ttf v\u00e0o C:/Windows/Fonts/");
     }
 
-    // ═════════════════════════════════ HELPERS ════════════════════════════════
+    // ═══════════════════════════ HELPERS ════════════════════════════════════
 
     private static void fillRect(PDPageContentStream cs,
             float x, float y, float w, float h, float[] rgb) throws IOException {
@@ -300,7 +302,7 @@ public class BaoCaoPDF {
         fillRect(cs, x, y, 5f, h, accent);
         drawText(cs, fReg, 8f, x + 12f, y + h - 18f, MTEXT, label);
         drawHLine(cs, x + 12f, y + h - 24f, w - 22f, MGRAY, 0.4f);
-        float valSize = value.length() > 14 ? 13.5f : 17f;
+        float valSize = value.length() > 14 ? 11f : 15f;
         float valY    = y + (h / 2f) - valSize * 0.35f;
         drawText(cs, fBold, valSize, x + 12f, valY, accent, value);
     }

@@ -28,17 +28,24 @@ public final class ThongKeGUI extends JPanel {
     private String currentTenNV = "Nguyễn Văn A";
 
     private long doanhThu = 0;
+    private long loiNhuan = 0;
+    private long tienMoCa = 0;   // Set từ AppFrame sau khi MoCaDialog xác nhận
     private int  veBan    = 0;
     private int  veHuy    = 0;
 
     private ChartPanel chartPanel;
-    private final JLabel[] lblStatValues = new JLabel[3];
+    private final JLabel[] lblStatValues = new JLabel[4]; // 4 cards
     private DefaultTableModel tblModel;
 
     private JDateChooser      dcNgay;
     private JComboBox<String> cboCa;
     private TableRowSorter<DefaultTableModel> sorter;
     private JTable tblData;
+
+    // Gọi từ AppFrame sau khi user xác nhận mở ca
+    public void setTienMoCa(long tien) {
+        this.tienMoCa = tien;
+    }
 
     public ThongKeGUI() {
         setBackground(GuiTheme.LIGHT_BG);
@@ -111,17 +118,31 @@ public final class ThongKeGUI extends JPanel {
     public void loadData(LocalDate ngay, String ca) {
         new Thread(() -> {
             try {
-                long dt   = VeDAO.getTongDoanhThuTheoCa(ngay, ca, currentMaNV);
                 int  vb   = VeDAO.getSoLuongVeTheoCa(ngay, ca, currentMaNV, "Đã thanh toán");
                 int  vh   = VeDAO.getSoLuongVeTheoCa(ngay, ca, currentMaNV, "Đã hủy");
                 int[] ghe = VeDAO.getSoGheTheoLoaiTheoCa(ngay, ca, currentMaNV);
                 List<Object[]> hdList = HoaDonDAO.getDanhSachHoaDonTheoCa(ngay, ca, currentMaNV);
 
+                // Tổng lợi nhuận = tổng tongTien các hóa đơn trong ca (row[6] là Double trước khi format)
+                long ln = 0;
+                for (Object[] row : hdList) {
+                    ln += ((Double) row[6]).longValue();
+                }
+                final long loiNhuanFinal = ln;
+                // Tổng doanh thu = lợi nhuận ca + tiền mở ca
+                final long doanhThuFinal = loiNhuanFinal + tienMoCa;
+
                 SwingUtilities.invokeLater(() -> {
-                    this.doanhThu = dt; this.veBan = vb; this.veHuy = vh;
-                    lblStatValues[0].setText(String.format("%,.0f đ", (double) dt));
-                    lblStatValues[1].setText(vb + " vé");
-                    lblStatValues[2].setText(vh + " vé");
+                    this.loiNhuan = loiNhuanFinal;
+                    this.doanhThu = doanhThuFinal;
+                    this.veBan = vb;
+                    this.veHuy = vh;
+
+                    lblStatValues[0].setText(String.format("%,.0f đ", (double) doanhThuFinal));
+                    lblStatValues[1].setText(String.format("%,.0f đ", (double) loiNhuanFinal));
+                    lblStatValues[2].setText(vb + " vé");
+                    lblStatValues[3].setText(vh + " vé");
+
                     chartPanel.setData(ghe[0], ghe[1], ghe[2]);
                     tblModel.setRowCount(0);
                     for (Object[] row : hdList) {
@@ -137,11 +158,13 @@ public final class ThongKeGUI extends JPanel {
         JPanel pnl = new JPanel();
         pnl.setLayout(new BoxLayout(pnl, BoxLayout.X_AXIS));
         pnl.setOpaque(false);
-        pnl.add(buildStatCard("Doanh thu ca này", "0 đ",  new Color(71,  71, 156), 0));
+        pnl.add(buildStatCard("Tổng doanh thu",  "0 đ",  new Color(71,  71, 156), 0));
         pnl.add(Box.createHorizontalStrut(16));
-        pnl.add(buildStatCard("Vé đã bán",        "0 vé", new Color(34, 139,  87), 1));
+        pnl.add(buildStatCard("Tổng lợi nhuận",  "0 đ",  new Color(34, 120, 180), 1));
         pnl.add(Box.createHorizontalStrut(16));
-        pnl.add(buildStatCard("Vé đã hủy",        "0 vé", new Color(210,  50,  50), 2));
+        pnl.add(buildStatCard("Vé đã bán",        "0 vé", new Color(34, 139,  87), 2));
+        pnl.add(Box.createHorizontalStrut(16));
+        pnl.add(buildStatCard("Vé đã hủy",        "0 vé", new Color(210,  50,  50), 3));
         pnl.add(Box.createHorizontalGlue());
         return pnl;
     }
@@ -199,10 +222,8 @@ public final class ThongKeGUI extends JPanel {
         sorter  = new TableRowSorter<>(tblModel);
         tblData.setRowSorter(sorter);
 
-        // --- KHÓA TÙY CHỈNH CỘT Ở ĐÂY ---
-        tblData.getTableHeader().setReorderingAllowed(false); // Không cho kéo đổi vị trí cột
-        tblData.getTableHeader().setResizingAllowed(false);   // Không cho kéo rộng/hẹp cột
-        // -------------------------------
+        tblData.getTableHeader().setReorderingAllowed(false);
+        tblData.getTableHeader().setResizingAllowed(false);
 
         tblData.setRowHeight(36);
         tblData.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
@@ -248,7 +269,8 @@ public final class ThongKeGUI extends JPanel {
         JButton btn = buildNavyButton("Xuất báo cáo kết ca", null);
         btn.addActionListener(e -> {
             int[] d = chartPanel.getData();
-            BaoCaoPDF.export(currentTenNV, doanhThu, veBan, veHuy, d[1], d[2], d[0]);
+            // Truyền doanhThu (đã gồm tiền mở ca), loiNhuan, veBan, veHuy vào PDF
+            BaoCaoPDF.export(currentTenNV, doanhThu, loiNhuan, veBan, veHuy, d[1], d[2], d[0]);
         });
         return btn;
     }
@@ -259,7 +281,6 @@ public final class ThongKeGUI extends JPanel {
             protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-
                 g2.setColor(getModel().isPressed() ? GuiTheme.NAVY.darker() : GuiTheme.NAVY);
                 g2.fillRoundRect(0, 0, getWidth(), getHeight(), 15, 15);
 
@@ -299,97 +320,99 @@ public final class ThongKeGUI extends JPanel {
         return btn;
     }
 }
+//... (cuối class ThongKeGUI)
+// <-- dấu } đóng ThongKeGUI
 
-// ChartPanel và các logic khác giữ nguyên...
+//PASTE TOÀN BỘ NÀY VÀO SAU ĐÓ:
 class ChartPanel extends JPanel {
-    private static final Color[]  COLORS = { new Color(88, 130, 210), new Color(60, 179, 113), new Color(255, 165, 50) };
-    private static final String[] LABELS = {"Ghế cứng", "Giường nằm", "Ghế mềm"};
-    private static final int LEGEND_STEP = 38;
-    private int[] data = {0, 0, 0};
-    private static final int OUTER_R = 70, INNER_R = 44;
-    private int selectedIdx = -1;
+ private static final Color[]  COLORS = { new Color(88, 130, 210), new Color(60, 179, 113), new Color(255, 165, 50) };
+ private static final String[] LABELS = {"Ghế cứng", "Giường nằm", "Ghế mềm"};
+ private static final int LEGEND_STEP = 38;
+ private int[] data = {0, 0, 0};
+ private static final int OUTER_R = 70, INNER_R = 44;
+ private int selectedIdx = -1;
 
-    public interface FilterListener { void onFilter(String type); }
-    private FilterListener listener;
+ public interface FilterListener { void onFilter(String type); }
+ private FilterListener listener;
 
-    public ChartPanel() {
-        setPreferredSize(new Dimension(245, 380));
-        setBackground(Color.WHITE);
-        setBorder(new LineBorder(new Color(210, 215, 224), 1, true));
-        setCursor(new Cursor(Cursor.HAND_CURSOR));
+ public ChartPanel() {
+     setPreferredSize(new Dimension(245, 380));
+     setBackground(Color.WHITE);
+     setBorder(new LineBorder(new Color(210, 215, 224), 1, true));
+     setCursor(new Cursor(Cursor.HAND_CURSOR));
 
-        addMouseListener(new MouseAdapter() {
-            @Override public void mousePressed(MouseEvent e) {
-                int old = selectedIdx;
-                selectedIdx = detectIndex(e.getPoint());
-                if (old == selectedIdx) selectedIdx = -1;
-                repaint();
-                if (listener != null) listener.onFilter(selectedIdx == -1 ? null : LABELS[selectedIdx]);
-            }
-        });
-    }
+     addMouseListener(new MouseAdapter() {
+         @Override public void mousePressed(MouseEvent e) {
+             int old = selectedIdx;
+             selectedIdx = detectIndex(e.getPoint());
+             if (old == selectedIdx) selectedIdx = -1;
+             repaint();
+             if (listener != null) listener.onFilter(selectedIdx == -1 ? null : LABELS[selectedIdx]);
+         }
+     });
+ }
 
-    private int detectIndex(Point p) {
-        int cx = getWidth() / 2, cy = OUTER_R + 25;
-        double dist = p.distance(cx, cy);
-        if (dist >= INNER_R && dist <= OUTER_R) {
-            double angle = Math.toDegrees(Math.atan2(cy - p.y, p.x - cx));
-            if (angle < 0) angle += 360;
-            double mappedAngle = (450 - angle) % 360;
-            int total = data[0] + data[1] + data[2];
-            if (total == 0) return -1;
-            double cur = 0;
-            for (int i = 0; i < 3; i++) {
-                double arc = 360.0 * data[i] / total;
-                if (mappedAngle >= cur && mappedAngle < cur + arc) return i;
-                cur += arc;
-            }
-        }
-        int legendY = cy + OUTER_R + 20;
-        for (int i = 0; i < 3; i++) {
-            Rectangle r = new Rectangle(20, legendY + i * LEGEND_STEP - 4, 200, LEGEND_STEP - 4);
-            if (r.contains(p)) return i;
-        }
-        return -1;
-    }
+ private int detectIndex(Point p) {
+     int cx = getWidth() / 2, cy = OUTER_R + 25;
+     double dist = p.distance(cx, cy);
+     if (dist >= INNER_R && dist <= OUTER_R) {
+         double angle = Math.toDegrees(Math.atan2(cy - p.y, p.x - cx));
+         if (angle < 0) angle += 360;
+         double mappedAngle = (450 - angle) % 360;
+         int total = data[0] + data[1] + data[2];
+         if (total == 0) return -1;
+         double cur = 0;
+         for (int i = 0; i < 3; i++) {
+             double arc = 360.0 * data[i] / total;
+             if (mappedAngle >= cur && mappedAngle < cur + arc) return i;
+             cur += arc;
+         }
+     }
+     int legendY = cy + OUTER_R + 20;
+     for (int i = 0; i < 3; i++) {
+         Rectangle r = new Rectangle(20, legendY + i * LEGEND_STEP - 4, 200, LEGEND_STEP - 4);
+         if (r.contains(p)) return i;
+     }
+     return -1;
+ }
 
-    public void setOnFilterListener(FilterListener l) { this.listener = l; }
-    public void setData(int gc, int gn, int gm) { data[0]=gc; data[1]=gn; data[2]=gm; selectedIdx=-1; repaint(); }
-    public int[] getData() { return data; }
+ public void setOnFilterListener(FilterListener l) { this.listener = l; }
+ public void setData(int gc, int gn, int gm) { data[0]=gc; data[1]=gn; data[2]=gm; selectedIdx=-1; repaint(); }
+ public int[] getData() { return data; }
 
-    @Override protected void paintComponent(Graphics g) {
-        super.paintComponent(g);
-        Graphics2D g2 = (Graphics2D) g.create();
-        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-        int cx = getWidth()/2, cy = OUTER_R + 25;
-        int total = data[0]+data[1]+data[2];
-        int sa = 90;
-        for (int i=0; i<3; i++) {
-            int arc = (total==0) ? 120 : (int)Math.round(360.0*data[i]/total);
-            if(i==2 && total!=0) arc = 360 - (int)Math.round(360.0*data[0]/total) - (int)Math.round(360.0*data[1]/total);
-            Color c = COLORS[i];
-            if(selectedIdx!=-1 && selectedIdx!=i) c = new Color(c.getRed(), c.getGreen(), c.getBlue(), 60);
-            g2.setColor(c);
-            g2.fillArc(cx-OUTER_R, cy-OUTER_R, OUTER_R*2, OUTER_R*2, sa, arc);
-            sa+=arc;
-        }
-        g2.setColor(Color.WHITE); g2.fillOval(cx-INNER_R, cy-INNER_R, INNER_R*2, INNER_R*2);
-        int legendY = cy + OUTER_R + 20;
-        for (int i=0; i<3; i++) {
-            double pct = (total==0) ? 0 : (data[i]*100.0/total);
-            Color c = COLORS[i];
-            if(selectedIdx!=-1 && selectedIdx!=i) c = new Color(c.getRed(), c.getGreen(), c.getBlue(), 60);
-            int itemY = legendY + i * LEGEND_STEP;
-            g2.setColor(c); g2.fillRoundRect(22, itemY, 14, 14, 4, 4);
-            g2.setColor(new Color(50, 55, 75)); g2.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 14));
-            g2.drawString(LABELS[i], 44, itemY + 12);
-            g2.setColor(new Color(120, 125, 145)); g2.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 13));
-            g2.drawString(String.format("%.1f%%", pct) + " (" + data[i] + " vé)", 44, itemY + 28);
-            if (selectedIdx == i) {
-                g2.setColor(COLORS[i]); g2.setStroke(new BasicStroke(1.2f));
-                g2.drawRoundRect(16, itemY - 5, 210, LEGEND_STEP - 2, 6, 6);
-            }
-        }
-        g2.dispose();
-    }
+ @Override protected void paintComponent(Graphics g) {
+     super.paintComponent(g);
+     Graphics2D g2 = (Graphics2D) g.create();
+     g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+     int cx = getWidth()/2, cy = OUTER_R + 25;
+     int total = data[0]+data[1]+data[2];
+     int sa = 90;
+     for (int i=0; i<3; i++) {
+         int arc = (total==0) ? 120 : (int)Math.round(360.0*data[i]/total);
+         if(i==2 && total!=0) arc = 360 - (int)Math.round(360.0*data[0]/total) - (int)Math.round(360.0*data[1]/total);
+         Color c = COLORS[i];
+         if(selectedIdx!=-1 && selectedIdx!=i) c = new Color(c.getRed(), c.getGreen(), c.getBlue(), 60);
+         g2.setColor(c);
+         g2.fillArc(cx-OUTER_R, cy-OUTER_R, OUTER_R*2, OUTER_R*2, sa, arc);
+         sa+=arc;
+     }
+     g2.setColor(Color.WHITE); g2.fillOval(cx-INNER_R, cy-INNER_R, INNER_R*2, INNER_R*2);
+     int legendY = cy + OUTER_R + 20;
+     for (int i=0; i<3; i++) {
+         double pct = (total==0) ? 0 : (data[i]*100.0/total);
+         Color c = COLORS[i];
+         if(selectedIdx!=-1 && selectedIdx!=i) c = new Color(c.getRed(), c.getGreen(), c.getBlue(), 60);
+         int itemY = legendY + i * LEGEND_STEP;
+         g2.setColor(c); g2.fillRoundRect(22, itemY, 14, 14, 4, 4);
+         g2.setColor(new Color(50, 55, 75)); g2.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 14));
+         g2.drawString(LABELS[i], 44, itemY + 12);
+         g2.setColor(new Color(120, 125, 145)); g2.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 13));
+         g2.drawString(String.format("%.1f%%", pct) + " (" + data[i] + " vé)", 44, itemY + 28);
+         if (selectedIdx == i) {
+             g2.setColor(COLORS[i]); g2.setStroke(new BasicStroke(1.2f));
+             g2.drawRoundRect(16, itemY - 5, 210, LEGEND_STEP - 2, 6, 6);
+         }
+     }
+     g2.dispose();
+ }
 }
