@@ -26,7 +26,10 @@ public class HoaDonDAO implements DAO<HoaDon, String> {
                 nv.setMaNV(rs.getString("maNV"));
                 KhachHang kh = new KhachHang();
                 kh.setMaKH(rs.getString("maKH"));
-                list.add(new HoaDon(rs.getString("maHoaDon"), rs.getTimestamp("ngayLapHD") != null ? rs.getTimestamp("ngayLapHD").toLocalDateTime() : null, nv, kh, rs.getDouble("tongTien"), rs.getDouble("tienNhan"), rs.getString("phuongThucThanhToan") != null ? PhuongThucThanhToan.valueOf(rs.getString("phuongThucThanhToan")) : null));
+                list.add(new HoaDon(rs.getString("maHoaDon"),
+                        rs.getTimestamp("ngayLapHD") != null ? rs.getTimestamp("ngayLapHD").toLocalDateTime() : null,
+                        nv, kh, rs.getDouble("tongTien"), rs.getDouble("tienNhan"),
+                        rs.getString("phuongThucThanhToan") != null ? PhuongThucThanhToan.valueOf(rs.getString("phuongThucThanhToan")) : null));
             }
         } catch (Exception e) { e.printStackTrace(); }
         return list;
@@ -44,7 +47,10 @@ public class HoaDonDAO implements DAO<HoaDon, String> {
                     nv.setMaNV(rs.getString("maNV"));
                     KhachHang kh = new KhachHang();
                     kh.setMaKH(rs.getString("maKH"));
-                    return new HoaDon(rs.getString("maHoaDon"), rs.getTimestamp("ngayLapHD") != null ? rs.getTimestamp("ngayLapHD").toLocalDateTime() : null, nv, kh, rs.getDouble("tongTien"), rs.getDouble("tienNhan"), rs.getString("phuongThucThanhToan") != null ? PhuongThucThanhToan.valueOf(rs.getString("phuongThucThanhToan")) : null);
+                    return new HoaDon(rs.getString("maHoaDon"),
+                            rs.getTimestamp("ngayLapHD") != null ? rs.getTimestamp("ngayLapHD").toLocalDateTime() : null,
+                            nv, kh, rs.getDouble("tongTien"), rs.getDouble("tienNhan"),
+                            rs.getString("phuongThucThanhToan") != null ? PhuongThucThanhToan.valueOf(rs.getString("phuongThucThanhToan")) : null);
                 }
             }
         } catch (Exception e) { e.printStackTrace(); }
@@ -97,17 +103,16 @@ public class HoaDonDAO implements DAO<HoaDon, String> {
     }
 
     public static List<Object[]> getDanhSachHoaDonTheoCa(java.time.LocalDate ngay, String ca, String maNV) throws SQLException {
-        String timeCondition = ca.equalsIgnoreCase("Sáng") 
-                ? " BETWEEN '00:00:00' AND '11:59:59'" 
+        String timeCondition = ca.equalsIgnoreCase("Sáng")
+                ? " BETWEEN '00:00:00' AND '11:59:59'"
                 : " BETWEEN '12:00:00' AND '23:59:59'";
 
         String sql = "SELECT h.maHoaDon, " +
                 "       CONVERT(varchar, h.ngayLapHD, 108) AS gioBan, " +
                 "       k.hoTenKH, " +
-                "       (SELECT COUNT(*) FROM Ve v WHERE v.maHoaDon = h.maHoaDon) AS soGhe, " +
-                "       (SELECT TOP 1 g.loaiGhe FROM Ve v JOIN Ghe g ON v.maGhe = g.maGhe WHERE v.maHoaDon = h.maHoaDon) AS loaiGhe, " +
-                "       (SELECT CASE WHEN EXISTS (SELECT 1 FROM Ve v2 WHERE v2.maHoaDon = h.maHoaDon AND v2.trangThaiVe = N'Đã hủy') THEN N'Có vé hủy' ELSE N'Ổn định' END) AS tinhTrang, " +
-                "       h.tongTien " +
+                "       (SELECT TOP 1 g.loaiGhe FROM Ve v JOIN Ghe g ON v.maGhe = g.maGhe WHERE v.maHoaDon = h.maHoaDon AND v.trangThaiVe = N'Đã thanh toán') AS loaiGhe, " +
+                "       (SELECT COUNT(*) FROM Ve v WHERE v.maHoaDon = h.maHoaDon AND v.trangThaiVe = N'Đã thanh toán') AS soGhe, " +
+                "       (SELECT ISNULL(SUM(v.giaVe), 0) FROM Ve v WHERE v.maHoaDon = h.maHoaDon AND v.trangThaiVe = N'Đã thanh toán') AS tongTien " +
                 "FROM HoaDon h " +
                 "JOIN KhachHang k ON h.maKH = k.maKH " +
                 "WHERE CAST(h.ngayLapHD AS DATE) = ? AND h.maNV = ? " +
@@ -122,13 +127,12 @@ public class HoaDonDAO implements DAO<HoaDon, String> {
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     rows.add(new Object[]{
-                            rs.getString("maHoaDon"),
-                            rs.getString("gioBan"),
-                            rs.getString("hoTenKH"),
-                            rs.getString("loaiGhe"),
-                            rs.getInt("soGhe"),
-                            rs.getString("tinhTrang"),
-                            rs.getDouble("tongTien")
+                            rs.getString("maHoaDon"),   // row[0]
+                            rs.getString("gioBan"),      // row[1]
+                            rs.getString("hoTenKH"),     // row[2]
+                            rs.getString("loaiGhe"),     // row[3]
+                            rs.getInt("soGhe"),          // row[4]
+                            rs.getDouble("tongTien")     // row[5]
                     });
                 }
             }

@@ -121,12 +121,12 @@ public final class ThongKeGUI extends JPanel {
                 int[] ghe = VeDAO.getSoGheTheoLoaiTheoCa(ngay, ca, currentMaNV);
                 List<Object[]> hdList = HoaDonDAO.getDanhSachHoaDonTheoCa(ngay, ca, currentMaNV);
 
-                // Tính thẳng từ hdList để đồng nhất với bảng hiển thị
+                // Tính từ hdList — chỉ gồm vé đã thanh toán (đã lọc trong SQL)
                 long ln = 0;
                 int  vb = 0;
                 for (Object[] row : hdList) {
-                    ln += ((Double) row[6]).longValue();
-                    vb += (int) row[4]; // row[4] là cột "Số vé"
+                    ln += ((Double) row[5]).longValue(); // row[5] = tongTien
+                    vb += (int) row[4];                 // row[4] = soGhe
                 }
                 final long loiNhuanFinal = ln;
                 final long doanhThuFinal = ln + tienMoCa;
@@ -146,9 +146,8 @@ public final class ThongKeGUI extends JPanel {
                     chartPanel.setData(ghe[0], ghe[1], ghe[2]);
                     tblModel.setRowCount(0);
                     for (Object[] row : hdList) {
-                        row[6] = String.format("%,.0f đ", (Double) row[6]);
-                        // Bỏ cột tình trạng (index 5), chỉ lấy 6 cột còn lại
-                        tblModel.addRow(new Object[]{row[0], row[1], row[2], row[3], row[4], row[6]});
+                        row[5] = String.format("%,.0f đ", (Double) row[5]); // format tiền
+                        tblModel.addRow(new Object[]{row[0], row[1], row[2], row[3], row[4], row[5]});
                     }
                 });
             } catch (SQLException e) { e.printStackTrace(); }
@@ -215,7 +214,6 @@ public final class ThongKeGUI extends JPanel {
     }
 
     private JPanel buildTablePanel() {
-        // Bỏ cột "Tình trạng"
         tblModel = new DefaultTableModel(
                 new Object[]{"Mã HĐ", "Giờ bán", "Khách hàng", "Loại ghế", "Số vé", "Tổng tiền"}, 0) {
             @Override public boolean isCellEditable(int r, int c) { return false; }
