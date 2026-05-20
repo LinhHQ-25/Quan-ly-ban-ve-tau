@@ -9,6 +9,7 @@ import connect_DB.Connect_DB;
 import entity.DonDoiTraVe;
 import entity.Ve;
 import entity.LoaiDon;
+import util.MaTuDong;
 
 public class DonDoiTraVeDAO implements DAO<DonDoiTraVe, String> {
 
@@ -52,6 +53,10 @@ public class DonDoiTraVeDAO implements DAO<DonDoiTraVe, String> {
         String sql = "INSERT INTO DonDoiTraVe (maDon, tienBu, ngayLap, tienHoanTra, loaiDon, maVe) VALUES (?, ?, ?, ?, ?, ?)";
         try (Connection con = Connect_DB.getInstance().getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {
+            if (entity.getMaDon() == null || entity.getMaDon().trim().isEmpty()) {
+                java.time.LocalDate ngayLap = entity.getNgayLap() != null ? entity.getNgayLap().toLocalDate() : java.time.LocalDate.now();
+                entity.setMaDon(MaTuDong.taoMaDon(con, ngayLap));
+            }
             ps.setString(1, entity.getMaDon());
             ps.setDouble(2, entity.getTienBu());
             ps.setTimestamp(3, entity.getNgayLap() != null ? java.sql.Timestamp.valueOf(entity.getNgayLap()) : null);

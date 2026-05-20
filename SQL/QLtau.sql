@@ -126,6 +126,16 @@ CREATE TABLE [dbo].[Ve](
     [maKhuyenMai] [varchar](20) NULL FOREIGN KEY REFERENCES [KhuyenMai]([maKhuyenMai])
 );
 
+-- 13. DONDOITRAVE
+CREATE TABLE [dbo].[DonDoiTraVe](
+    [maDon] [varchar](20) NOT NULL PRIMARY KEY,
+    [tienBu] [float] NULL,
+    [ngayLap] [datetime] DEFAULT GETDATE(),
+    [tienHoanTra] [float] NULL,
+    [loaiDon] [nvarchar](50) NULL,
+    [maVe] [varchar](20) NOT NULL FOREIGN KEY REFERENCES [Ve]([maVe])
+);
+
 GO
 -- DATA
 -- DATA
@@ -258,22 +268,58 @@ BEGIN
     SET @dayOffset = @dayOffset + 1;
 END
 
-INSERT [dbo].[KhachHang] ([maKH], [hoTenKH], [cccd], [sdt], [email], [namSinh], [laSinhVien]) VALUES 
-('KH001', N'Nguyễn Văn Nam', '052095000121', '0912345678', 'nam.nv@gmail.com', '1990-01-01', 0),
-('KH002', N'Trần Thị Mai', '052095000122', '0923456789', 'mai.tt@gmail.com', '1995-05-15', 1),
-('KH003', N'Lê Hoàng Anh', '052095000123', '0934567890', 'anh.lh@gmail.com', '1988-10-20', 0),
-('KH004', N'Phạm Minh Đức', '052095000124', '0945678901', 'duc.pm@gmail.com', '2000-12-12', 1),
-('KH005', N'Vũ Kim Chi', '052095000125', '0956789012', 'chi.vk@gmail.com', '1992-03-08', 0),
-('KH006', N'Đặng Văn Bình', '052095000126', '0967890123', 'binh.dv@gmail.com', '1985-07-20', 0),
-('KH007', N'Lý Thu Thảo', '052095000127', '0978901234', 'thao.lt@gmail.com', '1998-02-28', 1),
-('KH008', N'Hoàng Minh Tuấn', '052095000128', '0989012345', 'tuan.hm@gmail.com', '1993-11-10', 0),
-('KH009', N'Phan Thanh Hà', '052095000129', '0990123456', 'ha.pt@gmail.com', '1991-04-05', 0),
-('KH010', N'Bùi Quang Hải', '052095000130', '0901234567', 'hai.bq@gmail.com', '1997-09-15', 1),
-('KH011', N'Trịnh Xuân Bách', '052095000131', '0912233445', 'bach.tx@gmail.com', '1980-01-01', 0),
-('KH012', N'Mai Hồng Nhung', '052095000132', '0922334455', 'nhung.mh@gmail.com', '1994-06-12', 0),
-('KH013', N'Đỗ Thế Vinh', '052095000133', '0933445566', 'vinh.dt@gmail.com', '1989-12-30', 0),
-('KH014', N'Lương Gia Bảo', '052095000134', '0944556677', 'bao.lg@gmail.com', '2002-03-22', 1),
-('KH015', N'Tô Ngọc Vân', '052095000135', '0955667788', 'van.tn@gmail.com', '1996-08-18', 0);
+DECLARE @KhachHangIds TABLE (
+    RowNo INT IDENTITY(1,1) PRIMARY KEY,
+    maKH VARCHAR(20) NOT NULL
+);
+
+DECLARE @KhachHangSeed TABLE (
+    RowNo INT IDENTITY(1,1) PRIMARY KEY,
+    hoTenKH NVARCHAR(100),
+    cccd VARCHAR(20),
+    sdt VARCHAR(15),
+    email VARCHAR(100),
+    namSinh DATE,
+    laSinhVien BIT
+);
+
+INSERT INTO @KhachHangSeed (hoTenKH, cccd, sdt, email, namSinh, laSinhVien) VALUES
+(N'Nguyễn Văn Nam', '052095000121', '0912345678', 'nam.nv@gmail.com', '1990-01-01', 0),
+(N'Trần Thị Mai', 'P052095122', '0923456789', 'mai.tt@gmail.com', '1995-05-15', 1),
+(N'Lê Hoàng Anh', '052095000123', '0934567890', 'anh.lh@gmail.com', '1988-10-20', 0),
+(N'Phạm Minh Đức', 'P052095124', '0945678901', 'duc.pm@gmail.com', '2000-12-12', 1),
+(N'Vũ Kim Chi', '052095000125', '0956789012', 'chi.vk@gmail.com', '1992-03-08', 0),
+(N'Đặng Văn Bình', 'P052095126', '0967890123', 'binh.dv@gmail.com', '1985-07-20', 0),
+(N'Lý Thu Thảo', '052095000127', '0978901234', 'thao.lt@gmail.com', '1998-02-28', 1),
+(N'Hoàng Minh Tuấn', 'P052095128', '0989012345', 'tuan.hm@gmail.com', '1993-11-10', 0),
+(N'Phan Thanh Hà', '052095000129', '0990123456', 'ha.pt@gmail.com', '1991-04-05', 0),
+(N'Bùi Quang Hải', 'P052095130', '0901234567', 'hai.bq@gmail.com', '1997-09-15', 1),
+(N'Trịnh Xuân Bách', '052095000131', '0912233445', 'bach.tx@gmail.com', '1980-01-01', 0),
+(N'Mai Hồng Nhung', 'P052095132', '0922334455', 'nhung.mh@gmail.com', '1994-06-12', 0),
+(N'Đỗ Thế Vinh', '052095000133', '0933445566', 'vinh.dt@gmail.com', '1989-12-30', 0),
+(N'Lương Gia Bảo', 'P052095134', '0944556677', 'bao.lg@gmail.com', '2002-03-22', 1),
+(N'Tô Ngọc Vân', '052095000135', '0955667788', 'van.tn@gmail.com', '1996-08-18', 0);
+
+DECLARE @khSeedIdx INT = 1;
+DECLARE @khSeedMax INT = (SELECT COUNT(*) FROM @KhachHangSeed);
+WHILE @khSeedIdx <= @khSeedMax
+BEGIN
+    DECLARE @maKHSeed VARCHAR(20);
+    WHILE 1 = 1
+    BEGIN
+        SET @maKHSeed = 'KH' + LEFT(REPLACE(CONVERT(VARCHAR(36), NEWID()), '-', ''), 6);
+        IF NOT EXISTS (SELECT 1 FROM KhachHang WHERE maKH = @maKHSeed)
+           AND NOT EXISTS (SELECT 1 FROM @KhachHangIds WHERE maKH = @maKHSeed) BREAK;
+    END
+
+    INSERT [dbo].[KhachHang] ([maKH], [hoTenKH], [cccd], [sdt], [email], [namSinh], [laSinhVien])
+    SELECT @maKHSeed, hoTenKH, cccd, sdt, email, namSinh, laSinhVien
+    FROM @KhachHangSeed
+    WHERE RowNo = @khSeedIdx;
+
+    INSERT INTO @KhachHangIds (maKH) VALUES (@maKHSeed);
+    SET @khSeedIdx = @khSeedIdx + 1;
+END
 
 INSERT [dbo].[NhanVien] ([maNV], [hoTenNV], [email], [ngaySinh], [soDT], [gioiTinh], [diaChi], [soCCCD], [loaiNV]) VALUES
 ('NV001', N'Nguyễn Văn An', 'nva@railway.com', '1995-02-15', '0987654321', 1, N'Quy Nhơn', '052095000123', 'NHAN_VIEN_BAN_VE'),
@@ -289,7 +335,13 @@ INSERT [dbo].[KhuyenMai] ([maKhuyenMai], [tenKhuyenMai], [trangThai], [moTaChiTi
 DECLARE @v INT = 1;
 WHILE @v <= 500 -- Tạo 500 vé cho dữ liệu phong phú
 BEGIN
-    DECLARE @maHD VARCHAR(20) = 'HD' + RIGHT('0000' + CAST(@v AS VARCHAR), 4);
+    DECLARE @ngayLapHD DATETIME = DATEADD(MINUTE, -((@v * 17) % 1440), DATEADD(DAY, -(@v % 28), GETDATE()));
+    DECLARE @maHD VARCHAR(20);
+    WHILE 1 = 1
+    BEGIN
+        SET @maHD = 'HD' + FORMAT(@ngayLapHD, 'ddMMyy') + '-' + LEFT(REPLACE(CONVERT(VARCHAR(36), NEWID()), '-', ''), 4);
+        IF NOT EXISTS (SELECT 1 FROM HoaDon WHERE maHoaDon = @maHD) BREAK;
+    END
     
     -- Lấy ngẫu nhiên một chuyến tàu đã tồn tại
     DECLARE @maCT VARCHAR(20) = (SELECT TOP 1 maChuyenTau FROM ChuyenTau ORDER BY NEWID());
@@ -305,12 +357,36 @@ BEGIN
     );
     
     DECLARE @khIdx INT = (@v % 15) + 1;
-    DECLARE @statusVe NVARCHAR(50) = CASE @v % 3 WHEN 0 THEN N'Đã thanh toán' WHEN 1 THEN N'Đã hủy' ELSE N'Chưa thanh toán' END;
+    DECLARE @maKHVe VARCHAR(20) = (SELECT maKH FROM @KhachHangIds WHERE RowNo = @khIdx);
+    DECLARE @statusVe NVARCHAR(50) = CASE @v % 3 WHEN 0 THEN N'Đã thanh toán' WHEN 1 THEN N'Đã hủy' ELSE N'Chờ thanh toán' END;
     DECLARE @lv NVARCHAR(50) = CASE @v % 2 WHEN 0 THEN N'Một chiều' ELSE N'Khứ hồi' END;
+    DECLARE @maVe VARCHAR(20);
+    WHILE 1 = 1
+    BEGIN
+        SET @maVe = LEFT(REPLACE(CONVERT(VARCHAR(36), NEWID()), '-', ''), 9);
+        IF NOT EXISTS (SELECT 1 FROM Ve WHERE maVe = @maVe) BREAK;
+    END
 
-    INSERT [dbo].[HoaDon] ([maHoaDon], [maNV], [maKH], [tongTien], [tienNhan], [phuongThucThanhToan]) VALUES (@maHD, 'NV001', 'KH' + RIGHT('000' + CAST(@khIdx AS VARCHAR), 3), 500000, 500000, 'TIEN_MAT');
-    INSERT [dbo].[Ve] ([maVe], [loaiVe], [trangThaiVe], [giaVe], [maGhe], [maHoaDon], [maChuyenTau], [maKH], [maKhuyenMai]) 
-    VALUES ('VE' + RIGHT('0000' + CAST(@v AS VARCHAR), 4), @lv, @statusVe, 500000, @mG, @maHD, @maCT, 'KH' + RIGHT('000' + CAST(@khIdx AS VARCHAR), 3), NULL);
+    INSERT [dbo].[HoaDon] ([maHoaDon], [ngayLapHD], [maNV], [maKH], [tongTien], [tienNhan], [phuongThucThanhToan])
+    VALUES (@maHD, @ngayLapHD, 'NV001', @maKHVe, 500000, 500000, 'TIEN_MAT');
+
+    INSERT [dbo].[Ve] ([maVe], [ngayMua], [loaiVe], [trangThaiVe], [giaVe], [maGhe], [maHoaDon], [maChuyenTau], [maKH], [maKhuyenMai]) 
+    VALUES (@maVe, @ngayLapHD, @lv, @statusVe, 500000, @mG, @maHD, @maCT, @maKHVe, NULL);
+
+    IF @v % 10 = 0
+    BEGIN
+        DECLARE @ngayLapDon DATETIME = DATEADD(HOUR, 2, @ngayLapHD);
+        DECLARE @maDon VARCHAR(20);
+        WHILE 1 = 1
+        BEGIN
+            SET @maDon = 'DT-' + FORMAT(@ngayLapDon, 'MMyy') + '-' + LEFT(REPLACE(CONVERT(VARCHAR(36), NEWID()), '-', ''), 4);
+            IF NOT EXISTS (SELECT 1 FROM DonDoiTraVe WHERE maDon = @maDon) BREAK;
+        END
+
+        INSERT [dbo].[DonDoiTraVe] ([maDon], [tienBu], [ngayLap], [tienHoanTra], [loaiDon], [maVe])
+        VALUES (@maDon, CASE WHEN @v % 20 = 0 THEN 30000 ELSE 0 END, @ngayLapDon, CASE WHEN @v % 20 = 0 THEN 0 ELSE 350000 END, CASE WHEN @v % 20 = 0 THEN 'DON_DOI' ELSE 'DON_TRA' END, @maVe);
+    END
+
     SET @v = @v + 1;
 END
 GO

@@ -13,6 +13,7 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
+import java.time.LocalDate;
 import java.util.Date;
 import javax.swing.*;
 import javax.swing.border.*;
@@ -27,6 +28,7 @@ import com.itextpdf.text.pdf.BaseFont;
 import com.itextpdf.text.pdf.PdfPCell;
 import com.itextpdf.text.pdf.PdfPTable;
 import com.itextpdf.text.pdf.PdfWriter;
+import util.MaTuDong;
 
 public class DatVeGUI3 extends JPanel {
 
@@ -51,7 +53,7 @@ public class DatVeGUI3 extends JPanel {
     private JTextField txtTienKhachDua;
     private JLabel lblTienThua;
     private double tongThanhToan = 0, tongGiaGoc = 0, tongGiamDoiTuong = 0, giamVoucher = 0;
-    private String maHD = "HD" + System.currentTimeMillis() % 100000;
+    private String maHD = taoMaHoaDon();
     private java.util.function.Consumer<Integer> onQuayLai;
     private Runnable onHuyVe;
     private DefaultTableModel modelFromGUI2;
@@ -704,15 +706,23 @@ public class DatVeGUI3 extends JPanel {
             try (java.sql.Statement st = con.createStatement(); java.sql.ResultSet rsNV = st.executeQuery("SELECT TOP 1 maNV FROM NhanVien")) {
                 if (rsNV.next()) maNV = rsNV.getString(1);
             }
+            try (java.sql.PreparedStatement psCheckHD = con.prepareStatement("SELECT 1 FROM HoaDon WHERE maHoaDon = ?")) {
+                psCheckHD.setString(1, maHD);
+                try (java.sql.ResultSet rsCheckHD = psCheckHD.executeQuery()) {
+                    if (rsCheckHD.next()) maHD = MaTuDong.taoMaHoaDon(con, LocalDate.now());
+                }
+            }
+            String maKH = null;
+            String sdtKhach = modelFromGUI2.getRowCount()>0 ? modelFromGUI2.getValueAt(0,7).toString() : "";
+            try {
+                entity.KhachHang kh = new dao.KhachHangDAO().timTheoSDT(sdtKhach);
+                if (kh!=null) maKH = kh.getMaKH();
+            } catch (Exception e2) { maKH = null; }
             String sqlHD = "INSERT INTO HoaDon (maHoaDon, ngayLapHD, maNV, maKH, tongTien, tienNhan, phuongThucThanhToan) VALUES (?, GETDATE(), ?, ?, ?, ?, ?)";
             try (java.sql.PreparedStatement psHD = con.prepareStatement(sqlHD)) {
                 psHD.setString(1, maHD); psHD.setString(2, maNV);
-                String sdtKhach = modelFromGUI2.getRowCount()>0 ? modelFromGUI2.getValueAt(0,7).toString() : "";
-                try {
-                    entity.KhachHang kh = new dao.KhachHangDAO().timTheoSDT(sdtKhach);
-                    if (kh!=null) psHD.setString(3, kh.getMaKH());
-                    else psHD.setNull(3, java.sql.Types.VARCHAR);
-                } catch (Exception e2) { psHD.setNull(3, java.sql.Types.VARCHAR); }
+                if (maKH != null) psHD.setString(3, maKH);
+                else psHD.setNull(3, java.sql.Types.VARCHAR);
                 psHD.setDouble(4, tongThanhToan);
                 double tienKhach = hinhThucThanhToan.contains("Chuyển khoản") ? tongThanhToan : parseMoney(txtTienKhachDua.getText());
                 if (tienKhach <= 0) tienKhach = tongThanhToan;
@@ -720,7 +730,7 @@ public class DatVeGUI3 extends JPanel {
                 String pt = hinhThucThanhToan.contains("Tiền mặt") ? "TIEN_MAT" : hinhThucThanhToan.equals("Lưu tạm") ? "LUU_TAM" : "CHUYEN_KHOAN";
                 psHD.setString(6, pt); psHD.executeUpdate();
             }
-            String sqlVe = "INSERT INTO Ve (maVe, ngayMua, loaiVe, trangThaiVe, giaVe, maGhe, maHoaDon, maChuyenTau) VALUES (?, GETDATE(), ?, ?, ?, ?, ?, ?)";
+            String sqlVe = "INSERT INTO Ve (maVe, ngayMua, loaiVe, trangThaiVe, giaVe, maGhe, maHoaDon, maChuyenTau, maKH) VALUES (?, GETDATE(), ?, ?, ?, ?, ?, ?, ?)";
             try (java.sql.PreparedStatement psVe = con.prepareStatement(sqlVe)) {
                 String trangThai = hinhThucThanhToan.equals("Lưu tạm") ? "Chờ thanh toán" : "Đã thanh toán";
                 for (int i = 0; i < modelChiTiet.getRowCount(); i++) {
@@ -731,6 +741,8 @@ public class DatVeGUI3 extends JPanel {
                     psVe.setString(5, modelFromGUI2.getValueAt(i,4).toString());
                     psVe.setString(6, maHD);
                     psVe.setString(7, modelFromGUI2.getValueAt(i,12).toString());
+                    if (maKH != null) psVe.setString(8, maKH);
+                    else psVe.setNull(8, java.sql.Types.VARCHAR);
                     psVe.addBatch();
                 }
                 psVe.executeBatch();
@@ -837,6 +849,14 @@ public class DatVeGUI3 extends JPanel {
 
     private double parseMoney(String str) {
         try { return Double.parseDouble(str.replaceAll("[^0-9]","")); } catch (Exception e) { return 0; }
+    }
+
+    private String taoMaHoaDon() {
+        try (java.sql.Connection con = connect_DB.Connect_DB.getInstance().getConnection()) {
+            return MaTuDong.taoMaHoaDon(con, LocalDate.now());
+        } catch (Exception e) {
+            return "HD" + new SimpleDateFormat("ddMMyy").format(new Date()) + "-" + String.format("%04d", System.currentTimeMillis() % 10000);
+        }
     }
 
     private JPanel createDetailLabel(String title, String value) {

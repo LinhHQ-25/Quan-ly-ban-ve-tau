@@ -4,13 +4,13 @@ import java.awt.*;
 import java.awt.event.*;
 import java.time.LocalDate;
 import java.util.List;
-import java.util.Random;
 import javax.swing.*;
 import javax.swing.border.*;
 import javax.swing.table.*;
 
 import dao.KhachHangDAO;
 import entity.KhachHang;
+import util.MaTuDong;
 
 public class DatVeGUI2 extends JPanel {
 
@@ -573,11 +573,10 @@ public class DatVeGUI2 extends JPanel {
 	}
 
 	private String generateUniqueMaKH() {
-		Random rnd = new Random();
-		KhachHangDAO dao = new KhachHangDAO();
-		while (true) {
-			String maKH = String.format("KH%03d", rnd.nextInt(1000));
-			if (dao.selectById(maKH) == null) return maKH;
+		try (java.sql.Connection con = connect_DB.Connect_DB.getInstance().getConnection()) {
+			return MaTuDong.taoMaKhachHang(con);
+		} catch (Exception e) {
+			throw new IllegalStateException("Khong the tao ma khach hang", e);
 		}
 	}
 
@@ -734,14 +733,22 @@ public class DatVeGUI2 extends JPanel {
 	}
 
 	private String generateUniqueMaVe() {
-		String chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-		Random rnd = new Random();
-		while (true) {
-			StringBuilder sb = new StringBuilder(9);
-			for (int i = 0; i < 9; i++) sb.append(chars.charAt(rnd.nextInt(chars.length())));
-			String code = sb.toString();
-			if (!isMaVeExists(code)) return code;
+		try (java.sql.Connection con = connect_DB.Connect_DB.getInstance().getConnection()) {
+			while (true) {
+				String maVe = MaTuDong.taoMaVe(con);
+				if (!maVeTonTaiTrongBang(maVe)) return maVe;
+			}
+		} catch (Exception e) {
+			throw new IllegalStateException("Khong the tao ma ve", e);
 		}
+	}
+
+	private boolean maVeTonTaiTrongBang(String maVe) {
+		if (modelVe == null) return false;
+		for (int i = 0; i < modelVe.getRowCount(); i++) {
+			if (maVe.equals(modelVe.getValueAt(i, COL_MAVE))) return true;
+		}
+		return false;
 	}
 
 	private void initTableData() {

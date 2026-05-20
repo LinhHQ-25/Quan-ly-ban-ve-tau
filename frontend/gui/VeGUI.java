@@ -84,7 +84,7 @@ final class VeGUI extends JPanel {
         gbc.gridx = 3; pnlGrid.add(buildField("Họ tên khách:", txtHoTen), gbc);
         
         txtCccd = buildTextField();
-        gbc.gridx = 4; pnlGrid.add(buildField("CCCD / SĐT:", txtCccd), gbc);
+        gbc.gridx = 4; pnlGrid.add(buildField("CCCD / Hộ chiếu:", txtCccd), gbc);
         
         // Hàng 1
         gbc.gridy = 1;
@@ -345,7 +345,7 @@ final class VeGUI extends JPanel {
         if (conn == null) return;
 
         try {
-            String sql = "SELECT v.maVe, kh.hoTenKH, v.loaiVe, g.loaiGhe, dt.thoiGianKhoiHanh, " +
+            String sql = "SELECT v.maVe, kh.hoTenKH, kh.cccd, v.loaiVe, g.loaiGhe, dt.thoiGianKhoiHanh, " +
                          "gDi.tenGa AS gaDi, gDen.tenGa AS gaDen, v.maGhe, hd.ngayLapHD, v.trangThaiVe " +
                          "FROM Ve v " +
                          "JOIN HoaDon hd ON v.maHoaDon = hd.maHoaDon " +
@@ -354,7 +354,8 @@ final class VeGUI extends JPanel {
                          "JOIN Ga gDi ON dt.maGaDi = gDi.maGa " +
                          "JOIN Ga gDen ON dt.maGaDen = gDen.maGa " +
                          "JOIN Ghe g ON v.maGhe = g.maGhe " +
-                         "WHERE v.maVe LIKE ? AND kh.hoTenKH LIKE ? AND v.maGhe LIKE ? AND gDi.tenGa LIKE ? AND gDen.tenGa LIKE ?";
+                         "WHERE v.maVe LIKE ? AND kh.hoTenKH LIKE ? AND v.maGhe LIKE ? AND gDi.tenGa LIKE ? AND gDen.tenGa LIKE ? " +
+                         "AND kh.cccd LIKE ?";
             
             if (activeCard.equals("CHO")) {
                 sql += " AND v.trangThaiVe = N'Chờ thanh toán'";
@@ -368,16 +369,20 @@ final class VeGUI extends JPanel {
             String loaiVe = (String) cboLoaiVe.getSelectedItem();
             if (loaiVe != null && !loaiVe.isEmpty()) sql += " AND v.loaiVe = ?";
 
+            if (dcNgayMua.getDate() != null) sql += " AND CAST(hd.ngayLapHD AS DATE) = ?";
+
             PreparedStatement stmt = conn.prepareStatement(sql);
             stmt.setString(1, "%" + txtMaVe.getText().trim() + "%");
             stmt.setString(2, "%" + txtHoTen.getText().trim() + "%");
             stmt.setString(3, "%" + txtViTri.getText().trim() + "%");
             stmt.setString(4, "%" + txtGaDi.getText().trim() + "%");
             stmt.setString(5, "%" + txtGaDen.getText().trim() + "%");
+            stmt.setString(6, "%" + txtCccd.getText().trim() + "%");
             
-            int idx = 6;
+            int idx = 7;
             if (trangThai != null && !trangThai.isEmpty()) stmt.setString(idx++, trangThai);
             if (loaiVe != null && !loaiVe.isEmpty()) stmt.setString(idx++, loaiVe);
+            if (dcNgayMua.getDate() != null) stmt.setDate(idx++, new java.sql.Date(dcNgayMua.getDate().getTime()));
 
             ResultSet rs = stmt.executeQuery();
             int stt = 1;
