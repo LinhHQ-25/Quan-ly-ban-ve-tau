@@ -8,8 +8,6 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 
-import connect_DB.Connect_DB;
-
 public class TraVeGUI extends JPanel {
     private static final Color BORDER         = new Color(210, 215, 224);
     private static final Color WARN_FG        = new Color(180, 60, 0);
@@ -45,7 +43,6 @@ public class TraVeGUI extends JPanel {
         this.appFrame = appFrame;
         setLayout(new BorderLayout());
         setBackground(GuiTheme.LIGHT_BG);
-
         JPanel pnlPage = new JPanel(new BorderLayout(0, 10));
         pnlPage.setOpaque(false);
         pnlPage.setBorder(new EmptyBorder(
@@ -54,26 +51,24 @@ public class TraVeGUI extends JPanel {
                 GuiTheme.PAGE_PAD_BOTTOM,
                 GuiTheme.PAGE_PAD_LEFT
         ));
-
         JPanel stack = new JPanel();
         stack.setLayout(new BoxLayout(stack, BoxLayout.Y_AXIS));
         stack.setOpaque(false);
         stack.add(buildInfoCard());
         stack.add(Box.createVerticalStrut(15));
         stack.add(buildFeeCard());
-
+        stack.add(Box.createVerticalStrut(15)); // Giữ khoảng cách đồng bộ 15px
         JPanel centerAlign = new JPanel(new BorderLayout());
         centerAlign.setOpaque(false);
         centerAlign.add(stack, BorderLayout.NORTH);
-
         pnlPage.add(centerAlign,      BorderLayout.CENTER);
         pnlPage.add(buildButtonRow(), BorderLayout.SOUTH);
         add(pnlPage, BorderLayout.CENTER);
-
         refresh();
     }
 
     public void refresh() { fillInfo(); calcFee(); }
+
 
     // BUILDERS
     private JPanel buildInfoCard() {
@@ -108,9 +103,9 @@ public class TraVeGUI extends JPanel {
 
     private JPanel buildFeeCard() {
         JPanel card = buildCard("Thông tin hoàn trả");
-        lbStatTong = statLabel(GuiTheme.TEXT,              Font.BOLD, 20);
+        lbStatTong = statLabel(GuiTheme.TEXT, Font.BOLD, 20);
         lbStatPhi  = statLabel(new Color(180, 60, 0),      Font.BOLD, 20);
-        lbStatHoan = statLabel(OK_FG,                      Font.BOLD, 20);
+        lbStatHoan = statLabel(OK_FG, Font.BOLD, 20);
 
         JPanel statRow = new JPanel(new GridLayout(1, 3, 15, 0));
         statRow.setOpaque(false);
@@ -186,37 +181,37 @@ public class TraVeGUI extends JPanel {
 
     // LOGIC
     private void fillInfo() {
-        if (s_data.length < 8) { clearInfo(); return; }
+        if (s_data.length < 9) { clearInfo(); return; }
         tfMaVe   .setText(s_maVe.isEmpty() ? "—" : s_maVe);
         tfChuyen .setText(s_data[0]); tfGaDi   .setText(s_data[1]);
         tfGaDen  .setText(s_data[2]); tfLoai   .setText(s_data[3]);
-        tfNgayGio.setText(s_data[4]); tfSoLuong.setText(s_data[5]);
-        tfGhe    .setText(s_data[6]);
+        tfNgayGio.setText(s_data[5]); tfSoLuong.setText(s_data[6]);
+        tfGhe    .setText(s_data[7]);
         try {
-            String cleanGia = s_data[7].split("\\.")[0].replaceAll("[^0-9]", "");
+            String cleanGia = s_data[8].split("\\.")[0].replaceAll("[^0-9]", "");
             tfGia.setText(String.format("%,d đ", Long.parseLong(cleanGia)).replace(",","."));
         } catch (Exception e) {
-            tfGia.setText(s_data[7]);
+            tfGia.setText(s_data[8]);
         }
     }
 
     private void calcFee() {
-        if (s_data.length < 8 || s_maVe.isEmpty()) {
+        if (s_data.length < 9 || s_maVe.isEmpty()) {
             lbDieuKien.setText("Chưa có vé được chọn"); lbDieuKien.setForeground(GuiTheme.SUB_TEXT);
             lbStatTong.setText("—"); lbStatPhi.setText("—"); lbStatHoan.setText("—");
             lbWarning.setText(" "); btnXacNhan.setEnabled(false); return;
         }
 
-        long gio = tinhGio(s_data[4]);
+        long gio = tinhGio(s_data[5]);
         long soLuong = 1, donGia = 0;
         try {
-            soLuong = Long.parseLong(s_data[5].replaceAll("[^0-9]", ""));
+            soLuong = Long.parseLong(s_data[6].replaceAll("[^0-9]", ""));
         } catch (Exception ignored) {}
 
         boolean nhom = soLuong >= 2; // Logic nhận diện vé nhóm dựa vào số lượng
 
         try {
-            String cleanGia = s_data[7].split("\\.")[0];
+            String cleanGia = s_data[8].split("\\.")[0];
             cleanGia = cleanGia.replaceAll("[^0-9]", "");
             donGia = Long.parseLong(cleanGia);
         } catch (Exception ignored) {}
@@ -261,12 +256,23 @@ public class TraVeGUI extends JPanel {
     }
 
     private void handleTraVe() {
-        // Lấy lý do trả vé gửi qua màn hình sau nếu cần thiết
         String lyDo = cbLyDo.getSelectedItem().toString();
-        if ("Khác".equals(lyDo) && !txtLyDoKhac.getText().trim().isEmpty()) {
+
+        // KIỂM TRA LOGIC: Nếu chọn "Khác" mà để trống text box
+        if ("Khác".equals(lyDo)) {
+            if (txtLyDoKhac.getText().trim().isEmpty()) {
+                JOptionPane.showMessageDialog(this,
+                        "Vui lòng nhập chi tiết lý do trả vé vào ô trống!",
+                        "Yêu cầu nhập liệu",
+                        JOptionPane.WARNING_MESSAGE);
+                txtLyDoKhac.requestFocus(); // Nháy con trỏ chuột vào ô text
+                return; // Dừng lại, không cho chuyển trang
+            }
+            // Nếu đã nhập thì lấy nội dung đó
             lyDo = txtLyDoKhac.getText().trim();
         }
 
+        // Nếu hợp lệ thì truyền dữ liệu và chuyển trang
         TraVeGUI1.setDonTra(s_maVe, s_data, lbStatPhi.getText(), lbStatHoan.getText());
         appFrame.showCard("tra-ve-step-2");
     }
