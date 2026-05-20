@@ -9,7 +9,7 @@ import java.awt.event.*;
 import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.ZoneId;
-import java.util.ArrayList; // Thêm import cho ArrayList phục vụ khai báo mới
+import java.util.ArrayList;
 import java.util.List;
 
 import javax.swing.*;
@@ -34,10 +34,13 @@ public final class ThongKeGUI extends JPanel {
     private int  veBan    = 0;
     private int  veHuy    = 0;
 
-    // Các field mới thêm vào đầu class:
-    private String currentFilter = null; // null = tất cả, "ban" = đã bán, "huy" = đã hủy
+    // ── THÊM MỚI ──
     private List<Object[]> hdBanList  = new ArrayList<>();
     private List<Object[]> hdHuyList  = new ArrayList<>();
+    private String currentFilter      = null; // null / "ban" / "huy"
+    private JPanel cardVeBan;
+    private JPanel cardVeHuy;
+    // ──────────────
 
     private ChartPanel chartPanel;
     private final JLabel[] lblStatValues = new JLabel[4];
@@ -120,14 +123,13 @@ public final class ThongKeGUI extends JPanel {
         return pnl;
     }
 
-    // Method loadData đã sửa theo yêu cầu:
     public void loadData(LocalDate ngay, String ca) {
         new Thread(() -> {
             try {
                 int   vh  = VeDAO.getSoLuongVeTheoCa(ngay, ca, currentMaNV, "Đã hủy");
                 int[] ghe = VeDAO.getSoGheTheoLoaiTheoCa(ngay, ca, currentMaNV);
                 List<Object[]> hdList    = HoaDonDAO.getDanhSachHoaDonTheoCa(ngay, ca, currentMaNV);
-                List<Object[]> hdHuyTemp = HoaDonDAO.getDanhSachHoaDonHuyTheoCa(ngay, ca, currentMaNV); // NEW
+                List<Object[]> hdHuyTemp = HoaDonDAO.getDanhSachHoaDonHuyTheoCa(ngay, ca, currentMaNV);
 
                 long ln = 0;
                 int  vb = 0;
@@ -140,13 +142,13 @@ public final class ThongKeGUI extends JPanel {
                 final int  veBanFinal    = vb;
 
                 SwingUtilities.invokeLater(() -> {
-                    this.loiNhuan  = loiNhuanFinal;
-                    this.doanhThu  = doanhThuFinal;
-                    this.veBan     = veBanFinal;
-                    this.veHuy     = vh;
-                    this.hdBanList = hdList;      // NEW
-                    this.hdHuyList = hdHuyTemp;   // NEW
-                    this.currentFilter = null;    // reset filter khi load lại
+                    this.loiNhuan      = loiNhuanFinal;
+                    this.doanhThu      = doanhThuFinal;
+                    this.veBan         = veBanFinal;
+                    this.veHuy         = vh;
+                    this.hdBanList     = hdList;
+                    this.hdHuyList     = hdHuyTemp;
+                    this.currentFilter = null;
 
                     lblStatValues[0].setText(String.format("%,.0f đ", (double) doanhThuFinal));
                     lblStatValues[1].setText(String.format("%,.0f đ", (double) loiNhuanFinal));
@@ -154,15 +156,19 @@ public final class ThongKeGUI extends JPanel {
                     lblStatValues[3].setText(vh + " vé");
 
                     chartPanel.setData(ghe[0], ghe[1], ghe[2]);
-                    hienThiBang(hdList); // dùng method mới
+                    hienThiBang(hdBanList);
+
+                    if (cardVeBan != null) cardVeBan.repaint();
+                    if (cardVeHuy != null) cardVeHuy.repaint();
                 });
             } catch (SQLException e) { e.printStackTrace(); }
         }).start();
     }
 
-    // Method helper hiển thị bảng mới thêm:
+    // ── THÊM MỚI ──
     private void hienThiBang(List<Object[]> list) {
         tblModel.setRowCount(0);
+        sorter.setRowFilter(null);
         for (Object[] row : list) {
             Object tongTien = row[5] instanceof Double
                 ? String.format("%,.0f đ", (Double) row[5])
@@ -170,8 +176,8 @@ public final class ThongKeGUI extends JPanel {
             tblModel.addRow(new Object[]{row[0], row[1], row[2], row[3], row[4], tongTien});
         }
     }
+    // ──────────────
 
-    // Method buildSummaryBar đã sửa:
     private JPanel buildSummaryBar() {
         JPanel pnl = new JPanel();
         pnl.setLayout(new BoxLayout(pnl, BoxLayout.X_AXIS));
@@ -180,14 +186,15 @@ public final class ThongKeGUI extends JPanel {
         pnl.add(Box.createHorizontalStrut(16));
         pnl.add(buildStatCard("Tổng lợi nhuận", "0 đ",  new Color(34, 120, 180), 1, false));
         pnl.add(Box.createHorizontalStrut(16));
-        pnl.add(buildStatCard("Vé đã bán",      "0 vé", new Color(34, 139,  87), 2, true));
+        cardVeBan = buildStatCard("Vé đã bán",   "0 vé", new Color(34, 139,  87), 2, true);
+        pnl.add(cardVeBan);
         pnl.add(Box.createHorizontalStrut(16));
-        pnl.add(buildStatCard("Vé đã hủy",      "0 vé", new Color(210, 50,  50), 3, true));
+        cardVeHuy = buildStatCard("Vé đã hủy",   "0 vé", new Color(210,  50,  50), 3, true);
+        pnl.add(cardVeHuy);
         pnl.add(Box.createHorizontalGlue());
         return pnl;
     }
 
-    // Method buildStatCard đã sửa tích hợp logic click toggle viền và đổi bộ dữ liệu bảng:
     private JPanel buildStatCard(String label, String value, Color accent, int idx, boolean clickable) {
         JPanel card = new JPanel() {
             @Override protected void paintComponent(Graphics g) {
@@ -195,13 +202,15 @@ public final class ThongKeGUI extends JPanel {
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                 g2.setColor(Color.WHITE);
                 g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
-                // Viền sáng hơn khi đang được chọn
+
                 boolean selected = (idx == 2 && "ban".equals(currentFilter))
                                 || (idx == 3 && "huy".equals(currentFilter));
                 g2.setColor(selected ? accent : new Color(220, 224, 232));
                 g2.setStroke(new BasicStroke(selected ? 2f : 1f));
                 g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 10, 10);
+
                 g2.setColor(accent);
+                g2.setStroke(new BasicStroke(1f));
                 g2.fillRect(0, 0, 5, getHeight());
                 g2.dispose();
             }
@@ -229,15 +238,10 @@ public final class ThongKeGUI extends JPanel {
         if (clickable) {
             card.addMouseListener(new MouseAdapter() {
                 @Override public void mouseClicked(MouseEvent e) {
-                    if (idx == 2) { // Vé đã bán
-                        if ("ban".equals(currentFilter)) {
-                            currentFilter = null;
-                            hienThiBang(hdBanList);
-                        } else {
-                            currentFilter = "ban";
-                            hienThiBang(hdBanList);
-                        }
-                    } else if (idx == 3) { // Vé đã hủy
+                    if (idx == 2) {
+                        currentFilter = "ban".equals(currentFilter) ? null : "ban";
+                        hienThiBang(hdBanList);
+                    } else {
                         if ("huy".equals(currentFilter)) {
                             currentFilter = null;
                             hienThiBang(hdBanList);
@@ -246,11 +250,8 @@ public final class ThongKeGUI extends JPanel {
                             hienThiBang(hdHuyList);
                         }
                     }
-                    // Repaint để cập nhật viền card
-                    card.repaint();
-                    // Repaint card kia để bỏ highlight
-                    Container parent = card.getParent();
-                    if (parent != null) parent.repaint();
+                    if (cardVeBan != null) cardVeBan.repaint();
+                    if (cardVeHuy != null) cardVeHuy.repaint();
                 }
             });
         }

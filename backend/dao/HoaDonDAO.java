@@ -34,7 +34,7 @@ public class HoaDonDAO implements DAO<HoaDon, String> {
         } catch (Exception e) { e.printStackTrace(); }
         return list;
     }
-//i
+
     @Override
     public HoaDon selectById(String id) {
         String sql = "SELECT * FROM HoaDon WHERE maHoaDon = ?";
@@ -127,18 +127,20 @@ public class HoaDonDAO implements DAO<HoaDon, String> {
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     rows.add(new Object[]{
-                            rs.getString("maHoaDon"),   // row[0]
-                            rs.getString("gioBan"),      // row[1]
-                            rs.getString("hoTenKH"),     // row[2]
-                            rs.getString("loaiGhe"),     // row[3]
-                            rs.getInt("soGhe"),          // row[4]
-                            rs.getDouble("tongTien")     // row[5]
+                            rs.getString("maHoaDon"),
+                            rs.getString("gioBan"),
+                            rs.getString("hoTenKH"),
+                            rs.getString("loaiGhe"),
+                            rs.getInt("soGhe"),
+                            rs.getDouble("tongTien")
                     });
                 }
             }
         }
         return rows;
     }
+
+    // THÊM MỚI - lấy danh sách hóa đơn có vé hủy
     public static List<Object[]> getDanhSachHoaDonHuyTheoCa(java.time.LocalDate ngay, String ca, String maNV) throws SQLException {
         String timeCondition = ca.equalsIgnoreCase("Sáng")
                 ? " BETWEEN '00:00:00' AND '11:59:59'"
