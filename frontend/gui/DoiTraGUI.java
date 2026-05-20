@@ -38,6 +38,10 @@ public final class DoiTraGUI extends JPanel {
 		loadDataFromDB("");
 	}
 
+	public void refresh() {
+		loadDataFromDB(txtSearch != null ? txtSearch.getText().trim() : "");
+	}
+
 	// UI BUILDERS
 	private JPanel buildNoteBox() {
 		JPanel p = new JPanel() {
@@ -99,7 +103,7 @@ public final class DoiTraGUI extends JPanel {
 		searchBar.add(btnSearch, gbc);
 
 		tableModel = new DefaultTableModel(
-				new Object[]{"Mã vé","Chuyến","Ga đi","Ga đến","Loại vé","Ngày/Giờ KH","SL","Ghế"}, 0) {
+				new Object[]{"Mã vé","Mã Chuyến","Ga đi","Ga đến","Loại vé","Chiều Vé","Ngày/Giờ KH","SL","Ghế"}, 0) {
 			public boolean isCellEditable(int r, int c) { return false; }
 		};
 		table = new JTable(tableModel);
@@ -126,7 +130,8 @@ public final class DoiTraGUI extends JPanel {
 		DefaultTableCellRenderer center = new DefaultTableCellRenderer();
 		center.setHorizontalAlignment(SwingConstants.CENTER);
 		table.getColumnModel().getColumn(0).setCellRenderer(center);
-		table.getColumnModel().getColumn(6).setCellRenderer(center);
+		table.getColumnModel().getColumn(5).setCellRenderer(center);
+		table.getColumnModel().getColumn(7).setCellRenderer(center);
 
 		JScrollPane scroll = new JScrollPane(table);
 		scroll.setBorder(new LineBorder(BORDER, 1, true));
@@ -184,10 +189,11 @@ public final class DoiTraGUI extends JPanel {
 
 		String searchKw = (keyword == null) ? "" : keyword.trim();
 
-		// --- ĐÃ THÊM ĐIỀU KIỆN: dt.maGaDi = 'DIEUTRI' ---
+		// --- LẤY CẢ CHIỀU ĐI VÀ CHIỀU VỀ ---
 		String sql =
-				"SELECT v.maVe, t.tenTau, gDi.tenGa AS gaDi, gDen.tenGa AS gaDen, " +
+				"SELECT v.maVe, ct.maChuyenTau AS maChuyenTau, gDi.tenGa AS gaDi, gDen.tenGa AS gaDen, " +
 						"v.loaiVe, dt.thoiGianKhoiHanh, v.giaVe, v.maGhe, " +
+						"dt.maGaDi, dt.maGaDen, " +
 						"(SELECT COUNT(*) FROM Ve v2 WHERE v2.maHoaDon = v.maHoaDon) AS soLuongVe " +
 						"FROM Ve v " +
 						"JOIN ChiTietChuyenTau dt ON v.maChuyenTau = dt.maChuyenTau " +
@@ -195,7 +201,8 @@ public final class DoiTraGUI extends JPanel {
 						"JOIN Tau t ON ct.maTau = t.maTau " +
 						"JOIN Ga gDi ON dt.maGaDi = gDi.maGa " +
 						"JOIN Ga gDen ON dt.maGaDen = gDen.maGa " +
-						"WHERE v.maVe LIKE ? AND v.trangThaiVe = N'Đã thanh toán' AND dt.maGaDi = 'DIEUTRI' " +
+						"WHERE v.maVe LIKE ? AND v.trangThaiVe = N'Đã thanh toán' " +
+						"AND (dt.maGaDi = 'DIEUTRI' OR dt.maGaDen = 'DIEUTRI') " +
 						"ORDER BY dt.thoiGianKhoiHanh DESC";
 
 		try (Connection conn = Connect_DB.getInstance().getConnection();
@@ -209,10 +216,10 @@ public final class DoiTraGUI extends JPanel {
 
 				while (rs.next()) {
 					found = true;
-					String maVe    = rs.getString("maVe");
-					String tenTau  = rs.getString("tenTau");
-					String gaDi    = rs.getString("gaDi");
-					String gaDen   = rs.getString("gaDen");
+					String maVe        = rs.getString("maVe");
+					String maChuyenTau = rs.getString("maChuyenTau");
+					String gaDi        = rs.getString("gaDi");
+					String gaDen       = rs.getString("gaDen");
 
 					String rawLoaiVe = rs.getString("loaiVe");
 					String loaiVe = rawLoaiVe;
@@ -224,16 +231,20 @@ public final class DoiTraGUI extends JPanel {
 						}
 					}
 
-					String maGhe   = rs.getString("maGhe");
-					String giaVe   = rs.getString("giaVe");
+					// Xác định chiều vé
+					String maGaDiRaw = rs.getString("maGaDi");
+					String chieuVe = "DIEUTRI".equals(maGaDiRaw) ? "Chiều đi" : "Chiều về";
+
+					String maGhe  = rs.getString("maGhe");
+					String giaVe  = rs.getString("giaVe");
 
 					Timestamp ts = rs.getTimestamp("thoiGianKhoiHanh");
 					String ngayGio = ts != null ? sdf.format(ts) : "";
 
 					String soLuong = String.valueOf(rs.getInt("soLuongVe"));
 
-					veCache.put(maVe, new String[]{tenTau, gaDi, gaDen, loaiVe, ngayGio, soLuong, maGhe, giaVe});
-					tableModel.addRow(new Object[]{maVe, tenTau, gaDi, gaDen, loaiVe, ngayGio, soLuong, maGhe});
+					veCache.put(maVe, new String[]{maChuyenTau, gaDi, gaDen, loaiVe, chieuVe, ngayGio, soLuong, maGhe, giaVe});
+					tableModel.addRow(new Object[]{maVe, maChuyenTau, gaDi, gaDen, loaiVe, chieuVe, ngayGio, soLuong, maGhe});
 				}
 
 				if (!found && !searchKw.isEmpty()) {
@@ -256,12 +267,12 @@ public final class DoiTraGUI extends JPanel {
 		String maVe = getSelectedMaVe();
 
 		if (laNhom(d)) {
-			warn("Không được phép đổi vé nhóm (số lượng vé từ 2 trở lên).");
+			warn("Vé đổi không hợp lệ");
 			return;
 		}
 
 		if (tinhGio(d) < 24) {
-			warn("Không thể đổi vé.\nYêu cầu đổi phải trước giờ tàu ít nhất 24 giờ.\nHiện còn: " + tinhGio(d) + " giờ.");
+			warn("Vé đổi không hợp lệ");
 			return;
 		}
 		DoiVeGUI.setVeDuocChon(maVe, d);
@@ -290,13 +301,26 @@ public final class DoiTraGUI extends JPanel {
 	}
 
 	private long tinhGio(String[] d) {
-		try { return ChronoUnit.HOURS.between(LocalDateTime.now(), LocalDateTime.parse(d[4], FMT)); }
-		catch (Exception ex) { return -1; }
+		try {
+			String ngayGio = d[5];
+			LocalDateTime thoiGian;
+			try {
+				thoiGian = LocalDateTime.parse(ngayGio, FMT);
+			} catch (Exception ex1) {
+				// Thử thêm format có giây
+				DateTimeFormatter fmtWithSec = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
+				thoiGian = LocalDateTime.parse(ngayGio, fmtWithSec);
+			}
+			return ChronoUnit.HOURS.between(LocalDateTime.now(), thoiGian);
+		} catch (Exception ex) {
+			ex.printStackTrace();
+			return Long.MAX_VALUE; // Không parse được → không chặn, để nghiệp vụ khác xử lý
+		}
 	}
 
 	private boolean laNhom(String[] d) {
 		try {
-			return Integer.parseInt(d[5]) >= 2;
+			return Integer.parseInt(d[6]) > 1;  // > 1 tức là từ 2 vé trở lên trong hóa đơn
 		} catch (Exception e) {
 			return false;
 		}

@@ -3,33 +3,40 @@ package gui;
 import javax.swing.*;
 import javax.swing.border.*;
 import java.awt.*;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import connect_DB.Connect_DB;
 
 public class DoiVeGUI1 extends JPanel {
-    private static final Color BORDER    = new Color(210, 215, 224);
-    private static final Color OK_FG     = new Color(30, 120, 60);
-    private static final Color OK_BG     = new Color(236, 252, 240);
-    private static final Color OK_BORDER = new Color(160, 215, 175);
-    private static final Color NEW_FG    = GuiTheme.NAVY;
+    private static final Color BORDER = new Color(210, 215, 224);
+    private static final Color NAVY = GuiTheme.NAVY;
+    private static final Color NEW_FG = GuiTheme.NAVY;
+    private static final Font FONT_B14 = new Font("Segoe UI", Font.BOLD, 14);
 
-    private static String   s_maVe      = "";
-    private static String[] s_data      = new String[0];
-    private static String   s_chuyenMoi = "";
-    private static String   s_ngayMoi   = "";
-    private static String   s_gheMoi    = "";
+    // --- DỮ LIỆU TĨNH ---
+    private static String s_maVe = "";
+    private static String[] s_dataCu = new String[0];
+    private static String s_chuyenDiMoi = "", s_ngayDiMoi = "", s_gheDiMoi = "";
+    private static String s_chuyenVeMoi = "—", s_ngayVeMoi = "—", s_gheVeMoi = "—";
 
-    public static void setDonDoi(String maVe, String[] data,
-                                 String chuyenMoi, String ngayMoi, String gheMoi) {
-        s_maVe = maVe; s_data = data.clone();
-        s_chuyenMoi = chuyenMoi; s_ngayMoi = ngayMoi; s_gheMoi = gheMoi;
+    public static void setDonDoiKhuHoi(String maVe, String[] dataCu,
+                                       String chuyenDi, String ngayDi, String gheDi,
+                                       String chuyenVe, String ngayVe, String gheVe) {
+        s_maVe = maVe; s_dataCu = dataCu.clone();
+        s_chuyenDiMoi = chuyenDi; s_ngayDiMoi = ngayDi; s_gheDiMoi = gheDi;
+        s_chuyenVeMoi = chuyenVe; s_ngayVeMoi = ngayVe; s_gheVeMoi = gheVe;
     }
 
     private final AppFrame appFrame;
-    private JLabel valMaVe, valChuyen, valToa, valGaDi, valGaDen, valLoai, valGhe, valNgayGio;
-    private JLabel valMaVeMoi, valChuyenMoi, valToaMoi, valGaDiMoi, valGaDenMoi, valLoaiMoi, valGheMoi, valNgayMoi;
-    private JLabel lbThayDoi;
+    private JPanel pnlTabController, pnlCardContainer;
+    private CardLayout cardLayout;
+    private final boolean[] activeDi = {true}, activeVe = {false};
+
+    // Labels cập nhật động - cột MỚI
+    private JLabel valMaVeDi, valChuyenDi, valToaDi, valGheDi, valNgayDi, valGaDi_Di, valGaDenDi;
+    private JLabel valMaVeVe, valChuyenVe, valToaVe, valGheVe, valNgayVe, valGaDi_Ve, valGaDenVe;
+    // Labels cập nhật động - cột CŨ
+    private JLabel oldMaVeDi, oldChuyenDi, oldToaDi, oldGheDi, oldNgayDi, oldGaDi_Di_old, oldGaDenDi_old;
+    private JLabel oldMaVeVe, oldChuyenVe, oldToaVe, oldGheVe, oldNgayVe, oldGaDi_Ve_old, oldGaDenVe_old;
+    private JLabel lbChenhLech, lbTongThu;
+    private long tongLePhi = 30000;
 
     public DoiVeGUI1(AppFrame appFrame) {
         this.appFrame = appFrame;
@@ -40,323 +47,210 @@ public class DoiVeGUI1 extends JPanel {
         pnlPage.setOpaque(false);
         pnlPage.setBorder(new EmptyBorder(0, GuiTheme.PAGE_PAD_LEFT, GuiTheme.PAGE_PAD_BOTTOM, GuiTheme.PAGE_PAD_LEFT));
 
-        JPanel centerWrapper = new JPanel();
-        centerWrapper.setLayout(new BoxLayout(centerWrapper, BoxLayout.Y_AXIS));
-        centerWrapper.setOpaque(false);
-        centerWrapper.add(buildSuccessBox());
-        centerWrapper.add(Box.createVerticalStrut(15));
-        centerWrapper.add(buildCompareCard());
+        JPanel stack = new JPanel();
+        stack.setLayout(new BoxLayout(stack, BoxLayout.Y_AXIS));
+        stack.setOpaque(false);
 
-        JPanel notePanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
-        notePanel.setOpaque(false);
-        notePanel.setBorder(new EmptyBorder(10, 5, 0, 0));
-        JLabel note = new JLabel("<html><i>* Lưu ý: Vé sau khi đổi sẽ áp dụng chính sách trả vé của chuyến tàu mới.</i></html>");
-        note.setForeground(GuiTheme.SUB_TEXT);
-        note.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
-        notePanel.add(note);
-        centerWrapper.add(notePanel);
+        stack.add(buildSuccessBox());
+        stack.add(Box.createVerticalStrut(15));
+        stack.add(buildTabController());
+        stack.add(buildCompareCard());
 
-        JPanel centerAlign = new JPanel(new BorderLayout());
-        centerAlign.setOpaque(false);
-        centerAlign.add(centerWrapper, BorderLayout.NORTH);
-
-        pnlPage.add(centerAlign,        BorderLayout.CENTER);
-        pnlPage.add(buildButtonRow(),   BorderLayout.SOUTH);
+        pnlPage.add(new JScrollPane(stack) {{ setBorder(null); setOpaque(false); getViewport().setOpaque(false); }}, BorderLayout.CENTER);
+        pnlPage.add(buildButtonRow(), BorderLayout.SOUTH);
         add(pnlPage, BorderLayout.CENTER);
     }
 
     public void refresh() {
-        String oldGheStr = safe(s_data, 6);
-        valMaVe    .setText(s_maVe.isEmpty() ? "—" : s_maVe);
-        valChuyen  .setText(safe(s_data, 0));
-        valToa     .setText(extractToaCu(oldGheStr));
-        valGaDi    .setText(safe(s_data, 1));
-        valGaDen   .setText(safe(s_data, 2));
-        valLoai    .setText(safe(s_data, 3));
-        valGhe     .setText(extractGheCu(oldGheStr));
-        valNgayGio .setText(safe(s_data, 4));
+        boolean isKhuHoi = !s_chuyenVeMoi.equals("—") && !s_chuyenVeMoi.isEmpty();
+        pnlTabController.setVisible(isKhuHoi); // Ẩn hiện tab dựa vào vé 1 chiều hay khứ hồi
 
-        valMaVeMoi  .setText(s_maVe.isEmpty() ? "—" : s_maVe);
-        valChuyenMoi.setText(s_chuyenMoi.isEmpty() ? "—" : s_chuyenMoi);
-        valToaMoi   .setText(extractToaMoi(s_gheMoi));
-        valGaDiMoi  .setText(safe(s_data, 1));
-        valGaDenMoi .setText(safe(s_data, 2));
-        valLoaiMoi  .setText(safe(s_data, 3));
-        valGheMoi   .setText(extractGheMoi(s_gheMoi));
-        valNgayMoi  .setText(s_ngayMoi.isEmpty() ? "—" : s_ngayMoi);
+        String oldGaDi = safe(s_dataCu, 1);
+        String oldGaDen = safe(s_dataCu, 2);
 
-        lbThayDoi.setText(buildThayDoi());
+        // --- ĐỔ DỮ LIỆU CỘT CŨ - CHIỀU ĐI ---
+        oldMaVeDi.setText(s_maVe);
+        oldChuyenDi.setText(safe(s_dataCu, 0));
+        oldToaDi.setText(extractToaFromDB(safe(s_dataCu, 7)));
+        oldGheDi.setText(extractGheFromDB(safe(s_dataCu, 7)));
+        oldNgayDi.setText(safe(s_dataCu, 5));
+        oldGaDi_Di_old.setText(oldGaDi);
+        oldGaDenDi_old.setText(oldGaDen);
+
+        // --- ĐỔ DỮ LIỆU CỘT CŨ - CHIỀU VỀ (ga đảo ngược) ---
+        oldMaVeVe.setText(s_maVe);
+        oldChuyenVe.setText(safe(s_dataCu, 0));
+        oldToaVe.setText(extractToaFromDB(safe(s_dataCu, 7)));
+        oldGheVe.setText(extractGheFromDB(safe(s_dataCu, 7)));
+        oldNgayVe.setText("—");
+        oldGaDi_Ve_old.setText(oldGaDen);
+        oldGaDenVe_old.setText(oldGaDi);
+
+        // --- ĐỔ DỮ LIỆU CỘT MỚI - CHIỀU ĐI ---
+        valMaVeDi.setText(s_maVe);
+        valChuyenDi.setText(s_chuyenDiMoi);
+        valToaDi.setText(extractToa(s_gheDiMoi));
+        valGheDi.setText(extractGhe(s_gheDiMoi));
+        valNgayDi.setText(s_ngayDiMoi);
+        valGaDi_Di.setText(oldGaDi);
+        valGaDenDi.setText(oldGaDen);
+
+        // --- ĐỔ DỮ LIỆU TAB CHIỀU VỀ ---
+        if (isKhuHoi) {
+            valMaVeVe.setText(s_maVe + "-VE");
+            valChuyenVe.setText(s_chuyenVeMoi);
+            valToaVe.setText(extractToa(s_gheVeMoi));
+            valGheVe.setText(extractGhe(s_gheVeMoi));
+            valNgayVe.setText(s_ngayVeMoi);
+            // Tab chiều về: Ga đi và Ga đến đổi ngược lại
+            valGaDi_Ve.setText(oldGaDen);
+            valGaDenVe.setText(oldGaDi);
+        } else {
+            // Nếu là 1 chiều, ép luôn luôn hiện Tab Đi
+            activeDi[0] = true; activeVe[0] = false;
+            cardLayout.show(pnlCardContainer, "DI");
+        }
+
+        calcPriceAndRefresh();
         revalidate(); repaint();
     }
 
-    // BUILDERS
-    private JPanel buildSuccessBox() {
-        JPanel p = new JPanel() {
-            @Override protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(OK_BG); g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
-                g2.setColor(OK_BORDER); g2.drawRoundRect(0, 0, getWidth()-1, getHeight()-1, 10, 10);
-                g2.dispose();
-            }
-        };
-        p.setLayout(new BorderLayout()); p.setOpaque(false);
-        p.setBorder(new EmptyBorder(16, 20, 16, 20));
-        p.setMaximumSize(new Dimension(Integer.MAX_VALUE, 55));
-        JLabel msg = new JLabel("Thông tin hợp lệ. Lệ phí 30.000 đ / vé · Thu tại quầy.");
-        msg.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 14));
-        msg.setForeground(OK_FG); msg.setHorizontalAlignment(SwingConstants.CENTER);
-        p.add(msg, BorderLayout.CENTER); return p;
+    private void calcPriceAndRefresh() {
+        long oldPrice = 0;
+        try { oldPrice = Long.parseLong(safe(s_dataCu, 8).replaceAll("[^0-9]", "")); } catch(Exception e) {}
+
+        double oldFactor = (extractToaNumFromDB(safe(s_dataCu, 7)) >= 9) ? 1.2 : 1.0;
+        double newFactorDi = (extractToaNum(s_gheDiMoi) >= 9) ? 1.2 : 1.0;
+
+        double basePrice = oldPrice / oldFactor;
+        long diff = Math.round((basePrice * newFactorDi) - oldPrice);
+
+        if (!s_chuyenVeMoi.equals("—")) {
+            double newFactorVe = (extractToaNum(s_gheVeMoi) >= 9) ? 1.2 : 1.0;
+            diff += Math.round((basePrice * newFactorVe) - oldPrice);
+        }
+
+        tongLePhi = 30000 + diff;
+        lbChenhLech.setText("Chênh lệch hạng ghế: " + (diff > 0 ? "+" : "") + fmtTien(diff));
+        lbTongThu.setText("Tổng thu: " + fmtTien(tongLePhi));
+        lbTongThu.setForeground(tongLePhi >= 0 ? new Color(180, 60, 0) : new Color(30, 120, 60));
     }
 
     private JPanel buildCompareCard() {
-        JPanel card = buildCard("So sánh chi tiết vé");
-        valMaVe      = fieldLabel(GuiTheme.SUB_TEXT); valChuyen    = fieldLabel(GuiTheme.SUB_TEXT);
-        valToa       = fieldLabel(GuiTheme.SUB_TEXT); valGaDi      = fieldLabel(GuiTheme.SUB_TEXT);
-        valGaDen     = fieldLabel(GuiTheme.SUB_TEXT); valLoai      = fieldLabel(GuiTheme.SUB_TEXT);
-        valGhe       = fieldLabel(GuiTheme.SUB_TEXT); valNgayGio   = fieldLabel(GuiTheme.SUB_TEXT);
+        JPanel card = buildCard("So sánh chi tiết lộ trình");
+        cardLayout = new CardLayout();
+        pnlCardContainer = new JPanel(cardLayout); pnlCardContainer.setOpaque(false);
 
-        valMaVeMoi   = fieldLabel(GuiTheme.TEXT);     valChuyenMoi = fieldLabel(NEW_FG);
-        valToaMoi    = fieldLabel(NEW_FG);            valGaDiMoi   = fieldLabel(GuiTheme.TEXT);
-        valGaDenMoi  = fieldLabel(GuiTheme.TEXT);     valLoaiMoi   = fieldLabel(GuiTheme.TEXT);
-        valGheMoi    = fieldLabel(NEW_FG);            valNgayMoi   = fieldLabel(NEW_FG);
+        // Khởi tạo Label chiều đi - cột MỚI
+        valMaVeDi=fieldLabel(GuiTheme.TEXT); valChuyenDi=fieldLabel(NEW_FG); valToaDi=fieldLabel(NEW_FG); valGheDi=fieldLabel(NEW_FG); valNgayDi=fieldLabel(NEW_FG); valGaDi_Di=fieldLabel(GuiTheme.TEXT); valGaDenDi=fieldLabel(GuiTheme.TEXT);
+        // Khởi tạo Label chiều về - cột MỚI
+        valMaVeVe=fieldLabel(GuiTheme.TEXT); valChuyenVe=fieldLabel(NEW_FG); valToaVe=fieldLabel(NEW_FG); valGheVe=fieldLabel(NEW_FG); valNgayVe=fieldLabel(NEW_FG); valGaDi_Ve=fieldLabel(GuiTheme.TEXT); valGaDenVe=fieldLabel(GuiTheme.TEXT);
+        // Khởi tạo Label chiều đi - cột CŨ
+        oldMaVeDi=fieldLabel(GuiTheme.SUB_TEXT); oldChuyenDi=fieldLabel(GuiTheme.SUB_TEXT); oldToaDi=fieldLabel(GuiTheme.SUB_TEXT); oldGheDi=fieldLabel(GuiTheme.SUB_TEXT); oldNgayDi=fieldLabel(GuiTheme.SUB_TEXT); oldGaDi_Di_old=fieldLabel(GuiTheme.SUB_TEXT); oldGaDenDi_old=fieldLabel(GuiTheme.SUB_TEXT);
+        // Khởi tạo Label chiều về - cột CŨ
+        oldMaVeVe=fieldLabel(GuiTheme.SUB_TEXT); oldChuyenVe=fieldLabel(GuiTheme.SUB_TEXT); oldToaVe=fieldLabel(GuiTheme.SUB_TEXT); oldGheVe=fieldLabel(GuiTheme.SUB_TEXT); oldNgayVe=fieldLabel(GuiTheme.SUB_TEXT); oldGaDi_Ve_old=fieldLabel(GuiTheme.SUB_TEXT); oldGaDenVe_old=fieldLabel(GuiTheme.SUB_TEXT);
 
-        JPanel grid = new JPanel(new GridBagLayout()); grid.setOpaque(false);
-        grid.setBorder(new EmptyBorder(0, 0, 15, 0));
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.fill = GridBagConstraints.HORIZONTAL; gbc.insets = new Insets(8, 12, 8, 12);
+        // Xây dựng 2 Grid
+        JPanel gridDi = createCompareGrid(true,
+                oldMaVeDi, oldChuyenDi, oldToaDi, oldGheDi, oldNgayDi, oldGaDi_Di_old, oldGaDenDi_old,
+                valMaVeDi, valChuyenDi, valToaDi, valGheDi, valNgayDi, valGaDi_Di, valGaDenDi);
+        JPanel gridVe = createCompareGrid(false,
+                oldMaVeVe, oldChuyenVe, oldToaVe, oldGheVe, oldNgayVe, oldGaDi_Ve_old, oldGaDenVe_old,
+                valMaVeVe, valChuyenVe, valToaVe, valGheVe, valNgayVe, valGaDi_Ve, valGaDenVe);
 
-        gbc.gridy = 0;
-        gbc.gridx = 1; gbc.weightx = 0.4; grid.add(headerLabel("VÉ HIỆN TẠI (CŨ)", GuiTheme.SUB_TEXT), gbc);
-        gbc.gridx = 2; gbc.weightx = 0.05; grid.add(new JLabel(""), gbc);
-        gbc.gridx = 3; gbc.weightx = 0.4; grid.add(headerLabel("VÉ ĐỔI SANG (MỚI)", NEW_FG), gbc);
+        pnlCardContainer.add(gridDi, "DI");
+        pnlCardContainer.add(gridVe, "VE");
 
-        addGridRow(grid, 1, "Mã vé",       valMaVe,    valMaVeMoi);
-        addGridRow(grid, 2, "Chuyến tàu",  valChuyen,  valChuyenMoi);
-        addGridRow(grid, 3, "Toa",         valToa,     valToaMoi);
-        addGridRow(grid, 4, "Ghế",         valGhe,     valGheMoi);
-        addGridRow(grid, 5, "Ngày/Giờ KH", valNgayGio, valNgayMoi);
-        addGridRow(grid, 6, "Ga đi",       valGaDi,    valGaDiMoi);
-        addGridRow(grid, 7, "Ga đến",      valGaDen,   valGaDenMoi);
+        JPanel pnlFooter = new JPanel(new GridLayout(2, 1, 0, 5)); pnlFooter.setOpaque(false);
+        lbChenhLech = new JLabel("Chênh lệch: 0 đ"); lbChenhLech.setFont(FONT_B14); lbChenhLech.setForeground(GuiTheme.SUB_TEXT);
+        lbTongThu = new JLabel("Tổng thu: 30.000 đ"); lbTongThu.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 16));
+        pnlFooter.add(lbChenhLech); pnlFooter.add(lbTongThu);
 
-        lbThayDoi = new JLabel("—");
-        lbThayDoi.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 14));
-        lbThayDoi.setForeground(NEW_FG);
-
-        JPanel feeStrip = new JPanel(new GridLayout(1, 2, 20, 0));
-        feeStrip.setOpaque(false);
-        feeStrip.setBorder(BorderFactory.createCompoundBorder(new MatteBorder(1, 0, 0, 0, BORDER), new EmptyBorder(16, 0, 4, 0)));
-
-        JPanel feeLeft = new JPanel(); feeLeft.setLayout(new BoxLayout(feeLeft, BoxLayout.Y_AXIS)); feeLeft.setOpaque(false);
-        JLabel lbFT = new JLabel("Lệ phí đổi vé"); lbFT.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14)); lbFT.setForeground(GuiTheme.SUB_TEXT);
-        JLabel lbFV = new JLabel("30.000 đ / vé  ·  Thu tại quầy"); lbFV.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 15)); lbFV.setForeground(new Color(160, 80, 0));
-        feeLeft.add(lbFT); feeLeft.add(Box.createVerticalStrut(6)); feeLeft.add(lbFV);
-
-        JPanel feeRight = new JPanel(); feeRight.setLayout(new BoxLayout(feeRight, BoxLayout.Y_AXIS)); feeRight.setOpaque(false);
-        JLabel lbCT = new JLabel("Thay đổi chính"); lbCT.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14)); lbCT.setForeground(GuiTheme.SUB_TEXT);
-        feeRight.add(lbCT); feeRight.add(Box.createVerticalStrut(6)); feeRight.add(lbThayDoi);
-
-        feeStrip.add(feeLeft); feeStrip.add(feeRight);
-
-        JPanel content = new JPanel(new BorderLayout()); content.setOpaque(false);
-        content.add(grid, BorderLayout.CENTER); content.add(feeStrip, BorderLayout.SOUTH);
-        card.add(content, BorderLayout.CENTER);
+        card.add(pnlCardContainer, BorderLayout.CENTER);
+        card.add(pnlFooter, BorderLayout.SOUTH);
         return card;
     }
 
-    private void addGridRow(JPanel grid, int y, String title, JLabel valOld, JLabel valNew) {
+    // Biến boolean isDi quyết định nhãn hiển thị là "Ngày đi" hay "Ngày về"
+    private JPanel createCompareGrid(boolean isDi,
+                                     JLabel oldMaVe, JLabel oldChuyen, JLabel oldToa, JLabel oldGhe, JLabel oldNgay, JLabel oldGa1, JLabel oldGa2,
+                                     JLabel vMa, JLabel vCh, JLabel vTo, JLabel vGh, JLabel vNgay, JLabel vGaDi, JLabel vGaDen) {
+        JPanel grid = new JPanel(new GridBagLayout()); grid.setOpaque(false);
         GridBagConstraints gbc = new GridBagConstraints();
-        gbc.fill = GridBagConstraints.HORIZONTAL; gbc.insets = new Insets(6, 12, 6, 12); gbc.gridy = y;
-        gbc.gridx = 0; gbc.weightx = 0.15;
-        JLabel lblTitle = new JLabel(title); lblTitle.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 13));
-        lblTitle.setForeground(GuiTheme.SUB_TEXT); grid.add(lblTitle, gbc);
-        gbc.gridx = 1; gbc.weightx = 0.4; grid.add(valOld, gbc);
-        gbc.gridx = 2; gbc.weightx = 0.05;
-        JLabel arrow = new JLabel("→"); arrow.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 18));
-        arrow.setForeground(BORDER); arrow.setHorizontalAlignment(SwingConstants.CENTER); grid.add(arrow, gbc);
-        gbc.gridx = 3; gbc.weightx = 0.4; grid.add(valNew, gbc);
+        gbc.fill = GridBagConstraints.HORIZONTAL; gbc.insets = new Insets(5, 10, 5, 10);
+
+        gbc.gridy = 0; gbc.gridx = 1; grid.add(headerLabel("HIỆN TẠI (CŨ)", GuiTheme.SUB_TEXT), gbc);
+        gbc.gridx = 3; grid.add(headerLabel("ĐỔI SANG (MỚI)", NEW_FG), gbc);
+
+        String textNgay = isDi ? "Ngày đi" : "Ngày về";
+
+        addGridRow(grid, 1, "Mã vé", oldMaVe, vMa);
+        addGridRow(grid, 2, "Chuyến", oldChuyen, vCh);
+        addGridRow(grid, 3, "Toa", oldToa, vTo);
+        addGridRow(grid, 4, "Ghế", oldGhe, vGh);
+        addGridRow(grid, 5, textNgay, oldNgay, vNgay);
+        addGridRow(grid, 6, "Ga đi", oldGa1, vGaDi);
+        addGridRow(grid, 7, "Ga đến", oldGa2, vGaDen);
+        return grid;
+    }
+
+    private void addGridRow(JPanel grid, int y, String title, JLabel oldV, JLabel newV) {
+        GridBagConstraints gbc = new GridBagConstraints(); gbc.gridy = y; gbc.insets = new Insets(5, 5, 5, 5);
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.gridx = 0; gbc.weightx = 0.15; grid.add(new JLabel(title) {{ setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 13)); setForeground(GuiTheme.SUB_TEXT); }}, gbc);
+        gbc.gridx = 1; gbc.weightx = 0.4; grid.add(oldV, gbc);
+        gbc.gridx = 2; gbc.weightx = 0.05; grid.add(new JLabel("→", SwingConstants.CENTER) {{ setFont(new Font("Segoe UI", Font.BOLD, 16)); setForeground(BORDER); }}, gbc);
+        gbc.gridx = 3; gbc.weightx = 0.4; grid.add(newV, gbc);
+    }
+
+    private JPanel buildTabController() {
+        pnlTabController = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0)); pnlTabController.setOpaque(false);
+        pnlTabController.add(makeTabButton("Chiều đi", activeDi, () -> { activeDi[0]=true; activeVe[0]=false; cardLayout.show(pnlCardContainer, "DI"); pnlTabController.repaint(); }));
+        pnlTabController.add(makeTabButton("Chiều về", activeVe, () -> { activeDi[0]=false; activeVe[0]=true; cardLayout.show(pnlCardContainer, "VE"); pnlTabController.repaint(); }));
+        return pnlTabController;
     }
 
     private JPanel buildButtonRow() {
-        JPanel p = new JPanel(new FlowLayout(FlowLayout.RIGHT, 15, 10));
-        p.setOpaque(false); p.setBorder(new MatteBorder(1, 0, 0, 0, BORDER));
-
-        JButton btnBack = makeSecondaryButton("← Quay lại", 130, 38);
-        btnBack.addActionListener(e -> appFrame.showCard("doi-ve-step-1"));
-
-        JButton btnConfirm = makeNavyButton("Xác nhận đổi vé", 130, 38);
-        btnConfirm.addActionListener(e -> handleConfirm());
-
-        p.add(btnBack); p.add(btnConfirm);
-        return p;
-    }
-
-    // LOGIC & DATA PARSING
-    private String extractToaCu(String maGheDB) {
-        if (maGheDB == null || maGheDB.length() <= 3) return "—";
-        try { return "Toa " + Integer.parseInt(maGheDB.substring(4, 6)); } catch (Exception e) { return "—"; }
-    }
-    private String extractGheCu(String maGheDB) {
-        if (maGheDB == null || maGheDB.length() < 3) return "—";
-        return maGheDB.substring(0, 3); // G05
-    }
-    private String extractToaMoi(String fullStr) {
-        if (fullStr == null || !fullStr.contains("-")) return "—";
-        String toa = fullStr.split("-")[0].trim(); // T01SEVN001
-        try { return "Toa " + Integer.parseInt(toa.substring(1, 3)); } catch (Exception e) { return "—"; }
-    }
-    private String extractGheMoi(String fullStr) {
-        if (fullStr == null || !fullStr.contains("-")) return "—";
-        return fullStr.split("-")[1].trim(); // G05
-    }
-    private String getMaGheMoiDB(String fullStr) {
-        if (fullStr == null || !fullStr.contains("-")) return fullStr;
-        String[] parts = fullStr.split("-");
-        return parts[1].trim() + parts[0].trim(); // G05T01SEVN001
-    }
-
-    private String buildThayDoi() {
-        String oldChuyen = safe(s_data, 0);
-        String oldGhe = extractGheCu(safe(s_data, 6));
-        String newGhe = extractGheMoi(s_gheMoi);
-        StringBuilder sb = new StringBuilder();
-        if (!oldChuyen.equals("—") && !s_chuyenMoi.isEmpty() && !oldChuyen.equals(s_chuyenMoi))
-            sb.append(oldChuyen).append(" → ").append(s_chuyenMoi);
-        if (!oldGhe.equals("—") && !newGhe.isEmpty() && !newGhe.equals("—")) {
-            if (sb.length() > 0) sb.append("  ·  ");
-            sb.append("Ghế ").append(oldGhe).append(" → ").append(newGhe);
-        }
-        return sb.length() > 0 ? sb.toString() : "Chỉ đổi lịch, không đổi số hiệu tàu";
+        JPanel p = new JPanel(new FlowLayout(FlowLayout.RIGHT, 15, 10)); p.setOpaque(false); p.setBorder(new MatteBorder(1, 0, 0, 0, BORDER));
+        JButton btnBack = makeSecondaryButton("Quay lại", 120, 38); btnBack.addActionListener(e -> appFrame.showCard("doi-ve-step-1"));
+        JButton btnConfirm = makeNavyButton("Tiếp tục thanh toán", 170, 38); btnConfirm.addActionListener(e -> handleConfirm());
+        p.add(btnBack); p.add(btnConfirm); return p;
     }
 
     private void handleConfirm() {
-        int ch = JOptionPane.showConfirmDialog(this,
-                "<html><div style='padding:6px'><b>Xác nhận đổi vé " + s_maVe + "?</b><br><br>"
-                        + "Chuyến mới: <b>" + s_chuyenMoi + "</b><br>"
-                        + "Ngày/Giờ mới: <b>" + s_ngayMoi + "</b><br>"
-                        + "Toa/Ghế mới: <b>" + extractToaMoi(s_gheMoi) + " - " + extractGheMoi(s_gheMoi) + "</b><br>"
-                        + "Lệ phí: <b>30.000 đ</b> (thu tại quầy)</div></html>",
-                "Xác nhận đổi vé", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
-        if (ch != JOptionPane.OK_OPTION) return;
-
-        boolean isSuccess = false;
-
-        // SỬA CÂU QUERY: Join đúng với bảng ChiTietChuyenTau và UPDATE bằng maChuyenTau
-        // Sửa câu lệnh SQL trong hàm handleConfirm() của DoiVeGUI1.java
-        String sqlUpdateVe =
-                "UPDATE Ve " +
-                        "SET maChuyenTau = (" +
-                        "SELECT TOP 1 dt.maChuyenTau " +
-                        "FROM ChiTietChuyenTau dt " +
-                        "JOIN ChuyenTau ct ON dt.maChuyenTau = ct.maChuyenTau " +
-                        "JOIN Tau t ON ct.maTau = t.maTau " +
-                        "JOIN Ga gDi ON dt.maGaDi = gDi.maGa " +
-                        "JOIN Ga gDen ON dt.maGaDen = gDen.maGa " +
-                        "WHERE t.tenTau = ? " +
-                        "AND FORMAT(dt.thoiGianKhoiHanh, 'dd/MM/yyyy HH:mm') = ? " +
-                        "AND gDi.tenGa = ? " +
-                        "AND gDen.tenGa = ?" +
-                        "), " +
-                        "maGhe = ? " +
-                        "WHERE maVe = ?";
-
-        try (Connection conn = Connect_DB.getInstance().getConnection();
-             PreparedStatement psUpdate = conn.prepareStatement(sqlUpdateVe)) {
-
-            // Set params dựa trên các biến có sẵn, không thay đổi flow
-            psUpdate.setString(1, s_chuyenMoi);         // Tên tàu (vd: Tàu SE 1)
-            psUpdate.setString(2, s_ngayMoi);           // Ngày giờ mới
-            psUpdate.setString(3, safe(s_data, 1));     // Ga đi (từ vé cũ truyền sang)
-            psUpdate.setString(4, safe(s_data, 2));     // Ga đến (từ vé cũ truyền sang)
-            psUpdate.setString(5, getMaGheMoiDB(s_gheMoi)); // Mã ghế đúng định dạng DB
-            psUpdate.setString(6, s_maVe);              // Mã vé cần đổi
-
-            int rowsAffected = psUpdate.executeUpdate();
-            if (rowsAffected > 0) isSuccess = true;
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            JOptionPane.showMessageDialog(this,
-                    "Lỗi kết nối CSDL khi cập nhật đổi vé: " + e.getMessage(),
-                    "Lỗi Hệ Thống", JOptionPane.ERROR_MESSAGE);
-            return;
-        }
-
-        if (isSuccess) {
-            JOptionPane.showMessageDialog(this,
-                    "<html><div style='text-align:center;padding:10px'>"
-                            + "<b style='font-size:16px;color:#1e7840'>Đổi vé thành công!</b><br><br>"
-                            + "Mã vé <b>" + s_maVe + "</b> đã được cập nhật sang chuyến <b>" + s_chuyenMoi + "</b>.<br>"
-                            + "Ngày: <b>" + s_ngayMoi + "</b>  —  Ghế mới: <b>" + extractGheMoi(s_gheMoi) + "</b><br><br>"
-                            + "Lệ phí <b>30.000 đ</b> sẽ thu khi đến quầy.</div></html>",
-                    "Hoàn tất", JOptionPane.PLAIN_MESSAGE);
-
-            appFrame.showCard("doi-tra");
-        } else {
-            JOptionPane.showMessageDialog(this,
-                    "Lỗi: Không tìm thấy chuyến tàu khớp với thời gian trên hệ thống để cập nhật!\nVui lòng chọn lại chuyến.",
-                    "Cảnh báo", JOptionPane.WARNING_MESSAGE);
-        }
+        // Chỉ đẩy sang màn hình thanh toán, logic DB thực hiện ở DoiVeGUI2
+        String maGheDbDi = getMaGheMoiDB(s_gheDiMoi);
+        String hienThiDi = extractToa(s_gheDiMoi) + " - " + extractGhe(s_gheDiMoi);
+        DoiVeGUI2.setDuLieuThanhToan(s_maVe, s_dataCu, s_chuyenDiMoi, s_ngayDiMoi, maGheDbDi, hienThiDi, tongLePhi);
+        appFrame.showCard("doi-ve-step-3");
     }
 
-    // UI HELPERS
-    private JLabel headerLabel(String title, Color color) {
-        JLabel lb = new JLabel(title); lb.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 13));
-        lb.setForeground(color); lb.setHorizontalAlignment(SwingConstants.CENTER); return lb;
-    }
+    // --- CÁC HÀM HELPERS ---
+    private String extractToa(String full) { try { return "Toa " + Integer.parseInt(full.split("-")[0].trim().substring(1, 3)); } catch(Exception e) { return "—"; } }
+    private String extractGhe(String full) { try { return full.split("-")[1].trim(); } catch(Exception e) { return "—"; } }
+    private int extractToaNum(String full) { try { return Integer.parseInt(full.split("-")[0].trim().substring(1, 3)); } catch(Exception e) { return 1; } }
+    private String getMaGheMoiDB(String fullStr) { if (fullStr == null || !fullStr.contains("-")) return fullStr; String[] parts = fullStr.split("-"); return parts[1].trim() + parts[0].trim(); }
 
-    private JLabel fieldLabel(Color color) {
-        JLabel lb = new JLabel("—"); lb.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 13));
-        lb.setForeground(color); lb.setOpaque(true); lb.setBackground(GuiTheme.SEARCH_FIELD_BG);
-        lb.setBorder(BorderFactory.createCompoundBorder(new LineBorder(BORDER, 1, false), new EmptyBorder(8, 12, 8, 12)));
-        return lb;
+    // Parse maGhe thẳng từ DB: "G05T03SEVN001" → toa = "T03SEVN001", ghe = "G05"
+    private String extractToaFromDB(String maGhe) {
+        if (maGhe == null || maGhe.length() < 4) return "—";
+        try { return maGhe.substring(3); } catch (Exception e) { return "—"; } // bỏ "G05" → "T03SEVN001"
     }
+    private String extractGheFromDB(String maGhe) {
+        if (maGhe == null || maGhe.length() < 3) return "—";
+        try { return maGhe.substring(0, 3); } catch (Exception e) { return "—"; } // lấy "G05"
+    }
+    private int extractToaNumFromDB(String maGhe) {
+        try { return Integer.parseInt(maGhe.substring(3, 5)); } catch (Exception e) { return 1; } // lấy "03" → 3
+    }
+    private String fmtTien(long a) { return String.format("%,d đ", a).replace(",", "."); }
+    private String safe(String[] a, int i) { return (a!=null && i<a.length && a[i]!=null) ? a[i] : "—"; }
 
-    private JPanel buildCard(String titleText) {
-        JPanel card = new JPanel(new BorderLayout(0, 12)); card.setBackground(Color.WHITE);
-        card.setBorder(BorderFactory.createCompoundBorder(new LineBorder(BORDER, 1, true), new EmptyBorder(20, 24, 20, 24)));
-        JLabel lbTitle = new JLabel(titleText); lbTitle.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 16));
-        lbTitle.setForeground(GuiTheme.TEXT); lbTitle.setBorder(new EmptyBorder(0, 0, 6, 0));
-        card.add(lbTitle, BorderLayout.NORTH); return card;
-    }
-
-    private JButton makeNavyButton(String text, int w, int h) {
-        JButton btn = new JButton(text) {
-            @Override protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(getModel().isPressed() ? GuiTheme.NAVY_DARK : getModel().isRollover() ? GuiTheme.NAVY_HOVER : GuiTheme.NAVY);
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 12, 12); g2.setColor(Color.WHITE);
-                g2.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14)); FontMetrics fm = g2.getFontMetrics(); String txt = getText();
-                g2.drawString(txt, (getWidth() - fm.stringWidth(txt)) / 2, (getHeight() + fm.getAscent() - fm.getDescent()) / 2);
-                g2.dispose();
-            }
-        };
-        btn.setPreferredSize(new Dimension(w, h)); btn.setContentAreaFilled(false);
-        btn.setBorderPainted(false); btn.setFocusPainted(false); btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        return btn;
-    }
-
-    private JButton makeSecondaryButton(String text, int w, int h) {
-        JButton btn = new JButton(text) {
-            @Override protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                Color bg = getModel().isPressed() ? new Color(220,225,235) : getModel().isRollover() ? new Color(235,239,246) : new Color(240,243,248);
-                g2.setColor(bg); g2.fillRoundRect(0, 0, getWidth(), getHeight(), 12, 12);
-                g2.setColor(BORDER); g2.drawRoundRect(0, 0, getWidth()-1, getHeight()-1, 12, 12);
-                g2.setColor(GuiTheme.TEXT); g2.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
-                FontMetrics fm = g2.getFontMetrics(); String txt = getText();
-                g2.drawString(txt, (getWidth()-fm.stringWidth(txt))/2, (getHeight()+fm.getAscent()-fm.getDescent())/2);
-                g2.dispose();
-            }
-        };
-        btn.setPreferredSize(new Dimension(w, h)); btn.setContentAreaFilled(false); btn.setBorderPainted(false);
-        btn.setFocusPainted(false); btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        return btn;
-    }
-
-    private static String safe(String[] arr, int idx) {
-        return (arr != null && idx < arr.length && arr[idx] != null) ? arr[idx] : "—";
-    }
+    private JPanel buildSuccessBox() { JPanel p = new JPanel(new BorderLayout()) { @Override protected void paintComponent(Graphics g) { Graphics2D g2 = (Graphics2D) g.create(); g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON); g2.setColor(new Color(236, 252, 240)); g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10); g2.dispose(); } }; p.setBorder(new EmptyBorder(16, 20, 16, 20)); p.setMaximumSize(new Dimension(Integer.MAX_VALUE, 55)); JLabel msg = new JLabel("Thông tin hợp lệ. Vui lòng xác nhận lộ trình đổi vé."); msg.setFont(FONT_B14); msg.setForeground(new Color(30, 130, 70)); msg.setHorizontalAlignment(SwingConstants.CENTER); p.add(msg, BorderLayout.CENTER); return p; }
+    private JPanel buildCard(String t) { JPanel card = new JPanel(new BorderLayout(0, 12)); card.setBackground(Color.WHITE); card.setBorder(BorderFactory.createCompoundBorder(new LineBorder(BORDER, 1, true), new EmptyBorder(20, 24, 20, 24))); JLabel lbTitle = new JLabel(t); lbTitle.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 16)); card.add(lbTitle, BorderLayout.NORTH); return card; }
+    private JLabel headerLabel(String t, Color c) { JLabel lb = new JLabel(t); lb.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 13)); lb.setForeground(c); lb.setHorizontalAlignment(SwingConstants.CENTER); return lb; }
+    private JLabel fieldLabel(Color c) { JLabel lb = new JLabel("—"); lb.setFont(FONT_B14); lb.setForeground(c); lb.setOpaque(true); lb.setBackground(GuiTheme.SEARCH_FIELD_BG); lb.setBorder(BorderFactory.createCompoundBorder(new LineBorder(BORDER, 1, false), new EmptyBorder(8, 12, 8, 12))); return lb; }
+    private JButton makeNavyButton(String t, int w, int h) { JButton btn = new JButton(t) { @Override protected void paintComponent(Graphics g) { Graphics2D g2 = (Graphics2D) g.create(); g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON); g2.setColor(NAVY); g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8); g2.setColor(Color.WHITE); g2.setFont(FONT_B14); FontMetrics fm = g2.getFontMetrics(); g2.drawString(getText(), (getWidth() - fm.stringWidth(getText())) / 2, (getHeight() + fm.getAscent() - fm.getDescent()) / 2); g2.dispose(); } }; btn.setPreferredSize(new Dimension(w, h)); btn.setContentAreaFilled(false); btn.setBorderPainted(false); btn.setCursor(new Cursor(Cursor.HAND_CURSOR)); return btn; }
+    private JButton makeSecondaryButton(String t, int w, int h) { JButton btn = new JButton(t) { @Override protected void paintComponent(Graphics g) { Graphics2D g2 = (Graphics2D) g.create(); g2.setColor(new Color(240, 243, 248)); g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8); g2.setColor(BORDER); g2.drawRoundRect(0, 0, getWidth()-1, getHeight()-1, 8, 8); g2.setColor(GuiTheme.TEXT); g2.setFont(FONT_B14); FontMetrics fm = g2.getFontMetrics(); g2.drawString(getText(), (getWidth()-fm.stringWidth(getText()))/2, (getHeight()+fm.getAscent()-fm.getDescent())/2); g2.dispose(); } }; btn.setPreferredSize(new Dimension(w, h)); btn.setContentAreaFilled(false); btn.setBorderPainted(false); btn.setCursor(new Cursor(Cursor.HAND_CURSOR)); return btn; }
+    private JButton makeTabButton(String t, boolean[] s, Runnable r) { JButton btn = new JButton(t) { @Override protected void paintComponent(Graphics g) { Graphics2D g2 = (Graphics2D) g.create(); g2.setColor(s[0] ? NAVY : Color.WHITE); g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8); g2.setColor(s[0] ? Color.WHITE : NAVY); g2.drawRoundRect(0, 0, getWidth()-1, getHeight()-1, 8, 8); g2.setFont(FONT_B14); FontMetrics fm = g2.getFontMetrics(); g2.drawString(getText(), (getWidth() - fm.stringWidth(getText()))/2, (getHeight() + fm.getAscent() - fm.getDescent())/2); g2.dispose(); } }; btn.setPreferredSize(new Dimension(100, 30)); btn.setContentAreaFilled(false); btn.setBorderPainted(false); btn.setCursor(new Cursor(Cursor.HAND_CURSOR)); btn.addActionListener(e -> r.run()); return btn; }
 }
