@@ -20,32 +20,70 @@ import connect_DB.Connect_DB;
 public class DatVeGUI extends JPanel {
 
     // {tên, dotX%, dotY%, labelX%, labelY%} 428x561
-    private static final Object[][] GA_DATA = {
-        {"Ngọc Hồi",   0.425, 0.168,   0.621, 0.169},
-        {"Phủ Lý",     0.442, 0.193,   0.551, 0.193},
-        {"Nam Định",   0.467, 0.206,   0.530, 0.214},
-        {"Ninh Bình",  0.456, 0.223,   0.507, 0.235},
-        {"Thanh Hóa",  0.439, 0.253,   0.469, 0.264},
-        {"Vinh",       0.425, 0.319,   0.460, 0.317},
-        {"Hà Tĩnh",    0.456, 0.344,   0.493, 0.337},
-        {"Vũng Áng",   0.491, 0.367,   0.516, 0.362},
-        {"Đồng Hới",   0.512, 0.406,   0.544, 0.398},
-        {"Đông Hà",    0.551, 0.442,   0.577, 0.426},
-        {"Huế",        0.589, 0.469,   0.614, 0.453},
-        {"Đà Nẵng",    0.638, 0.496,   0.664, 0.478},
-        {"Tam Kỳ",     0.668, 0.531,   0.696, 0.524},
-        {"Quảng Ngãi", 0.701, 0.565,   0.734, 0.561},
-        {"Bồng Sơn",   0.715, 0.601,   0.750, 0.602},
-        {"Diêu Trì",   0.724, 0.642,   0.762, 0.647},
-        {"Tuy Hòa",    0.734, 0.697,   0.766, 0.693},
-        {"Khánh Hòa",  0.724, 0.743,   0.771, 0.749},
-        {"Tháp Chàm",  0.720, 0.788,   0.771, 0.791},
-        {"Phan Rí",    0.687, 0.822,   0.713, 0.838},
-        {"Long Thành", 0.568, 0.848,   0.643, 0.873},
-        {"Thủ Thiêm",  0.521, 0.857,   0.600, 0.907}
-    };
-
+	private static final Object[][] GA_DATA = {
+		    {"Hà Nội",    0.442, 0.164,   0.621, 0.152},
+		    {"Phủ Lý",    0.456, 0.189,   0.586, 0.182},
+		    {"Nam Định",  0.474, 0.203,   0.549, 0.203},
+		    {"Ninh Bình", 0.451, 0.214,   0.521, 0.225},
+		    {"Thanh Hóa", 0.416, 0.234,   0.486, 0.253},
+		    {"Vinh",      0.423, 0.319,   0.477, 0.310},
+		    {"Đồng Hới",  0.495, 0.405,   0.540, 0.405},
+		    {"Đông Hà",   0.549, 0.449,   0.591, 0.449},
+		    {"Huế",       0.603, 0.479,   0.640, 0.479},
+		    {"Đà Nẵng",   0.640, 0.497,   0.675, 0.497},
+		    {"Tam Kỳ",    0.671, 0.536,   0.713, 0.536},
+		    {"Quảng Ngãi",0.699, 0.570,   0.734, 0.570},
+		    {"Diêu Trì",  0.727, 0.645,   0.757, 0.645},
+		    {"Tuy Hòa",   0.731, 0.704,   0.771, 0.704},
+		    {"Nha Trang", 0.720, 0.763,   0.764, 0.763},
+		    {"Tháp Chàm", 0.710, 0.795,   0.755, 0.795},
+		    {"Bình Thuận",0.645, 0.834,   0.703, 0.834},
+		    {"Long Khánh",0.565, 0.838,   0.615, 0.875},
+		    {"Biên Hòa",  0.551, 0.852,   0.580, 0.891},
+		    {"Dĩ An",     0.523, 0.841,   0.565, 0.914},
+		    {"Sài Gòn",   0.516, 0.856,   0.533, 0.938}
+		};
     private static final String GA_DI_MAC_DINH   = "Diêu Trì";
+
+    // Map tên ga → tên tỉnh (chỉ ghi những ga có tên khác tỉnh)
+    private static final java.util.Map<String, String> GA_TINH;
+    static {
+        java.util.Map<String, String> m = new java.util.LinkedHashMap<>();
+        m.put("Hà Nội",     null);           // ga trùng tên tỉnh/thành → không ghi thêm
+        m.put("Phủ Lý",     "Hà Nội");
+        m.put("Nam Định",   null);
+        m.put("Ninh Bình",  null);
+        m.put("Thanh Hóa",  null);
+        m.put("Vinh",       "Nghệ An");
+        m.put("Đồng Hới",   "Quảng Trị");
+        m.put("Đông Hà",    "Quảng Trị");
+        m.put("Huế",        "Thừa Thiên Huế");
+        m.put("Đà Nẵng",    null);
+        m.put("Tam Kỳ",     "Đà Nẵng");
+        m.put("Quảng Ngãi", null);
+        m.put("Diêu Trì",   "Gia Lai");
+        m.put("Tuy Hòa",    "Dak Lak");
+        m.put("Nha Trang",  "Khánh Hòa");
+        m.put("Tháp Chàm",  "Khánh Hòa");
+        m.put("Bình Thuận", null);
+        m.put("Long Khánh", "Đồng Nai");
+        m.put("Biên Hòa",   "Đồng Nai");
+        m.put("Dĩ An",      "TP. HCM");
+        m.put("Sài Gòn",    "TP. HCM");
+        GA_TINH = java.util.Collections.unmodifiableMap(m);
+    }
+
+    /** Trả về nhãn hiển thị: "Phủ Lý (Hà Nam)" hoặc "Nam Định" nếu trùng tỉnh */
+    private static String displayLabel(String gaName) {
+        String tinh = GA_TINH.get(gaName);
+        return (tinh != null) ? gaName + " (" + tinh + ")" : gaName;
+    }
+
+    /** Trích tên ga thuần từ nhãn display (bỏ phần " (Tỉnh)" nếu có) */
+    private static String extractGaName(String displayName) {
+        int p = displayName.indexOf(" (");
+        return (p >= 0) ? displayName.substring(0, p) : displayName;
+    }
     private static final Color  CLR_ROUTE_NORMAL = new Color(30,  100, 190, 210);
     private static final Color  CLR_ROUTE_SEL    = new Color(220,  55,  40, 230);
     private static final Color  CLR_DOT_DI       = new Color(215,  60,  45);
@@ -59,7 +97,8 @@ public class DatVeGUI extends JPanel {
     private JTextField        txtSoLuong;
     private MapPanel          mapPanel;
 
-    private String[]   gaDenList;
+    private String[]   gaDenList;        // tên ga thuần, dùng nội bộ / truyền sang trang khác
+    private String[]   gaDenDisplayList; // nhãn hiển thị có tỉnh, dùng trong popup
     private JPopupMenu autocompletePopup;
     private JList<String>            suggestList;
     private DefaultListModel<String> suggestModel;
@@ -108,6 +147,7 @@ public class DatVeGUI extends JPanel {
         addRow(form, gbc, 1, "Ga đi:", wrapField(txtGaDi, true), 14);
 
         gaDenList = buildGaDenList();
+        gaDenDisplayList = buildGaDenDisplayList();
         cbGaDen = new JComboBox<>(gaDenList);
         cbGaDen.setVisible(false);
         cbGaDen.setSelectedIndex(-1); 
@@ -314,7 +354,8 @@ public class DatVeGUI extends JPanel {
                     if (autocompletePopup == null || !autocompletePopup.isVisible()) {
                         String cur = txtGaDen.getText().trim();
                         String sel = (String) cbGaDen.getSelectedItem();
-                        boolean exact = Arrays.stream(gaDenList).anyMatch(g -> g.equalsIgnoreCase(cur));
+                        boolean exact = Arrays.stream(gaDenList).anyMatch(g -> g.equalsIgnoreCase(cur))
+                                     || Arrays.stream(gaDenDisplayList).anyMatch(g -> g.equalsIgnoreCase(cur));
                         if (!exact) {
                             suppressDocListener = true;
                             txtGaDen.setText(sel != null ? sel : "");
@@ -326,7 +367,7 @@ public class DatVeGUI extends JPanel {
         });
 
         suggestModel = new DefaultListModel<>();
-        for (String g : gaDenList) suggestModel.addElement(g);
+        for (String d : gaDenDisplayList) suggestModel.addElement(d);
 
         suggestList = new JList<>(suggestModel);
         suggestList.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 13));
@@ -419,15 +460,15 @@ public class DatVeGUI extends JPanel {
         String query = txtGaDen.getText().trim();
         suggestModel.clear();
         if (query.isEmpty()) {
-            for (String g : gaDenList) suggestModel.addElement(g);
+            for (String d : gaDenDisplayList) suggestModel.addElement(d);
         } else {
             List<String> prefix = new ArrayList<>(), contain = new ArrayList<>();
-            for (String g : gaDenList) {
-                int pos = indexOfIgnoreAccent(g, query);
-                if (pos == 0) prefix.add(g); else if (pos > 0) contain.add(g);
+            for (String d : gaDenDisplayList) {
+                int pos = indexOfIgnoreAccent(d, query);
+                if (pos == 0) prefix.add(d); else if (pos > 0) contain.add(d);
             }
-            for (String g : prefix)  suggestModel.addElement(g);
-            for (String g : contain) suggestModel.addElement(g);
+            for (String d : prefix)  suggestModel.addElement(d);
+            for (String d : contain) suggestModel.addElement(d);
         }
         if (suggestModel.isEmpty()) { autocompletePopup.setVisible(false); return; }
         suggestList.setSelectedIndex(0);
@@ -439,10 +480,12 @@ public class DatVeGUI extends JPanel {
     private void showAllSuggestions(JComponent anchor) {
         suppressDocListener = true;
         suggestModel.clear();
-        for (String g : gaDenList) suggestModel.addElement(g);
+        for (String d : gaDenDisplayList) suggestModel.addElement(d);
         suppressDocListener = false;
         String cur = (String) cbGaDen.getSelectedItem();
-        int selIdx = cur != null ? indexInModel(cur) : 0;
+        // tìm index của display label tương ứng
+        String curDisplay = cur != null ? displayLabel(cur) : null;
+        int selIdx = curDisplay != null ? indexInModel(curDisplay) : 0;
         suggestList.setSelectedIndex(Math.max(selIdx, 0));
         suggestList.ensureIndexIsVisible(Math.max(selIdx, 0));
         showPopupBelow(anchor);
@@ -464,7 +507,7 @@ public class DatVeGUI extends JPanel {
     private void commitSelection() {
         String sel = suggestList.getSelectedValue();
         if (sel == null && suggestModel.getSize() > 0) sel = suggestModel.get(0);
-        if (sel != null) selectGaDen(sel);
+        if (sel != null) selectGaDen(extractGaName(sel));
         autocompletePopup.setVisible(false);
     }
 
@@ -501,19 +544,91 @@ public class DatVeGUI extends JPanel {
 
     private void syncNgayVe() {
         setNgayVeEnabled(false);
-        if (dcNgayDi != null && dcNgayVe != null) dcNgayVe.setDate(dcNgayDi.getDate());
+        if (dcNgayDi != null && dcNgayVe != null) {
+            dcNgayVe.setDate(dcNgayDi.getDate());
+        }
+    }
+
+    // Gọi thêm khi ngày đi thay đổi — cập nhật min của ngày về
+    private void onNgayDiChanged() {
+        if (rbMotChieu != null && rbMotChieu.isSelected()) {
+            syncNgayVe();
+        }
+        // Ngày về không được trước ngày đi
+        if (dcNgayDi.getDate() != null) {
+            dcNgayVe.setMinSelectableDate(dcNgayDi.getDate());
+        }
     }
 
     private JDateChooser buildDateChooser(boolean enabled) {
         JDateChooser dc = new JDateChooser();
         dc.setDateFormatString("dd/MM/yyyy");
-        dc.setDate(null); // Đã sửa: Để trống ngày
+        dc.setDate(null);
         dc.setEnabled(enabled);
         dc.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
         dc.setBackground(enabled ? Color.WHITE : new Color(225, 235, 245));
         dc.setBorder(null);
+        dc.setMinSelectableDate(new java.util.Date());
+
         Component editor = dc.getDateEditor().getUiComponent();
         if (editor instanceof JComponent) ((JComponent) editor).setBorder(null);
+
+        if (editor instanceof JTextField) {
+            JTextField tf = (JTextField) editor;
+
+            tf.addKeyListener(new KeyAdapter() {
+                @Override
+                public void keyReleased(KeyEvent e) {
+                    // Chỉ xử lý khi nhấn số
+                    String raw = tf.getText().replaceAll("[^0-9]", "");
+                    if (raw.isEmpty()) return;
+
+                    // Chỉ lấy 2 số đầu (ngày)
+                    if (raw.length() > 2) raw = raw.substring(0, 2);
+                    int day;
+                    try { day = Integer.parseInt(raw); }
+                    catch (Exception ex) { return; }
+                    if (day < 1 || day > 31) return;
+
+                    java.util.Calendar today = java.util.Calendar.getInstance();
+                    today.set(java.util.Calendar.HOUR_OF_DAY, 0);
+                    today.set(java.util.Calendar.MINUTE, 0);
+                    today.set(java.util.Calendar.SECOND, 0);
+                    today.set(java.util.Calendar.MILLISECOND, 0);
+
+                    int todayDay   = today.get(java.util.Calendar.DAY_OF_MONTH);
+                    int todayMonth = today.get(java.util.Calendar.MONTH);
+                    int todayYear  = today.get(java.util.Calendar.YEAR);
+
+                    java.util.Calendar suggested = java.util.Calendar.getInstance();
+                    if (day >= todayDay) {
+                        suggested.set(todayYear, todayMonth, 1);
+                    } else {
+                        // Sang tháng sau
+                        suggested.set(todayYear, todayMonth, 1);
+                        suggested.add(java.util.Calendar.MONTH, 1);
+                    }
+
+                    int maxDay = suggested.getActualMaximum(java.util.Calendar.DAY_OF_MONTH);
+                    if (day > maxDay) return;
+
+                    suggested.set(java.util.Calendar.DAY_OF_MONTH, day);
+                    suggested.set(java.util.Calendar.HOUR_OF_DAY, 0);
+                    suggested.set(java.util.Calendar.MINUTE, 0);
+                    suggested.set(java.util.Calendar.SECOND, 0);
+                    suggested.set(java.util.Calendar.MILLISECOND, 0);
+
+                    if (suggested.getTime().before(today.getTime())) return;
+
+                    // Chỉ gợi ý khi nhập đủ 2 chữ số hoặc nhấn Enter
+                    if (raw.length() == 2 || e.getKeyCode() == KeyEvent.VK_ENTER) {
+                        dc.setDate(suggested.getTime());
+                        SwingUtilities.invokeLater(() -> tf.select(2, tf.getText().length()));
+                    }
+                }
+            });
+        }
+
         return dc;
     }
 
@@ -540,6 +655,12 @@ public class DatVeGUI extends JPanel {
         List<String> list = new ArrayList<>();
         for (Object[] ga : GA_DATA)
             if (!ga[0].equals(GA_DI_MAC_DINH)) list.add((String) ga[0]);
+        return list.toArray(new String[0]);
+    }
+
+    private String[] buildGaDenDisplayList() {
+        List<String> list = new ArrayList<>();
+        for (String ga : gaDenList) list.add(displayLabel(ga));
         return list.toArray(new String[0]);
     }
 
