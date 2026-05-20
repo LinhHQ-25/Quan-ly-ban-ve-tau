@@ -1011,13 +1011,14 @@ public class DoiVeGUI0 extends JPanel {
 
         btnAction.addActionListener(e -> {
             if (gheChon.size() >= s_soLuong) {
-                // Luôn chỉ đổi 1 chiều (dù khứ hồi), lấy chuyến/ghế hiện tại đang xem
                 String[][] filtered = dangXemChieuVe ? CHUYEN_FILTERED_VE : CHUYEN_FILTERED;
-                String ghe    = formatGheString(gheChon);
-                String chuyen = filtered[chuyenIdx][0];
-                String ngay   = filtered[chuyenIdx][1];
+                String maChuyenMoi = filtered[chuyenIdx][5]; // maChuyenTau
+                String ngay        = filtered[chuyenIdx][1]; // tgDi
+                String ghe         = formatGheString(gheChon); // "T03SEVN001 - G05, ..."
+                // activeMaToa là mã toa đang active (e.g. T01SEVN082)
+                String maToaMoi = (activeMaToa != null) ? activeMaToa : extractToaFromGheStr(ghe);
 
-                DoiVeGUI1.setDonDoiKhuHoi(s_maVeCu, s_dataCu, chuyen, ngay, ghe, "—", "—", "—");
+                DoiVeGUI1.setDonDoiKhuHoi(s_maVeCu, s_dataCu, maChuyenMoi, ngay, ghe, maToaMoi, "—", "—");
                 appFrame.showCard("doi-ve-step-2");
             } else {
                 // Logic Chọn nhanh
@@ -1170,5 +1171,11 @@ public class DoiVeGUI0 extends JPanel {
             gheSb.append(maToa).append(" - G").append(gNum);
         }
         return gheSb.toString();
+    }
+
+    // Lấy mã toa từ chuỗi ghế "T01SEVN082 - G05, ..."
+    private String extractToaFromGheStr(String gheStr) {
+        if (gheStr == null || gheStr.isEmpty()) return "";
+        return gheStr.split(" - ")[0].trim();
     }
 }

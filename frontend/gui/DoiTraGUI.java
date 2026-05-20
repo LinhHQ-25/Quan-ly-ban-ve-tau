@@ -38,8 +38,15 @@ public final class DoiTraGUI extends JPanel {
 		loadDataFromDB("");
 	}
 
+	// Thay thế hàm refresh() cũ trong DoiTraGUI.java bằng đoạn này:
 	public void refresh() {
-		loadDataFromDB(txtSearch != null ? txtSearch.getText().trim() : "");
+		// 1. Xóa nội dung người dùng đã nhập ở ô tìm kiếm
+		if (txtSearch != null) {
+			txtSearch.setText("");
+		}
+
+		// 2. Tải lại toàn bộ dữ liệu mặc định ban đầu từ Database
+		loadDataFromDB("");
 	}
 
 	// UI BUILDERS
@@ -231,9 +238,16 @@ public final class DoiTraGUI extends JPanel {
 						}
 					}
 
-					// Xác định chiều vé
+					// Xác định chiều vé:
+					// Vé 1 chiều luôn là chiều đi (xuất phát từ Diêu Trì)
+					// Vé khứ hồi: maGaDi=DIEUTRI → chiều đi, ngược lại → chiều về
 					String maGaDiRaw = rs.getString("maGaDi");
-					String chieuVe = "DIEUTRI".equals(maGaDiRaw) ? "Chiều đi" : "Chiều về";
+					String chieuVe;
+					if ("MOT_CHIEU".equalsIgnoreCase(rawLoaiVe)) {
+						chieuVe = "Chiều đi";
+					} else {
+						chieuVe = "DIEUTRI".equals(maGaDiRaw) ? "Chiều đi" : "Chiều về";
+					}
 
 					String maGhe  = rs.getString("maGhe");
 					String giaVe  = rs.getString("giaVe");

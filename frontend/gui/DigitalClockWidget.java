@@ -6,6 +6,7 @@ import java.util.Date;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
+import java.util.Locale;
 
 public class DigitalClockWidget extends JPanel {
     private JLabel lblTime;
@@ -45,7 +46,12 @@ public class DigitalClockWidget extends JPanel {
 
     private void updateTime() {
         Date now = new Date();
+        // Khởi tạo ngôn ngữ Tiếng Việt
+        Locale localeVN = new Locale("vi", "VN");
+
         lblTime.setText(new SimpleDateFormat("HH:mm:ss").format(now));
-        lblDate.setText(new SimpleDateFormat("EEEE, dd/MM/yyyy").format(now));
+
+        // Truyền localeVN vào tham số thứ 2 của SimpleDateFormat
+        lblDate.setText(new SimpleDateFormat("EEEE, dd/MM/yyyy", localeVN).format(now));
     }
 }

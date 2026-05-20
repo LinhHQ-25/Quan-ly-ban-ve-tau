@@ -3,6 +3,8 @@ package gui;
 import javax.swing.*;
 import javax.swing.border.*;
 import java.awt.*;
+import java.sql.*;
+import connect_DB.Connect_DB;
 
 public class DoiVeGUI1 extends JPanel {
     private static final Color BORDER = new Color(210, 215, 224);
@@ -13,15 +15,21 @@ public class DoiVeGUI1 extends JPanel {
     // --- DỮ LIỆU TĨNH ---
     private static String s_maVe = "";
     private static String[] s_dataCu = new String[0];
-    private static String s_chuyenDiMoi = "", s_ngayDiMoi = "", s_gheDiMoi = "";
+    private static String s_maChuyenMoi = "", s_ngayDiMoi = "", s_gheDiMoi = "", s_maToaMoi = "";
     private static String s_chuyenVeMoi = "—", s_ngayVeMoi = "—", s_gheVeMoi = "—";
 
     public static void setDonDoiKhuHoi(String maVe, String[] dataCu,
-                                       String chuyenDi, String ngayDi, String gheDi,
-                                       String chuyenVe, String ngayVe, String gheVe) {
-        s_maVe = maVe; s_dataCu = dataCu.clone();
-        s_chuyenDiMoi = chuyenDi; s_ngayDiMoi = ngayDi; s_gheDiMoi = gheDi;
-        s_chuyenVeMoi = chuyenVe; s_ngayVeMoi = ngayVe; s_gheVeMoi = gheVe;
+                                       String maChuyenMoi, String ngayDi, String gheDi, String maToaMoi,
+                                       String chuyenVe, String ngayVe) {
+        s_maVe         = maVe;
+        s_dataCu       = dataCu.clone();
+        s_maChuyenMoi  = maChuyenMoi;
+        s_ngayDiMoi    = ngayDi;
+        s_gheDiMoi     = gheDi;
+        s_maToaMoi     = maToaMoi;
+        s_chuyenVeMoi  = chuyenVe;
+        s_ngayVeMoi    = ngayVe;
+        s_gheVeMoi     = "—";
     }
 
     private final AppFrame appFrame;
@@ -63,12 +71,17 @@ public class DoiVeGUI1 extends JPanel {
 
     public void refresh() {
         boolean isKhuHoi = !s_chuyenVeMoi.equals("—") && !s_chuyenVeMoi.isEmpty();
-        pnlTabController.setVisible(isKhuHoi); // Ẩn hiện tab dựa vào vé 1 chiều hay khứ hồi
+        pnlTabController.setVisible(isKhuHoi);
 
-        String oldGaDi = safe(s_dataCu, 1);
+        String oldGaDi  = safe(s_dataCu, 1);
         String oldGaDen = safe(s_dataCu, 2);
 
-        // --- ĐỔ DỮ LIỆU CỘT CŨ - CHIỀU ĐI ---
+        // Query Ga đi / Ga đến mới từ DB theo maChuyenMoi
+        String[] gasMoi = queryGaFromChuyen(s_maChuyenMoi);
+        String newGaDi  = gasMoi[0];
+        String newGaDen = gasMoi[1];
+
+        // --- CỘT CŨ - CHIỀU ĐI ---
         oldMaVeDi.setText(s_maVe);
         oldChuyenDi.setText(safe(s_dataCu, 0));
         oldToaDi.setText(extractToaFromDB(safe(s_dataCu, 7)));
@@ -77,7 +90,7 @@ public class DoiVeGUI1 extends JPanel {
         oldGaDi_Di_old.setText(oldGaDi);
         oldGaDenDi_old.setText(oldGaDen);
 
-        // --- ĐỔ DỮ LIỆU CỘT CŨ - CHIỀU VỀ (ga đảo ngược) ---
+        // --- CỘT CŨ - CHIỀU VỀ ---
         oldMaVeVe.setText(s_maVe);
         oldChuyenVe.setText(safe(s_dataCu, 0));
         oldToaVe.setText(extractToaFromDB(safe(s_dataCu, 7)));
@@ -86,33 +99,48 @@ public class DoiVeGUI1 extends JPanel {
         oldGaDi_Ve_old.setText(oldGaDen);
         oldGaDenVe_old.setText(oldGaDi);
 
-        // --- ĐỔ DỮ LIỆU CỘT MỚI - CHIỀU ĐI ---
+        // --- CỘT MỚI - CHIỀU ĐI ---
         valMaVeDi.setText(s_maVe);
-        valChuyenDi.setText(s_chuyenDiMoi);
-        valToaDi.setText(extractToa(s_gheDiMoi));
-        valGheDi.setText(extractGhe(s_gheDiMoi));
+        valChuyenDi.setText(s_maChuyenMoi);          // maChuyenTau, e.g. CT05701
+        valToaDi.setText(s_maToaMoi);                 // mã toa, e.g. T01SEVN082
+        valGheDi.setText(extractGheFromGheStr(s_gheDiMoi)); // e.g. G05
         valNgayDi.setText(s_ngayDiMoi);
-        valGaDi_Di.setText(oldGaDi);
-        valGaDenDi.setText(oldGaDen);
+        valGaDi_Di.setText(newGaDi);
+        valGaDenDi.setText(newGaDen);
 
-        // --- ĐỔ DỮ LIỆU TAB CHIỀU VỀ ---
+        // --- CỘT MỚI - CHIỀU VỀ (không dùng vì luôn "—") ---
         if (isKhuHoi) {
             valMaVeVe.setText(s_maVe + "-VE");
             valChuyenVe.setText(s_chuyenVeMoi);
-            valToaVe.setText(extractToa(s_gheVeMoi));
-            valGheVe.setText(extractGhe(s_gheVeMoi));
+            valToaVe.setText("—");
+            valGheVe.setText("—");
             valNgayVe.setText(s_ngayVeMoi);
-            // Tab chiều về: Ga đi và Ga đến đổi ngược lại
             valGaDi_Ve.setText(oldGaDen);
             valGaDenVe.setText(oldGaDi);
         } else {
-            // Nếu là 1 chiều, ép luôn luôn hiện Tab Đi
             activeDi[0] = true; activeVe[0] = false;
             cardLayout.show(pnlCardContainer, "DI");
         }
 
         calcPriceAndRefresh();
         revalidate(); repaint();
+    }
+
+    // Query Ga đi và Ga đến từ maChuyenTau
+    private String[] queryGaFromChuyen(String maChuyenTau) {
+        String sql = "SELECT gDi.tenGa AS gaDi, gDen.tenGa AS gaDen " +
+                "FROM ChiTietChuyenTau dt " +
+                "JOIN Ga gDi  ON dt.maGaDi  = gDi.maGa " +
+                "JOIN Ga gDen ON dt.maGaDen = gDen.maGa " +
+                "WHERE dt.maChuyenTau = ?";
+        try (Connection conn = Connect_DB.getInstance().getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, maChuyenTau);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return new String[]{ rs.getString("gaDi"), rs.getString("gaDen") };
+            }
+        } catch (Exception e) { e.printStackTrace(); }
+        return new String[]{"—", "—"};
     }
 
     private void calcPriceAndRefresh() {
@@ -218,10 +246,10 @@ public class DoiVeGUI1 extends JPanel {
     }
 
     private void handleConfirm() {
-        // Chỉ đẩy sang màn hình thanh toán, logic DB thực hiện ở DoiVeGUI2
-        String maGheDbDi = getMaGheMoiDB(s_gheDiMoi);
-        String hienThiDi = extractToa(s_gheDiMoi) + " - " + extractGhe(s_gheDiMoi);
-        DoiVeGUI2.setDuLieuThanhToan(s_maVe, s_dataCu, s_chuyenDiMoi, s_ngayDiMoi, maGheDbDi, hienThiDi, tongLePhi);
+        // maGheDbDi: lấy ghế đầu tiên dạng "G05T01SEVN082" từ gheStr "T01SEVN082 - G05, ..."
+        String maGheDbDi = getMaGheMoiDB(s_gheDiMoi.split(",")[0].trim());
+        String hienThiDi = s_maToaMoi + " - " + extractGheFromGheStr(s_gheDiMoi);
+        DoiVeGUI2.setDuLieuThanhToan(s_maVe, s_dataCu, s_maChuyenMoi, s_ngayDiMoi, maGheDbDi, hienThiDi, tongLePhi);
         appFrame.showCard("doi-ve-step-3");
     }
 
@@ -230,6 +258,12 @@ public class DoiVeGUI1 extends JPanel {
     private String extractGhe(String full) { try { return full.split("-")[1].trim(); } catch(Exception e) { return "—"; } }
     private int extractToaNum(String full) { try { return Integer.parseInt(full.split("-")[0].trim().substring(1, 3)); } catch(Exception e) { return 1; } }
     private String getMaGheMoiDB(String fullStr) { if (fullStr == null || !fullStr.contains("-")) return fullStr; String[] parts = fullStr.split("-"); return parts[1].trim() + parts[0].trim(); }
+
+    // Lấy phần ghế đầu tiên từ gheStr "T01SEVN082 - G05, ..." → "G05"
+    private String extractGheFromGheStr(String gheStr) {
+        if (gheStr == null || gheStr.isEmpty() || !gheStr.contains("-")) return "—";
+        try { return gheStr.split(",")[0].split("-")[1].trim(); } catch (Exception e) { return "—"; }
+    }
 
     // Parse maGhe thẳng từ DB: "G05T03SEVN001" → toa = "T03SEVN001", ghe = "G05"
     private String extractToaFromDB(String maGhe) {
