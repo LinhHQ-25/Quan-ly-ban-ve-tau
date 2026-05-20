@@ -126,7 +126,7 @@ public final class ThongKeGUI extends JPanel {
     public void loadData(LocalDate ngay, String ca) {
         new Thread(() -> {
             try {
-                int   vh  = VeDAO.getSoLuongVeTheoCa(ngay, ca, currentMaNV, "Đã hủy");
+                int   vh  = VeDAO.getSoVeHuyTheoCa(ngay, ca, currentMaNV);
                 int[] ghe = VeDAO.getSoGheTheoLoaiTheoCa(ngay, ca, currentMaNV);
                 List<Object[]> hdList    = HoaDonDAO.getDanhSachHoaDonTheoCa(ngay, ca, currentMaNV);
                 List<Object[]> hdHuyTemp = HoaDonDAO.getDanhSachHoaDonHuyTheoCa(ngay, ca, currentMaNV);
