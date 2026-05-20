@@ -31,15 +31,15 @@ final class VeGUI extends JPanel {
 
         JPanel pnlPage = new JPanel();
         pnlPage.setOpaque(false);
-        pnlPage.setLayout(new BorderLayout(0, 12));
+        pnlPage.setLayout(new BorderLayout(0, 4));
         pnlPage.setBorder(new EmptyBorder(
-            0,
+            -9,
             GuiTheme.PAGE_PAD_LEFT,
             GuiTheme.PAGE_PAD_BOTTOM,
             GuiTheme.PAGE_PAD_LEFT
         ));
 
-        JPanel pnlTop = new JPanel(new BorderLayout(0, 15));
+        JPanel pnlTop = new JPanel(new BorderLayout(0, 8));
         pnlTop.setOpaque(false);
         pnlTop.add(buildSmartFilters(), BorderLayout.NORTH);
         pnlTop.add(buildFilterPanel(), BorderLayout.CENTER);
@@ -53,65 +53,57 @@ final class VeGUI extends JPanel {
     }
 
     private JPanel buildFilterPanel() {
+        JPanel pnlSection = new JPanel(new BorderLayout(0, 5));
+        pnlSection.setOpaque(false);
+        pnlSection.add(buildSectionTitle("Thông tin tra cứu"), BorderLayout.NORTH);
+
         RoundedPanel pnlOuter = new RoundedPanel(12, Color.WHITE, GuiTheme.SEARCH_FIELD_BORDER, 1.0f);
         pnlOuter.setLayout(new BorderLayout(0, 5));
-        
-        JLabel lblTitle = new JLabel("Thông tin tra cứu");
-        lblTitle.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 15));
-        lblTitle.setForeground(GuiTheme.TEXT);
-        lblTitle.setBorder(new EmptyBorder(10, 15, 0, 15));
-        lblTitle.setIcon(GuiIcons.loadIcon(VeGUI.class, "filter", 18, 18));
-        lblTitle.setIconTextGap(8);
-        pnlOuter.add(lblTitle, BorderLayout.NORTH);
+        pnlOuter.setBorder(new EmptyBorder(5, 10, 5, 10));
 
         JPanel pnlGrid = new JPanel(new GridBagLayout());
         pnlGrid.setOpaque(false);
 
         GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(5, 10, 5, 10);
+        gbc.insets = new Insets(4, 5, 4, 5);
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.weightx = 1.0;
+        
+        // Hàng 0
         gbc.gridy = 0;
-
         txtMaVe = buildTextField();
         gbc.gridx = 0; pnlGrid.add(buildField("Mã vé:", txtMaVe), gbc);
         
         cboLoaiVe = buildCombo("", "Một chiều", "Khứ hồi");
         gbc.gridx = 1; pnlGrid.add(buildField("Loại vé:", cboLoaiVe), gbc);
         
-        dcNgayMua = buildDateField();
-        gbc.gridx = 2; pnlGrid.add(buildField("Ngày mua:", dcNgayMua), gbc);
-        
         cboTrangThai = buildCombo("", "Chờ thanh toán", "Đã thanh toán", "Đã hủy");
-        gbc.gridx = 3; pnlGrid.add(buildField("Trạng thái vé:", cboTrangThai), gbc);
+        gbc.gridx = 2; pnlGrid.add(buildField("Trạng thái vé:", cboTrangThai), gbc);
 
-        gbc.gridy = 1;
         txtHoTen = buildTextField();
-        gbc.gridx = 0; pnlGrid.add(buildField("Họ tên khách:", txtHoTen), gbc);
+        gbc.gridx = 3; pnlGrid.add(buildField("Họ tên khách:", txtHoTen), gbc);
         
         txtCccd = buildTextField();
-        gbc.gridx = 1; pnlGrid.add(buildField("CCCD / SĐT:", txtCccd), gbc);
+        gbc.gridx = 4; pnlGrid.add(buildField("CCCD / SĐT:", txtCccd), gbc);
         
+        // Hàng 1
+        gbc.gridy = 1;
+        dcNgayMua = buildDateField();
+        gbc.gridx = 0; pnlGrid.add(buildField("Ngày mua:", dcNgayMua), gbc);
+
         txtGaDi = buildTextField();
-        gbc.gridx = 2; pnlGrid.add(buildField("Ga đi:", txtGaDi), gbc);
+        gbc.gridx = 1; pnlGrid.add(buildField("Ga đi:", txtGaDi), gbc);
         
         txtGaDen = buildTextField();
-        gbc.gridx = 3; pnlGrid.add(buildField("Ga đến:", txtGaDen), gbc);
+        gbc.gridx = 2; pnlGrid.add(buildField("Ga đến:", txtGaDen), gbc);
 
-        gbc.gridy = 2;
         txtViTri = buildTextField();
-        gbc.gridx = 0; pnlGrid.add(buildField("Vị trí ghế:", txtViTri), gbc);
-        
-        JPanel pnlAction = buildActionBlock();
-        pnlAction.setOpaque(false);
-        gbc.gridx = 1;
-        gbc.gridwidth = 3;
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-        pnlGrid.add(pnlAction, gbc);
+        gbc.gridx = 3; pnlGrid.add(buildField("Vị trí ghế:", txtViTri), gbc);
 
         pnlOuter.add(pnlGrid, BorderLayout.CENTER);
         
-        return pnlOuter;
+        pnlSection.add(pnlOuter, BorderLayout.CENTER);
+        return pnlSection;
     }
 
     private JPanel buildSmartFilters() {
@@ -139,13 +131,12 @@ final class VeGUI extends JPanel {
     }
 
     private JPanel buildField(String label, Component comp) {
-        JPanel pnlField = new JPanel(new BorderLayout(8, 0));
+        JPanel pnlField = new JPanel(new BorderLayout(0, 4));
         pnlField.setOpaque(false);
         JLabel lbField = new JLabel(label);
-        lbField.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 14));
+        lbField.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 13));
         lbField.setForeground(GuiTheme.NAVY);
-        lbField.setPreferredSize(new Dimension(110, 30));
-        pnlField.add(lbField, BorderLayout.WEST);
+        pnlField.add(lbField, BorderLayout.NORTH);
         pnlField.add(comp, BorderLayout.CENTER);
         return pnlField;
     }
@@ -155,10 +146,7 @@ final class VeGUI extends JPanel {
         tf.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
         tf.setBackground(GuiTheme.SEARCH_FIELD_BG);
         tf.setForeground(GuiTheme.TEXT);
-        tf.setBorder(BorderFactory.createCompoundBorder(
-            new LineBorder(GuiTheme.SEARCH_FIELD_BORDER, 1, true),
-            new EmptyBorder(2, 6, 2, 6)
-        ));
+        GuiTheme.setupRoundedComponent(tf);
         tf.setPreferredSize(new Dimension(104, 30));
         return tf;
     }
@@ -168,7 +156,7 @@ final class VeGUI extends JPanel {
         cmb.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
         cmb.setBackground(GuiTheme.SEARCH_FIELD_BG);
         cmb.setForeground(GuiTheme.TEXT);
-        cmb.setBorder(new LineBorder(GuiTheme.SEARCH_FIELD_BORDER, 1, true));
+        GuiTheme.setupRoundedComponent(cmb);
         cmb.setPreferredSize(new Dimension(104, 30));
         return cmb;
     }
@@ -179,14 +167,13 @@ final class VeGUI extends JPanel {
         dc.setPreferredSize(new Dimension(104, 30));
         dc.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
         dc.setBackground(GuiTheme.SEARCH_FIELD_BG);
-        dc.setBorder(new LineBorder(GuiTheme.SEARCH_FIELD_BORDER, 1, true));
+        GuiTheme.setupRoundedComponent(dc);
         return dc;
     }
 
     private JPanel buildActionBlock() {
-        JPanel pnlButtons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 15, 10));
+        JPanel pnlButtons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
         pnlButtons.setOpaque(false);
-        pnlButtons.setBorder(new EmptyBorder(0, 0, 5, 0));
 
         JButton btnSearch = buildNavyButton("Tìm kiếm", GuiTheme.NAVY, GuiTheme.NAVY_HOVER);
         JButton btnReset = buildNavyButton("Xóa trắng", GuiTheme.NAVY, GuiTheme.NAVY_HOVER);
@@ -233,7 +220,8 @@ final class VeGUI extends JPanel {
     private JPanel buildTablePanel() {
         JPanel pnlOuter = new JPanel(new BorderLayout(0, 10));
         pnlOuter.setOpaque(false);
-        pnlOuter.add(buildSectionTitle("Danh sách vé tàu"), BorderLayout.NORTH);
+        JPanel pnlActions = buildActionBlock();
+        pnlOuter.add(buildSectionTitleWithActions("Danh sách vé tàu", pnlActions), BorderLayout.NORTH);
 
         tblModel = new DefaultTableModel(
                 new Object[]{"STT", "Mã vé", "Khách hàng", "Loại vé", "Loại ghế", "Khởi hành", "Tuyến đường", "Vị trí", "Ngày mua", "Trạng thái"},
@@ -261,8 +249,39 @@ final class VeGUI extends JPanel {
             }
         };
 
+        DefaultTableCellRenderer statusRenderer = new DefaultTableCellRenderer() {
+            @Override public Component getTableCellRendererComponent(JTable t, Object v, boolean s, boolean f, int row, int col) {
+                Component c = super.getTableCellRendererComponent(t, v, s, f, row, col);
+                setHorizontalAlignment(SwingConstants.CENTER);
+                String status = v != null ? v.toString() : "";
+                if (!s) {
+                    c.setBackground(row % 2 == 0 ? Color.WHITE : new Color(250, 250, 250));
+                    if (status.equals("Đã thanh toán")) {
+                        c.setForeground(new Color(40, 167, 69)); // Green
+                        c.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 13));
+                    } else if (status.equals("Chờ thanh toán")) {
+                        c.setForeground(new Color(253, 126, 20)); // Orange
+                        c.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 13));
+                    } else if (status.equals("Đã hủy")) {
+                        c.setForeground(new Color(220, 53, 69)); // Red
+                        c.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 13));
+                    } else {
+                        c.setForeground(GuiTheme.TEXT);
+                        c.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 13));
+                    }
+                } else {
+                    c.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 13));
+                }
+                return c;
+            }
+        };
+
         for (int i = 0; i < tblData.getColumnCount(); i++) {
-            tblData.getColumnModel().getColumn(i).setCellRenderer(zebraRenderer);
+            if (i == 9) {
+                tblData.getColumnModel().getColumn(i).setCellRenderer(statusRenderer);
+            } else {
+                tblData.getColumnModel().getColumn(i).setCellRenderer(zebraRenderer);
+            }
         }
         
         tblData.addMouseListener(new MouseAdapter() {
@@ -396,13 +415,34 @@ final class VeGUI extends JPanel {
         JPanel pnl = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
         pnl.setOpaque(false);
         pnl.setBorder(new EmptyBorder(5, 0, 5, 0));
-        JLabel lb = new JLabel(title);
+        JLabel lb = new JLabel(title, SwingConstants.CENTER);
         lb.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 12));
         lb.setForeground(Color.WHITE);
         lb.setOpaque(true);
         lb.setBackground(PRIMARY);
-        lb.setBorder(new EmptyBorder(6, 12, 6, 12));
+        lb.setPreferredSize(new Dimension(220, 26));
+        lb.setBorder(null);
         pnl.add(lb);
+        return pnl;
+    }
+
+    private JPanel buildSectionTitleWithActions(String title, JPanel pnlActions) {
+        JPanel pnl = new JPanel(new BorderLayout());
+        pnl.setOpaque(false);
+        pnl.setBorder(new EmptyBorder(0, 0, 0, 0));
+        
+        JLabel lb = new JLabel(title, SwingConstants.CENTER);
+        lb.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 12));
+        lb.setForeground(Color.WHITE);
+        lb.setOpaque(true);
+        lb.setBackground(PRIMARY);
+        lb.setPreferredSize(new Dimension(220, 26));
+        lb.setBorder(null);
+        
+        pnl.add(lb, BorderLayout.WEST);
+        if (pnlActions != null) {
+            pnl.add(pnlActions, BorderLayout.EAST);
+        }
         return pnl;
     }
 
