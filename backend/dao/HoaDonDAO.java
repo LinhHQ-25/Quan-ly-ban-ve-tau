@@ -142,7 +142,7 @@ public class HoaDonDAO implements DAO<HoaDon, String> {
         }
         return rows;
     }
-
+//load hoa don huy
     public static List<Object[]> getDanhSachHoaDonHuyTheoCa(java.time.LocalDate ngay, String ca, String maNV) throws SQLException {
         String timeCondition = ca.equalsIgnoreCase("Sáng")
                 ? " BETWEEN '00:00:00' AND '11:59:59'"
