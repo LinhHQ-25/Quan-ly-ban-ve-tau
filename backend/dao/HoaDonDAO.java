@@ -117,6 +117,9 @@ public class HoaDonDAO implements DAO<HoaDon, String> {
                 "JOIN KhachHang k ON h.maKH = k.maKH " +
                 "WHERE CAST(h.ngayLapHD AS DATE) = ? AND h.maNV = ? " +
                 "AND CAST(h.ngayLapHD AS TIME)" + timeCondition +
+                // Chỉ lấy hóa đơn có ít nhất 1 vé đã thanh toán
+                // → loại hóa đơn lưu tạm (Chờ thanh toán) và hóa đơn đã trả hết vé
+                " AND EXISTS (SELECT 1 FROM Ve v WHERE v.maHoaDon = h.maHoaDon AND v.trangThaiVe = N'Đã thanh toán')" +
                 " ORDER BY h.ngayLapHD DESC";
 
         List<Object[]> rows = new ArrayList<>();
