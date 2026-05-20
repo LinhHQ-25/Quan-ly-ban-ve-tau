@@ -164,12 +164,13 @@ public final class DoiTraGUI extends JPanel {
 		JPanel pnl = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
 		pnl.setOpaque(false);
 		pnl.setBorder(new EmptyBorder(4, 0, 4, 0));
-		JLabel lb = new JLabel(title);
-		lb.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 14));
+		JLabel lb = new JLabel(title, SwingConstants.CENTER);
+		lb.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 12));
 		lb.setForeground(Color.WHITE);
 		lb.setOpaque(true);
 		lb.setBackground(PRIMARY);
-		lb.setBorder(new EmptyBorder(5, 12, 5, 12));
+		lb.setPreferredSize(new Dimension(220, 26));
+		lb.setBorder(null);
 		pnl.add(lb);
 		return pnl;
 	}

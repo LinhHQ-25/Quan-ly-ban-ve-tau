@@ -34,7 +34,7 @@ final class QuanLyChuyenTauGUI extends JPanel {
 
         JPanel pnlPage = new JPanel();
         pnlPage.setOpaque(false);
-        pnlPage.setLayout(new BorderLayout(0, 12));
+        pnlPage.setLayout(new BorderLayout(0, 8));
         pnlPage.setBorder(new EmptyBorder(
             0,
             GuiTheme.PAGE_PAD_LEFT,
@@ -46,7 +46,7 @@ final class QuanLyChuyenTauGUI extends JPanel {
         pnlPage.add(buildFilterPanel(), BorderLayout.NORTH);
 
         // Phần Center chứa IdleCards và Table
-        JPanel pnlCenter = new JPanel(new BorderLayout(0, 12));
+        JPanel pnlCenter = new JPanel(new BorderLayout(0, 8));
         pnlCenter.setOpaque(false);
         pnlCenter.add(buildIdleTrainsSection(), BorderLayout.NORTH);
         pnlCenter.add(buildTablePanel(), BorderLayout.CENTER);
@@ -101,52 +101,52 @@ final class QuanLyChuyenTauGUI extends JPanel {
         }
     }
 
-    private JPanel buildFilterPanel() {
-        RoundedShadowPanel pnlOuter = new RoundedShadowPanel();
-        pnlOuter.setLayout(new BorderLayout(0, 5));
-        
-        JLabel lblTitle = new JLabel("Thông tin tra cứu chuyến đi & tàu");
-        lblTitle.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 15));
-        lblTitle.setForeground(GuiTheme.TEXT);
-        lblTitle.setBorder(new EmptyBorder(10, 15, 0, 15));
-        lblTitle.setIcon(GuiIcons.loadIcon(QuanLyChuyenTauGUI.class, "/Images/traCuu.png", 18, 18));
-        lblTitle.setIconTextGap(8);
-        pnlOuter.add(lblTitle, BorderLayout.NORTH);
+    private JPanel buildSectionTitle(String title) {
+        JPanel pnl = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        pnl.setOpaque(false);
+        pnl.setBorder(new EmptyBorder(5, 0, 5, 0));
+        JLabel lb = new JLabel(title, SwingConstants.CENTER);
+        lb.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 12));
+        lb.setForeground(Color.WHITE);
+        lb.setOpaque(true);
+        lb.setBackground(PRIMARY);
+        lb.setPreferredSize(new Dimension(220, 26));
+        lb.setBorder(null);
+        pnl.add(lb);
+        return pnl;
+    }
 
-        JPanel pnlGrid = new JPanel(new GridBagLayout());
-        pnlGrid.setOpaque(false);
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(5, 10, 5, 10);
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-        gbc.weightx = 1.0;
-        gbc.gridy = 0;
+    private JPanel buildSectionTitleWithActions(String title, JPanel pnlActions) {
+        JPanel pnl = new JPanel(new BorderLayout());
+        pnl.setOpaque(false);
+        pnl.setBorder(new EmptyBorder(0, 0, 0, 0));
         
-        cboGaDiFilter = buildCombo(getGaListWithEmpty());
-        cboGaDenFilter = buildCombo(getGaListWithEmpty());
-        cboTauFilter = buildCombo(getTauListWithEmpty());
-        dcNgayDi = new JDateChooser();
-        dcNgayDi.setDateFormatString("dd/MM/yyyy");
-        dcNgayDi.setPreferredSize(new Dimension(128, 30));
-        dcNgayDi.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
-        dcNgayDi.setBackground(GuiTheme.SEARCH_FIELD_BG);
-        dcNgayDi.setBorder(new LineBorder(BORDER, 1, true));
+        JLabel lb = new JLabel(title, SwingConstants.CENTER);
+        lb.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 12));
+        lb.setForeground(Color.WHITE);
+        lb.setOpaque(true);
+        lb.setBackground(PRIMARY);
+        lb.setPreferredSize(new Dimension(220, 26));
+        lb.setBorder(null);
         
-        gbc.gridx = 0; pnlGrid.add(buildField("Ga đi:", cboGaDiFilter), gbc);
-        gbc.gridx = 1; pnlGrid.add(buildField("Ga đến:", cboGaDenFilter), gbc);
-        gbc.gridx = 2; pnlGrid.add(buildField("Tàu di chuyển:", cboTauFilter), gbc);
-        gbc.gridx = 3; pnlGrid.add(buildField("Ngày khởi hành:", dcNgayDi), gbc);
-        
-        pnlOuter.add(pnlGrid, BorderLayout.CENTER);
-        
-        JPanel pnlAction = new JPanel(new FlowLayout(FlowLayout.RIGHT, 15, 10));
-        pnlAction.setOpaque(false);
-        pnlAction.setBorder(new EmptyBorder(0, 0, 5, 0));
+        pnl.add(lb, BorderLayout.WEST);
+        if (pnlActions != null) {
+            pnl.add(pnlActions, BorderLayout.EAST);
+        }
+        return pnl;
+    }
 
+    private JPanel buildSearchBlock() {
+        JPanel pnlButtons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
+        pnlButtons.setOpaque(false);
+        
         JButton btnSearch = buildNavyButton("Tìm kiếm", GuiTheme.NAVY, GuiTheme.NAVY_HOVER);
         btnSearch.setIcon(GuiIcons.loadIcon(QuanLyChuyenTauGUI.class, "/Images/traCuu.png", 16, 16));
+        btnSearch.setPreferredSize(new Dimension(120, 32));
         
         JButton btnReset = buildNavyButton("Xóa trắng", GuiTheme.NAVY, GuiTheme.NAVY_HOVER);
         btnReset.setIcon(GuiIcons.loadIcon(QuanLyChuyenTauGUI.class, "/Images/logoLammoi.png", 16, 16));
+        btnReset.setPreferredSize(new Dimension(120, 32));
 
         btnSearch.addActionListener(e -> {
             loadDataToTable();
@@ -162,11 +162,47 @@ final class QuanLyChuyenTauGUI extends JPanel {
             loadIdleTrains();
         });
 
-        pnlAction.add(btnSearch);
-        pnlAction.add(btnReset);
-        pnlOuter.add(pnlAction, BorderLayout.SOUTH);
+        pnlButtons.add(btnSearch);
+        pnlButtons.add(btnReset);
+        return pnlButtons;
+    }
+
+    private JPanel buildFilterPanel() {
+        JPanel pnlSection = new JPanel(new BorderLayout(0, 5));
+        pnlSection.setOpaque(false);
+        pnlSection.add(buildSectionTitle("Thông tin tra cứu chuyến tàu"), BorderLayout.NORTH);
+
+        RoundedPanel pnlOuter = new RoundedPanel(12, Color.WHITE, GuiTheme.SEARCH_FIELD_BORDER, 1.0f);
+        pnlOuter.setLayout(new BorderLayout(0, 5));
+        pnlOuter.setBorder(new EmptyBorder(5, 10, 5, 10));
+
+        JPanel pnlGrid = new JPanel(new GridBagLayout());
+        pnlGrid.setOpaque(false);
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(4, 5, 4, 5);
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.weightx = 1.0;
+        gbc.gridy = 0;
         
-        return pnlOuter;
+        cboGaDiFilter = buildCombo(getGaListWithEmpty());
+        cboGaDenFilter = buildCombo(getGaListWithEmpty());
+        cboTauFilter = buildCombo(getTauListWithEmpty());
+        dcNgayDi = new JDateChooser();
+        dcNgayDi.setDateFormatString("dd/MM/yyyy");
+        dcNgayDi.setPreferredSize(new Dimension(128, 30));
+        dcNgayDi.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
+        dcNgayDi.setBackground(GuiTheme.SEARCH_FIELD_BG);
+        GuiTheme.setupRoundedComponent(dcNgayDi);
+        
+        gbc.gridx = 0; pnlGrid.add(buildField("Ga đi:", cboGaDiFilter), gbc);
+        gbc.gridx = 1; pnlGrid.add(buildField("Ga đến:", cboGaDenFilter), gbc);
+        gbc.gridx = 2; pnlGrid.add(buildField("Tàu di chuyển:", cboTauFilter), gbc);
+        gbc.gridx = 3; pnlGrid.add(buildField("Ngày khởi hành:", dcNgayDi), gbc);
+        
+        pnlOuter.add(pnlGrid, BorderLayout.CENTER);
+        pnlSection.add(pnlOuter, BorderLayout.CENTER);
+        
+        return pnlSection;
     }
 
     private JPanel buildField(String label, Component comp) {
@@ -185,7 +221,7 @@ final class QuanLyChuyenTauGUI extends JPanel {
         cmb.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
         cmb.setBackground(GuiTheme.SEARCH_FIELD_BG);
         cmb.setForeground(GuiTheme.TEXT);
-        cmb.setBorder(new LineBorder(BORDER, 1, true));
+        GuiTheme.setupRoundedComponent(cmb);
         cmb.setPreferredSize(new Dimension(128, 30));
         return cmb;
     }
@@ -215,13 +251,8 @@ final class QuanLyChuyenTauGUI extends JPanel {
         JPanel pnl = new JPanel(new BorderLayout(0, 8));
         pnl.setOpaque(false);
         
-        JPanel pnlTitle = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
-        pnlTitle.setOpaque(false);
-        JLabel lbl = new JLabel("Danh sách tàu tại ga (Đang rảnh)");
-        lbl.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 14));
-        lbl.setForeground(GuiTheme.TEXT);
-        pnlTitle.add(lbl);
-        pnl.add(pnlTitle, BorderLayout.NORTH);
+        JPanel pnlActions = buildSearchBlock();
+        pnl.add(buildSectionTitleWithActions("Danh sách tàu tại ga", pnlActions), BorderLayout.NORTH);
 
         pnlIdleCards = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 5));
         pnlIdleCards.setOpaque(false);
@@ -232,7 +263,7 @@ final class QuanLyChuyenTauGUI extends JPanel {
         scroll.getViewport().setOpaque(false);
         scroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
         scroll.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_NEVER);
-        scroll.setPreferredSize(new Dimension(0, 160));
+        scroll.setPreferredSize(new Dimension(0, 115));
         scroll.getHorizontalScrollBar().setUnitIncrement(15);
         
         pnl.add(scroll, BorderLayout.CENTER);
@@ -527,25 +558,12 @@ final class QuanLyChuyenTauGUI extends JPanel {
         JPanel pnlOuter = new JPanel(new BorderLayout(0, 8));
         pnlOuter.setOpaque(false);
         
-        JPanel pnlTitleWrap = new JPanel(new BorderLayout());
-        pnlTitleWrap.setOpaque(false);
-        pnlTitleWrap.setBorder(new EmptyBorder(5, 0, 5, 0));
-        
-        JPanel pnlLeft = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
-        pnlLeft.setOpaque(false);
-        JLabel lb = new JLabel("Danh sách chuyến tàu");
-        lb.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 12));
-        lb.setForeground(Color.WHITE);
-        lb.setOpaque(true);
-        lb.setBackground(PRIMARY);
-        lb.setBorder(new EmptyBorder(6, 12, 6, 12));
-        pnlLeft.add(lb);
-        pnlTitleWrap.add(pnlLeft, BorderLayout.WEST);
-
         JPanel pnlTableActions = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
         pnlTableActions.setOpaque(false);
+        
         JButton btnUpdate = buildNavyButton("Cập nhật chuyến đi", GuiTheme.NAVY, GuiTheme.NAVY_HOVER);
         btnUpdate.setPreferredSize(new Dimension(160, 32));
+        
         JButton btnDelete = buildNavyButton("Xóa chuyến đi", new Color(220, 53, 69), new Color(200, 35, 51));
         btnDelete.setPreferredSize(new Dimension(140, 32));
         
@@ -554,9 +572,8 @@ final class QuanLyChuyenTauGUI extends JPanel {
         
         pnlTableActions.add(btnUpdate);
         pnlTableActions.add(btnDelete);
-        pnlTitleWrap.add(pnlTableActions, BorderLayout.EAST);
 
-        pnlOuter.add(pnlTitleWrap, BorderLayout.NORTH);
+        pnlOuter.add(buildSectionTitleWithActions("Danh sách chuyến tàu", pnlTableActions), BorderLayout.NORTH);
 
         tblModel = new DefaultTableModel(
             new Object[] { "STT", "Ga đi", "Ga đến", "Ngày khởi hành", "Ngày đến dự kiến", "Giờ đi - Giờ đến", "Tên tàu", "Trạng thái", "maChuyenTau" },
@@ -994,7 +1011,7 @@ final class QuanLyChuyenTauGUI extends JPanel {
 
     private final class TrainCard extends JPanel {
         TrainCard(String id, String name, int toa, int ghe) {
-            setPreferredSize(new Dimension(180, 140));
+            setPreferredSize(new Dimension(130, 95));
             setBackground(Color.WHITE);
             setLayout(new BorderLayout());
             setBorder(new LineBorder(new Color(230, 233, 238), 1, true));
@@ -1002,24 +1019,24 @@ final class QuanLyChuyenTauGUI extends JPanel {
             JPanel pnlInfo = new JPanel();
             pnlInfo.setLayout(new BoxLayout(pnlInfo, BoxLayout.Y_AXIS));
             pnlInfo.setOpaque(false);
-            pnlInfo.setBorder(new EmptyBorder(12, 12, 12, 12));
+            pnlInfo.setBorder(new EmptyBorder(6, 10, 2, 10));
 
             JLabel lblId = new JLabel(id);
-            lblId.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 14));
+            lblId.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 12));
             lblId.setForeground(GuiTheme.NAVY);
 
             JLabel lblName = new JLabel(name);
-            lblName.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 12));
+            lblName.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 11));
             lblName.setForeground(GuiTheme.TEXT);
 
             JLabel lblDetails = new JLabel(toa + " Toa | " + ghe + " Ghế");
-            lblDetails.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 11));
+            lblDetails.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 10));
             lblDetails.setForeground(GuiTheme.SUB_TEXT);
 
             pnlInfo.add(lblId);
-            pnlInfo.add(Box.createVerticalStrut(4));
+            pnlInfo.add(Box.createVerticalStrut(2));
             pnlInfo.add(lblName);
-            pnlInfo.add(Box.createVerticalStrut(8));
+            pnlInfo.add(Box.createVerticalStrut(4));
             pnlInfo.add(lblDetails);
 
             JButton btnAction = new JButton("Điều động") {
@@ -1033,8 +1050,8 @@ final class QuanLyChuyenTauGUI extends JPanel {
                 }
             };
             btnAction.setForeground(Color.WHITE);
-            btnAction.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 10));
-            btnAction.setPreferredSize(new Dimension(0, 28));
+            btnAction.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 9));
+            btnAction.setPreferredSize(new Dimension(0, 22));
             btnAction.setContentAreaFilled(false); btnAction.setBorderPainted(false); btnAction.setFocusPainted(false);
             btnAction.setCursor(new Cursor(Cursor.HAND_CURSOR));
             
@@ -1050,6 +1067,34 @@ final class QuanLyChuyenTauGUI extends JPanel {
             g2.setColor(getBackground());
             g2.fillRoundRect(0,0,getWidth(),getHeight(),12,12);
             g2.dispose();
+        }
+    }
+
+    private static final class RoundedPanel extends JPanel {
+        private final int arc;
+        private final Color fill;
+        private final Color stroke;
+        private final float strokeWidth;
+
+        private RoundedPanel(int arc, Color fill, Color stroke, float strokeWidth) {
+            this.arc = arc;
+            this.fill = fill;
+            this.stroke = stroke;
+            this.strokeWidth = strokeWidth;
+            setOpaque(false);
+        }
+
+        @Override
+        protected void paintComponent(java.awt.Graphics g) {
+            java.awt.Graphics2D g2 = (java.awt.Graphics2D) g.create();
+            g2.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING, java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setColor(fill);
+            g2.fillRoundRect(0, 0, getWidth(), getHeight(), arc, arc);
+            g2.setColor(stroke);
+            g2.setStroke(new java.awt.BasicStroke(strokeWidth));
+            g2.drawRoundRect(1, 1, getWidth() - 3, getHeight() - 3, arc, arc);
+            g2.dispose();
+            super.paintComponent(g);
         }
     }
 }

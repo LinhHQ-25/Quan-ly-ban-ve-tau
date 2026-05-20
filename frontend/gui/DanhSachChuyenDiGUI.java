@@ -52,7 +52,6 @@ final class DanhSachChuyenDiGUI extends JPanel {
     
     private JComboBox<String> cboGaDi, cboGaDen, cboTau;
     private JDateChooser dcNgayDi;
-    private JSpinner spnSeat;
     private SmartFilterCard cardHnay;
     private SmartFilterCard cardSapChay;
     private SmartFilterCard cardTre;
@@ -64,9 +63,9 @@ final class DanhSachChuyenDiGUI extends JPanel {
 
         JPanel pnlPage = new JPanel();
         pnlPage.setOpaque(false);
-        pnlPage.setLayout(new BorderLayout(0, 12));
+        pnlPage.setLayout(new BorderLayout(0, 4));
         pnlPage.setBorder(new EmptyBorder(
-            0,
+            -9,
             GuiTheme.PAGE_PAD_LEFT,
             GuiTheme.PAGE_PAD_BOTTOM,
             GuiTheme.PAGE_PAD_LEFT
@@ -118,23 +117,19 @@ final class DanhSachChuyenDiGUI extends JPanel {
     }
 
     private JPanel buildFilterPanel() {
-        RoundedShadowPanel pnlOuter = new RoundedShadowPanel();
+        JPanel pnlSection = new JPanel(new BorderLayout(0, 5));
+        pnlSection.setOpaque(false);
+        pnlSection.add(buildSectionTitle("Thông tin tra cứu"), BorderLayout.NORTH);
+
+        RoundedPanel pnlOuter = new RoundedPanel(12, Color.WHITE, GuiTheme.SEARCH_FIELD_BORDER, 1.0f);
         pnlOuter.setLayout(new BorderLayout(0, 5));
-        
-        // Tiêu đề
-        JLabel lblTitle = new JLabel("Thông tin tra cứu");
-        lblTitle.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 15));
-        lblTitle.setForeground(GuiTheme.TEXT);
-        lblTitle.setBorder(new EmptyBorder(10, 15, 0, 15));
-        lblTitle.setIcon(GuiIcons.loadIcon(DanhSachChuyenDiGUI.class, "filter", 18, 18));
-        lblTitle.setIconTextGap(8);
-        pnlOuter.add(lblTitle, BorderLayout.NORTH);
+        pnlOuter.setBorder(new EmptyBorder(5, 10, 5, 10));
 
         JPanel pnlGrid = new JPanel(new GridBagLayout());
         pnlGrid.setOpaque(false);
 
         GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(5, 10, 5, 10);
+        gbc.insets = new Insets(4, 5, 4, 5);
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.weightx = 1.0;
         gbc.gridy = 0;
@@ -148,23 +143,13 @@ final class DanhSachChuyenDiGUI extends JPanel {
         dcNgayDi = buildDateField();
         gbc.gridx = 2; pnlGrid.add(buildField("Ngày đi:", dcNgayDi), gbc);
         
-        gbc.gridy = 1;
         cboTau = buildCombo();
-        gbc.gridx = 0; pnlGrid.add(buildField("Mã /Tên tàu:", cboTau), gbc);
-
-        spnSeat = new JSpinner(new SpinnerNumberModel(0, 0, 99, 1));
-        spnSeat.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
-        spnSeat.setPreferredSize(new Dimension(128, 30));
-        spnSeat.setBorder(new LineBorder(GuiTheme.SEARCH_FIELD_BORDER, 1, true));
-        gbc.gridx = 1; pnlGrid.add(buildField("Ghế trống tối thiểu:", spnSeat), gbc);
+        gbc.gridx = 3; pnlGrid.add(buildField("Mã /Tên tàu:", cboTau), gbc);
         
         pnlOuter.add(pnlGrid, BorderLayout.CENTER);
         
-        JPanel pnlAction = buildActionBlock();
-        pnlAction.setOpaque(false);
-        pnlOuter.add(pnlAction, BorderLayout.SOUTH);
-        
-        return pnlOuter;
+        pnlSection.add(pnlOuter, BorderLayout.CENTER);
+        return pnlSection;
     }
 
     private JPanel buildSmartFilters() {
@@ -215,7 +200,7 @@ final class DanhSachChuyenDiGUI extends JPanel {
         cmb.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
         cmb.setBackground(GuiTheme.SEARCH_FIELD_BG);
         cmb.setForeground(GuiTheme.TEXT);
-        cmb.setBorder(new LineBorder(GuiTheme.SEARCH_FIELD_BORDER, 1, true));
+        GuiTheme.setupRoundedComponent(cmb);
         cmb.setPreferredSize(new Dimension(128, 30));
         return cmb;
     }
@@ -226,16 +211,16 @@ final class DanhSachChuyenDiGUI extends JPanel {
         dc.setPreferredSize(new Dimension(128, 30));
         dc.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
         dc.setBackground(GuiTheme.SEARCH_FIELD_BG);
-        dc.setBorder(new LineBorder(GuiTheme.SEARCH_FIELD_BORDER, 1, true));
+        GuiTheme.setupRoundedComponent(dc);
         return dc;
     }
 
 
 
     private JPanel buildActionBlock() {
-        JPanel pnlButtons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 15, 10));
+        JPanel pnlButtons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 15, 0));
         pnlButtons.setOpaque(false);
-        pnlButtons.setBorder(new EmptyBorder(0, 0, 5, 0));
+        pnlButtons.setBorder(new EmptyBorder(0, 0, 0, 0));
 
         JButton btnSearch = buildNavyButton("Tìm kiếm", GuiTheme.NAVY, GuiTheme.NAVY_HOVER);
         JButton btnReset = buildNavyButton("Xóa trắng", GuiTheme.NAVY, GuiTheme.NAVY_HOVER);
@@ -247,7 +232,6 @@ final class DanhSachChuyenDiGUI extends JPanel {
             cboGaDen.setSelectedIndex(0);
             cboTau.setSelectedIndex(0);
             dcNgayDi.setDate(null);
-            spnSeat.setValue(0);
             activeCard = "ALL";
             loadDataToTable();
         });
@@ -285,8 +269,8 @@ final class DanhSachChuyenDiGUI extends JPanel {
         btn.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
         btn.setIconTextGap(8);
         
-        if (text.contains("Tìm kiếm")) btn.setIcon(GuiIcons.loadIcon(DanhSachChuyenDiGUI.class, "search", 16, 16));
-        else if (text.contains("Xóa trắng")) btn.setIcon(GuiIcons.loadIcon(DanhSachChuyenDiGUI.class, "reset", 16, 16));
+        if (text.contains("Tìm kiếm")) btn.setIcon(GuiIcons.loadIcon(DanhSachChuyenDiGUI.class, "/Images/traCuu.png", 16, 16));
+        else if (text.contains("Xóa trắng")) btn.setIcon(GuiIcons.loadIcon(DanhSachChuyenDiGUI.class, "/Images/logoLammoi.png", 16, 16));
         
         return btn;
     }
@@ -294,7 +278,8 @@ final class DanhSachChuyenDiGUI extends JPanel {
     private JPanel buildTablePanel() {
         JPanel pnlOuter = new JPanel(new BorderLayout(0, 8));
         pnlOuter.setOpaque(false);
-        pnlOuter.add(buildSectionTitle("Danh sách chuyến đi"), BorderLayout.NORTH);
+        JPanel pnlActions = buildActionBlock();
+        pnlOuter.add(buildSectionTitleWithActions("Danh sách chuyến đi", pnlActions), BorderLayout.NORTH);
 
         tblModel = new DefaultTableModel(
             new Object[] { "STT", "Ga đi", "Ga đến", "Ngày đi", "Ngày đến", "Giờ đi - Giờ đến", "Tàu", "isDelayed" },
@@ -303,7 +288,7 @@ final class DanhSachChuyenDiGUI extends JPanel {
             @Override public boolean isCellEditable(int row, int column) { return false; }
         };
         tblData = new JTable(tblModel);
-        tblData.setRowHeight(32);
+        tblData.setRowHeight(36);
         tblData.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 13));
         tblData.setForeground(GuiTheme.TEXT);
         
@@ -477,13 +462,62 @@ final class DanhSachChuyenDiGUI extends JPanel {
         JPanel pnl = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
         pnl.setOpaque(false);
         pnl.setBorder(new EmptyBorder(5, 0, 5, 0));
-        JLabel lb = new JLabel(title);
+        JLabel lb = new JLabel(title, SwingConstants.CENTER);
         lb.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 12));
         lb.setForeground(Color.WHITE);
         lb.setOpaque(true);
         lb.setBackground(PRIMARY);
-        lb.setBorder(new EmptyBorder(6, 12, 6, 12));
+        lb.setPreferredSize(new Dimension(220, 26));
+        lb.setBorder(null);
         pnl.add(lb);
         return pnl;
+    }
+
+    private JPanel buildSectionTitleWithActions(String title, JPanel pnlActions) {
+        JPanel pnl = new JPanel(new BorderLayout());
+        pnl.setOpaque(false);
+        pnl.setBorder(new EmptyBorder(0, 0, 0, 0));
+        
+        JLabel lb = new JLabel(title, SwingConstants.CENTER);
+        lb.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 12));
+        lb.setForeground(Color.WHITE);
+        lb.setOpaque(true);
+        lb.setBackground(PRIMARY);
+        lb.setPreferredSize(new Dimension(220, 26));
+        lb.setBorder(null);
+        
+        pnl.add(lb, BorderLayout.WEST);
+        if (pnlActions != null) {
+            pnl.add(pnlActions, BorderLayout.EAST);
+        }
+        return pnl;
+    }
+
+    private static final class RoundedPanel extends JPanel {
+        private final int arc;
+        private final Color fill;
+        private final Color stroke;
+        private final float strokeWidth;
+
+        private RoundedPanel(int arc, Color fill, Color stroke, float strokeWidth) {
+            this.arc = arc;
+            this.fill = fill;
+            this.stroke = stroke;
+            this.strokeWidth = strokeWidth;
+            setOpaque(false);
+        }
+
+        @Override
+        protected void paintComponent(java.awt.Graphics g) {
+            java.awt.Graphics2D g2 = (java.awt.Graphics2D) g.create();
+            g2.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING, java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setColor(fill);
+            g2.fillRoundRect(0, 0, getWidth(), getHeight(), arc, arc);
+            g2.setColor(stroke);
+            g2.setStroke(new java.awt.BasicStroke(strokeWidth));
+            g2.drawRoundRect(1, 1, getWidth() - 3, getHeight() - 3, arc, arc);
+            g2.dispose();
+            super.paintComponent(g);
+        }
     }
 }

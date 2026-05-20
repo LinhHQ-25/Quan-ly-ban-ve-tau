@@ -32,9 +32,9 @@ final class KhachHangGUI extends JPanel {
 
         JPanel pnlPage = new JPanel();
         pnlPage.setOpaque(false);
-        pnlPage.setLayout(new BorderLayout(0, 12));
+        pnlPage.setLayout(new BorderLayout(0, 4));
         pnlPage.setBorder(new EmptyBorder(
-            0,
+            -9,
             GuiTheme.PAGE_PAD_LEFT,
             GuiTheme.PAGE_PAD_BOTTOM,
             GuiTheme.PAGE_PAD_LEFT
@@ -49,41 +49,39 @@ final class KhachHangGUI extends JPanel {
     }
 
     private JPanel buildFilterPanel() {
+        JPanel pnlSection = new JPanel(new BorderLayout(0, 5));
+        pnlSection.setOpaque(false);
+        pnlSection.add(buildSectionTitle("Thông tin tra cứu"), BorderLayout.NORTH);
+
         RoundedPanel pnlOuter = new RoundedPanel(12, Color.WHITE, GuiTheme.SEARCH_FIELD_BORDER, 1.0f);
         pnlOuter.setLayout(new BorderLayout(0, 5));
-        
-        JLabel lblTitle = new JLabel("Thông tin tra cứu");
-        lblTitle.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 15));
-        lblTitle.setForeground(GuiTheme.TEXT);
-        lblTitle.setBorder(new EmptyBorder(10, 15, 0, 15));
-        lblTitle.setIcon(GuiIcons.loadIcon(KhachHangGUI.class, "filter", 18, 18));
-        lblTitle.setIconTextGap(8);
-        pnlOuter.add(lblTitle, BorderLayout.NORTH);
+        pnlOuter.setBorder(new EmptyBorder(5, 10, 5, 10));
 
         JPanel pnlGrid = new JPanel(new GridBagLayout());
         pnlGrid.setOpaque(false);
-
         GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(5, 10, 5, 10);
+        gbc.insets = new Insets(4, 5, 4, 5);
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.weightx = 1.0;
+        
+        // Hàng 0
         gbc.gridy = 0;
-
         txtMaKH = buildTextField();
         gbc.gridx = 0; pnlGrid.add(buildField("Mã khách hàng:", txtMaKH), gbc);
         
         txtHoTen = buildTextField();
         gbc.gridx = 1; pnlGrid.add(buildField("Họ và tên:", txtHoTen), gbc);
         
-        dcNamSinh = buildDateField();
-        gbc.gridx = 2; pnlGrid.add(buildField("Năm sinh:", dcNamSinh), gbc);
-        
         txtSdt = buildTextField();
-        gbc.gridx = 3; pnlGrid.add(buildField("Số điện thoại:", txtSdt), gbc);
-
-        gbc.gridy = 1;
+        gbc.gridx = 2; pnlGrid.add(buildField("Số điện thoại:", txtSdt), gbc);
+        
         txtCCCD = buildTextField();
-        gbc.gridx = 0; pnlGrid.add(buildField("CCCD:", txtCCCD), gbc);
+        gbc.gridx = 3; pnlGrid.add(buildField("CCCD:", txtCCCD), gbc);
+        
+        // Hàng 1
+        gbc.gridy = 1;
+        dcNamSinh = buildDateField();
+        gbc.gridx = 0; pnlGrid.add(buildField("Năm sinh:", dcNamSinh), gbc);
         
         txtEmail = buildTextField();
         gbc.gridx = 1; pnlGrid.add(buildField("Email:", txtEmail), gbc);
@@ -93,21 +91,17 @@ final class KhachHangGUI extends JPanel {
         
         pnlOuter.add(pnlGrid, BorderLayout.CENTER);
         
-        JPanel pnlAction = buildSearchBlock();
-        pnlAction.setOpaque(false);
-        pnlOuter.add(pnlAction, BorderLayout.SOUTH);
-        
-        return pnlOuter;
+        pnlSection.add(pnlOuter, BorderLayout.CENTER);
+        return pnlSection;
     }
 
     private JPanel buildField(String label, Component comp) {
-        JPanel pnlField = new JPanel(new BorderLayout(8, 0));
+        JPanel pnlField = new JPanel(new BorderLayout(0, 4));
         pnlField.setOpaque(false);
         JLabel lbField = new JLabel(label);
-        lbField.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 14));
+        lbField.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 13));
         lbField.setForeground(GuiTheme.NAVY);
-        lbField.setPreferredSize(new Dimension(125, 30));
-        pnlField.add(lbField, BorderLayout.WEST);
+        pnlField.add(lbField, BorderLayout.NORTH);
         pnlField.add(comp, BorderLayout.CENTER);
         return pnlField;
     }
@@ -117,10 +111,7 @@ final class KhachHangGUI extends JPanel {
         txtField.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
         txtField.setBackground(GuiTheme.SEARCH_FIELD_BG);
         txtField.setForeground(GuiTheme.TEXT);
-        txtField.setBorder(BorderFactory.createCompoundBorder(
-            new LineBorder(GuiTheme.SEARCH_FIELD_BORDER, 1, true),
-            new EmptyBorder(2, 6, 2, 6)
-        ));
+        GuiTheme.setupRoundedComponent(txtField);
         txtField.setPreferredSize(new Dimension(104, 30));
         return txtField;
     }
@@ -130,7 +121,7 @@ final class KhachHangGUI extends JPanel {
         cmb.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
         cmb.setBackground(GuiTheme.SEARCH_FIELD_BG);
         cmb.setForeground(GuiTheme.TEXT);
-        cmb.setBorder(new LineBorder(GuiTheme.SEARCH_FIELD_BORDER, 1, true));
+        GuiTheme.setupRoundedComponent(cmb);
         cmb.setPreferredSize(new Dimension(104, 30));
         return cmb;
     }
@@ -141,14 +132,14 @@ final class KhachHangGUI extends JPanel {
         dc.setPreferredSize(new Dimension(104, 30));
         dc.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
         dc.setBackground(GuiTheme.SEARCH_FIELD_BG);
-        dc.setBorder(new LineBorder(GuiTheme.SEARCH_FIELD_BORDER, 1, true));
+        GuiTheme.setupRoundedComponent(dc);
         return dc;
     }
 
     private JPanel buildSearchBlock() {
-        JPanel pnlButtons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 15, 10));
+        JPanel pnlButtons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 15, 0));
         pnlButtons.setOpaque(false);
-        pnlButtons.setBorder(new EmptyBorder(0, 0, 5, 0));
+        pnlButtons.setBorder(new EmptyBorder(0, 0, 0, 0));
 
         JButton btnSearch = buildNavyButton("Tìm kiếm", GuiTheme.NAVY, GuiTheme.NAVY_HOVER);
         JButton btnReset = buildNavyButton("Xóa trắng", GuiTheme.NAVY, GuiTheme.NAVY_HOVER);
@@ -193,7 +184,8 @@ final class KhachHangGUI extends JPanel {
     private JPanel buildTablePanel() {
         JPanel pnlWrap = new JPanel(new BorderLayout(0, 8));
         pnlWrap.setOpaque(false);
-        pnlWrap.add(buildSectionTitle("Danh sách khách hàng"), BorderLayout.NORTH);
+        JPanel pnlActions = buildSearchBlock();
+        pnlWrap.add(buildSectionTitleWithActions("Danh sách khách hàng", pnlActions), BorderLayout.NORTH);
 
         String[] cols = {"STT", "Mã khách", "Họ và tên", "Năm sinh", "CCCD", "Số ĐT", "Email", "Đối tượng"};
         tblModel = new DefaultTableModel(cols, 0) {
@@ -334,13 +326,34 @@ final class KhachHangGUI extends JPanel {
         JPanel pnl = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
         pnl.setOpaque(false);
         pnl.setBorder(new EmptyBorder(5, 0, 5, 0));
-        JLabel lb = new JLabel(title);
+        JLabel lb = new JLabel(title, SwingConstants.CENTER);
         lb.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 12));
         lb.setForeground(Color.WHITE);
         lb.setOpaque(true);
         lb.setBackground(PRIMARY);
-        lb.setBorder(new EmptyBorder(6, 12, 6, 12));
+        lb.setPreferredSize(new Dimension(220, 26));
+        lb.setBorder(null);
         pnl.add(lb);
+        return pnl;
+    }
+
+    private JPanel buildSectionTitleWithActions(String title, JPanel pnlActions) {
+        JPanel pnl = new JPanel(new BorderLayout());
+        pnl.setOpaque(false);
+        pnl.setBorder(new EmptyBorder(0, 0, 0, 0));
+        
+        JLabel lb = new JLabel(title, SwingConstants.CENTER);
+        lb.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 12));
+        lb.setForeground(Color.WHITE);
+        lb.setOpaque(true);
+        lb.setBackground(PRIMARY);
+        lb.setPreferredSize(new Dimension(220, 26));
+        lb.setBorder(null);
+        
+        pnl.add(lb, BorderLayout.WEST);
+        if (pnlActions != null) {
+            pnl.add(pnlActions, BorderLayout.EAST);
+        }
         return pnl;
     }
 
