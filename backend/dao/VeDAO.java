@@ -44,8 +44,9 @@ public class VeDAO {
             }
         }
     }
-
+ // Thêm method mới này vào VeDAO, đặt ngay sau getSoLuongVeTheoCa
     public static int getSoVeHuyTheoCa(java.time.LocalDate ngay, String ca, String maNV) throws SQLException {
+        // Đếm cả 2 trạng thái: 'Đã hủy' (hết hạn tự động) và 'DA_HUY' (trả vé thủ công)
         String sql = "SELECT COUNT(*) FROM Ve v " +
                 "JOIN HoaDon hd ON v.maHoaDon = hd.maHoaDon " +
                 "WHERE CAST(v.ngayMua AS DATE) = ? AND hd.maNV = ? " +
@@ -84,6 +85,7 @@ public class VeDAO {
         return result;
     }
 
+    // ── MỚI: đếm vé hủy hôm nay theo nhân viên, không lọc ca ──
     public static int getSoVeHuyHomNay(String maNV) throws SQLException {
         String sql = "SELECT COUNT(*) FROM Ve v " +
                 "JOIN HoaDon hd ON v.maHoaDon = hd.maHoaDon " +
@@ -98,6 +100,7 @@ public class VeDAO {
         }
     }
 
+    // ── MỚI: đếm vé theo loại ghế hôm nay, không lọc ca ──
     public static int[] getSoGheTheoLoaiHomNay(String maNV) throws SQLException {
         int[] result = {0, 0, 0};
         String sql = "SELECT g.loaiGhe, COUNT(*) as sl FROM Ve v " +
@@ -194,35 +197,5 @@ public class VeDAO {
             return ps.executeUpdate() > 0;
         } catch (Exception e) { e.printStackTrace(); }
         return false;
-    }
-
-    // =========================================================================
-    // ─── THÀNH PHẦN NÂNG CẤP DÀNH CHO NHÀ QUẢN LÝ (THỐNG KÊ VĨ MÔ) ───
-    // =========================================================================
-
-    public static int[] getCoCauLoaiGheQuanLyRealtime(java.time.LocalDate tuNgay, java.time.LocalDate denNgay) throws SQLException {
-        int[] result = {0, 0, 0};
-        String sql = "SELECT g.loaiGhe, COUNT(*) AS sl FROM Ve v " +
-                     "JOIN Ghe g ON v.maGhe = g.maGhe " +
-                     "WHERE CAST(v.ngayMua AS DATE) BETWEEN ? AND ? AND v.trangThaiVe = N'Đã thanh toán' " +
-                     "GROUP BY g.loaiGhe";
-
-        try (Connection con = Connect_DB.getInstance().getConnection();
-             PreparedStatement ps = con.prepareStatement(sql)) {
-            ps.setDate(1, java.sql.Date.valueOf(tuNgay));
-            ps.setDate(2, java.sql.Date.valueOf(denNgay));
-            try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) {
-                    String loai = rs.getString("loaiGhe");
-                    if (loai == null) continue;
-                    switch (loai.toUpperCase()) {
-                        case "GHE_CUNG":    result[0] = rs.getInt("sl"); break;
-                        case "GIUONG_NAM":  result[1] = rs.getInt("sl"); break;
-                        case "GHE_MEM":     result[2] = rs.getInt("sl"); break;
-                    }
-                }
-            }
-        }
-        return result;
     }
 }

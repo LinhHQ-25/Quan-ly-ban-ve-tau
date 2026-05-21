@@ -117,6 +117,8 @@ public class HoaDonDAO implements DAO<HoaDon, String> {
                 "JOIN KhachHang k ON h.maKH = k.maKH " +
                 "WHERE CAST(h.ngayLapHD AS DATE) = ? AND h.maNV = ? " +
                 "AND CAST(h.ngayLapHD AS TIME)" + timeCondition +
+                // Chỉ lấy hóa đơn có ít nhất 1 vé đã thanh toán
+                // → loại hóa đơn lưu tạm (Chờ thanh toán) và hóa đơn đã trả hết vé
                 " AND EXISTS (SELECT 1 FROM Ve v WHERE v.maHoaDon = h.maHoaDon AND v.trangThaiVe = N'Đã thanh toán')" +
                 " ORDER BY h.ngayLapHD DESC";
 
@@ -140,7 +142,7 @@ public class HoaDonDAO implements DAO<HoaDon, String> {
         }
         return rows;
     }
-
+    // ── MỚI: load HĐ bán (thường + đổi) của nhân viên trong ngày hôm nay, không lọc ca ──
     public static List<Object[]> getDanhSachHoaDonHomNay(String maNV) throws SQLException {
         java.time.LocalDate ngay = java.time.LocalDate.now();
         String sql = "SELECT h.maHoaDon, " +
@@ -175,6 +177,7 @@ public class HoaDonDAO implements DAO<HoaDon, String> {
         return rows;
     }
 
+    // ── MỚI: load HĐ hủy (vé trả) của nhân viên trong ngày hôm nay, không lọc ca ──
     public static List<Object[]> getDanhSachHoaDonHuyHomNay(String maNV) throws SQLException {
         java.time.LocalDate ngay = java.time.LocalDate.now();
         String sql = "SELECT h.maHoaDon, " +
@@ -209,6 +212,7 @@ public class HoaDonDAO implements DAO<HoaDon, String> {
         return rows;
     }
 
+//load hoa don huy
     public static List<Object[]> getDanhSachHoaDonHuyTheoCa(java.time.LocalDate ngay, String ca, String maNV) throws SQLException {
         String timeCondition = ca.equalsIgnoreCase("Sáng")
                 ? " BETWEEN '00:00:00' AND '11:59:59'"
@@ -217,13 +221,17 @@ public class HoaDonDAO implements DAO<HoaDon, String> {
         String sql = "SELECT h.maHoaDon, " +
                 "       CONVERT(varchar, h.ngayLapHD, 108) AS gioBan, " +
                 "       k.hoTenKH, " +
+                // THAY: thêm cả 'DA_HUY' vào điều kiện loaiGhe
                 "       (SELECT TOP 1 g.loaiGhe FROM Ve v JOIN Ghe g ON v.maGhe = g.maGhe WHERE v.maHoaDon = h.maHoaDon AND v.trangThaiVe IN (N'Đã hủy', 'DA_HUY')) AS loaiGhe, " +
+                // THAY: thêm cả 'DA_HUY' vào điều kiện soGhe
                 "       (SELECT COUNT(*) FROM Ve v WHERE v.maHoaDon = h.maHoaDon AND v.trangThaiVe IN (N'Đã hủy', 'DA_HUY')) AS soGhe, " +
+                // THAY: thêm cả 'DA_HUY' vào điều kiện tongTien
                 "       (SELECT ISNULL(SUM(v.giaVe), 0) FROM Ve v WHERE v.maHoaDon = h.maHoaDon AND v.trangThaiVe IN (N'Đã hủy', 'DA_HUY')) AS tongTien " +
                 "FROM HoaDon h " +
                 "JOIN KhachHang k ON h.maKH = k.maKH " +
                 "WHERE CAST(h.ngayLapHD AS DATE) = ? AND h.maNV = ? " +
                 "AND CAST(h.ngayLapHD AS TIME)" + timeCondition +
+                // THAY: thêm cả 'DA_HUY' vào EXISTS
                 " AND EXISTS (SELECT 1 FROM Ve v WHERE v.maHoaDon = h.maHoaDon AND v.trangThaiVe IN (N'Đã hủy', 'DA_HUY'))" +
                 " ORDER BY h.ngayLapHD DESC";
 
@@ -246,72 +254,5 @@ public class HoaDonDAO implements DAO<HoaDon, String> {
             }
         }
         return rows;
-    }
-
-    // =========================================================================
-    // ─── THÀNH PHẦN NÂNG CẤP DÀNH CHO NHÀ QUẢN LÝ (THÔNG KÊ VĨ MÔ) ───
-    // =========================================================================
-
-    public static double[] getChiSoKPITongQuanNhaQuanLy(java.time.LocalDate tuNgay, java.time.LocalDate denNgay) throws SQLException {
-        double[] result = {0, 0, 0};
-        String sqlDoanhThuVe = "SELECT ISNULL(SUM(giaVe), 0) AS dt, COUNT(maVe) AS sl " +
-                               "FROM Ve WHERE CAST(ngayMua AS DATE) BETWEEN ? AND ? " +
-                               "AND trangThaiVe = N'Đã thanh toán'";
-        String sqlHoanTra = "SELECT ISNULL(SUM(tienHoanTra), 0) AS dtHuy " +
-                             "FROM DonDoiTraVe WHERE CAST(ngayLap AS DATE) BETWEEN ? AND ?";
-
-        try (Connection con = Connect_DB.getConnection()) {
-            try (PreparedStatement ps = con.prepareStatement(sqlDoanhThuVe)) {
-                ps.setDate(1, java.sql.Date.valueOf(tuNgay));
-                ps.setDate(2, java.sql.Date.valueOf(denNgay));
-                try (ResultSet rs = ps.executeQuery()) {
-                    if (rs.next()) {
-                        result[0] = rs.getDouble("dt");
-                        result[2] = rs.getDouble("sl");
-                    }
-                }
-            }
-            try (PreparedStatement ps = con.prepareStatement(sqlHoanTra)) {
-                ps.setDate(1, java.sql.Date.valueOf(tuNgay));
-                ps.setDate(2, java.sql.Date.valueOf(denNgay));
-                try (ResultSet rs = ps.executeQuery()) {
-                    if (rs.next()) {
-                        result[1] = rs.getDouble("dtHuy");
-                    }
-                }
-            }
-        }
-        return result;
-    }
-
-    public static List<Object[]> getBaoCaoChiTietTheoKhoangNgay(java.time.LocalDate tuNgay, java.time.LocalDate denNgay) throws SQLException {
-        List<Object[]> list = new ArrayList<>();
-        String sql = "SELECT CAST(v.ngayMua AS DATE) AS Ngay, " +
-                     "       COUNT(DISTINCT v.maHoaDon) AS SoHD, " +
-                     "       SUM(CASE WHEN v.trangThaiVe = N'Đã thanh toán' THEN 1 ELSE 0 END) AS VeBan, " +
-                     "       SUM(CASE WHEN v.trangThaiVe IN (N'Đã hủy', 'DA_HUY') THEN 1 ELSE 0 END) AS VeHuy, " +
-                     "       SUM(CASE WHEN v.trangThaiVe = N'Đã thanh toán' THEN v.giaVe ELSE 0 END) AS DoanhThu " +
-                     "FROM Ve v " +
-                     "WHERE CAST(v.ngayMua AS DATE) BETWEEN ? AND ? " +
-                     "GROUP BY CAST(v.ngayMua AS DATE) " +
-                     "ORDER BY Ngay DESC";
-
-        try (Connection con = Connect_DB.getConnection();
-             PreparedStatement ps = con.prepareStatement(sql)) {
-            ps.setDate(1, java.sql.Date.valueOf(tuNgay));
-            ps.setDate(2, java.sql.Date.valueOf(denNgay));
-            try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) {
-                    list.add(new Object[]{
-                        rs.getDate("Ngay").toString(),
-                        rs.getInt("SoHD"),
-                        rs.getInt("VeBan"),
-                        rs.getInt("VeHuy"),
-                        rs.getDouble("DoanhThu")
-                    });
-                }
-            }
-        }
-        return list;
     }
 }

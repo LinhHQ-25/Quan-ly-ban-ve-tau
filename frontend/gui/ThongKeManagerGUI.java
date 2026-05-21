@@ -30,7 +30,7 @@ public class ThongKeManagerGUI extends JPanel {
     private JComboBox<Integer> cboNam;
 
     private final JLabel[] lblKpi = new JLabel[4];
-    private BarChartPanelMgr   barChart;
+    private BarChartPanelMgr  barChart;
     private DonutChartPanelMgr donutChart;
     private DefaultTableModel  staffModel;
 
@@ -43,15 +43,15 @@ public class ThongKeManagerGUI extends JPanel {
         page.setLayout(new BoxLayout(page, BoxLayout.Y_AXIS));
         page.setBorder(new EmptyBorder(0, GuiTheme.PAGE_PAD_LEFT, GuiTheme.PAGE_PAD_BOTTOM, GuiTheme.PAGE_PAD_LEFT));
 
-        page.add(Box.createVerticalStrut(16));
+        page.add(Box.createVerticalStrut(14));
         page.add(buildFilterBar());
-        page.add(Box.createVerticalStrut(16));
+        page.add(Box.createVerticalStrut(14));
         page.add(buildKpiRow());
-        page.add(Box.createVerticalStrut(16));
+        page.add(Box.createVerticalStrut(14));
         page.add(buildChartsRow());
-        page.add(Box.createVerticalStrut(16));
+        page.add(Box.createVerticalStrut(14));
         page.add(buildStaffTable());
-        page.add(Box.createVerticalStrut(16));
+        page.add(Box.createVerticalStrut(14));
 
         JScrollPane scroll = new JScrollPane(page);
         scroll.setBorder(null);
@@ -65,25 +65,25 @@ public class ThongKeManagerGUI extends JPanel {
 
     // ═══════════════════════════ FILTER BAR ══════════════════════════════════
     private JPanel buildFilterBar() {
-        JPanel pnl = new JPanel(new FlowLayout(FlowLayout.LEFT, 14, 6));
+        JPanel pnl = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 6));
         pnl.setOpaque(false);
-        pnl.setMaximumSize(new Dimension(Integer.MAX_VALUE, 58)); // Nới rộng thanh điều hướng
+        pnl.setMaximumSize(new Dimension(Integer.MAX_VALUE, 52));
 
-        JLabel lbLoai = lbl("Xem theo:", Font.BOLD, 14); // Giữ tối thiểu 14
+        JLabel lbLoai = lbl("Xem theo:", Font.BOLD, 14);
 
         cboLoai = new JComboBox<>(new String[]{"Tháng", "Năm"});
-        styleCombo(cboLoai, 110, 36);
+        styleCombo(cboLoai, 100, 34);
 
         Integer[] months = {1,2,3,4,5,6,7,8,9,10,11,12};
         cboThang = new JComboBox<>(months);
         cboThang.setSelectedItem(LocalDate.now().getMonthValue());
-        styleCombo(cboThang, 80, 36);
+        styleCombo(cboThang, 72, 34);
 
         int thisYear = LocalDate.now().getYear();
         Integer[] years = new Integer[6];
         for (int i = 0; i < 6; i++) years[i] = thisYear - i;
         cboNam = new JComboBox<>(years);
-        styleCombo(cboNam, 95, 36);
+        styleCombo(cboNam, 88, 34);
 
         JButton btnLoc = navyBtn("Xem báo cáo");
         btnLoc.addActionListener(e -> loadAll());
@@ -105,15 +105,15 @@ public class ThongKeManagerGUI extends JPanel {
         JPanel pnl = new JPanel();
         pnl.setLayout(new BoxLayout(pnl, BoxLayout.X_AXIS));
         pnl.setOpaque(false);
-        pnl.setMaximumSize(new Dimension(Integer.MAX_VALUE, 105)); // Nới chiều cao hàng lên 105 cho chữ to đứng vừa
+        pnl.setMaximumSize(new Dimension(Integer.MAX_VALUE, 88));
 
-        String[] titles = {"TỔNG DOANH THU VÉ TÀU", "TỔNG SỐ VÉ ĐÃ BÁN", "TỔNG SỐ VÉ ĐÃ HỦY", "DOANH THU TRUNG BÌNH/NGÀY"};
+        String[] titles = {"TỔNG DOANH THU", "TỔNG VÉ ĐÃ BÁN", "TỔNG VÉ ĐÃ HỦY", "DOANH THU TB/NGÀY"};
         String[] inits  = {"0 đ", "0 vé", "0 vé", "0 đ"};
         Color[]  acc    = {new Color(71,71,156), new Color(34,139,87), new Color(210,50,50), new Color(34,120,180)};
 
         for (int i = 0; i < 4; i++) {
             pnl.add(buildKpiCard(titles[i], inits[i], acc[i], i));
-            if (i < 3) pnl.add(Box.createHorizontalStrut(16));
+            if (i < 3) pnl.add(Box.createHorizontalStrut(14));
         }
         pnl.add(Box.createHorizontalGlue());
         return pnl;
@@ -129,54 +129,54 @@ public class ThongKeManagerGUI extends JPanel {
                 g2.setColor(BORDER_C);
                 g2.drawRoundRect(0, 0, getWidth()-1, getHeight()-1, 12, 12);
                 g2.setColor(accent);
-                g2.fillRect(0, 0, 6, getHeight());
+                g2.fillRect(0, 0, 5, getHeight());
                 g2.dispose();
             }
         };
         card.setOpaque(false);
         card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
-        card.setBorder(new EmptyBorder(14, 20, 14, 20));
-        card.setPreferredSize(new Dimension(270, 105)); // Nới rộng layout chứa chữ kích thước lớn
-        card.setMaximumSize(new Dimension(270, 105));
+        card.setBorder(new EmptyBorder(12, 20, 12, 20));
+        card.setPreferredSize(new Dimension(230, 80));
+        card.setMaximumSize(new Dimension(230, 80));
 
-        JLabel lbT = lbl(title, Font.BOLD, 14); // Đẩy tiêu đề nhỏ từ 11 lên hẳn 14
-        lbT.setForeground(new Color(135, 142, 158));
+        JLabel lbT = lbl(title, Font.BOLD, 11);
+        lbT.setForeground(new Color(130, 135, 155));
 
-        JLabel lbV = lbl(value, Font.BOLD, 24); // Đẩy số liệu từ 22 lên hẳn 24 để tạo tương phản đồ họa
-        lbV.setForeground(new Color(32, 38, 58));
+        JLabel lbV = lbl(value, Font.BOLD, 22);
+        lbV.setForeground(new Color(28, 32, 52));
 
         lblKpi[idx] = lbV;
         card.add(lbT);
-        card.add(Box.createVerticalStrut(8));
+        card.add(Box.createVerticalStrut(4));
         card.add(lbV);
         return card;
     }
 
     // ═══════════════════════════ CHARTS ROW ══════════════════════════════════
     private JPanel buildChartsRow() {
-        JPanel pnl = new JPanel(new BorderLayout(16, 0));
+        JPanel pnl = new JPanel(new BorderLayout(14, 0));
         pnl.setOpaque(false);
-        pnl.setMaximumSize(new Dimension(Integer.MAX_VALUE, 380)); // Tăng từ 300 lên 380 tránh đè chữ biểu đồ tròn
+        pnl.setMaximumSize(new Dimension(Integer.MAX_VALUE, 300));
 
         barChart   = new BarChartPanelMgr();
         donutChart = new DonutChartPanelMgr();
 
-        pnl.add(wrapCard(barChart,   "XU HƯỚNG DOANH THU THEO KỲ PHÂN TÍCH"), BorderLayout.CENTER);
-        pnl.add(wrapCard(donutChart, "CƠ CẤU PHÂN LOẠI VÉ THEO HẠNG GHẾ"), BorderLayout.EAST);
-        donutChart.setPreferredSize(new Dimension(310, 340)); // Nới rộng layout biểu đồ tròn chứa chữ to
+        pnl.add(wrapCard(barChart,   "Doanh thu theo kỳ"), BorderLayout.CENTER);
+        pnl.add(wrapCard(donutChart, "Phân loại vé theo ghế"), BorderLayout.EAST);
+        donutChart.setPreferredSize(new Dimension(260, 270));
         return pnl;
     }
 
     private JPanel wrapCard(JPanel inner, String title) {
-        JPanel card = new JPanel(new BorderLayout(0, 10));
+        JPanel card = new JPanel(new BorderLayout(0, 8));
         card.setBackground(Color.WHITE);
         card.setBorder(BorderFactory.createCompoundBorder(
             new LineBorder(BORDER_C, 1, true),
-            new EmptyBorder(16, 18, 12, 18)
+            new EmptyBorder(14, 16, 10, 16)
         ));
-        JLabel lbT = lbl(title, Font.BOLD, 14); // Giữ nguyên 14 cấu trúc phân cấp đồ họa
-        lbT.setForeground(new Color(32, 38, 58));
-        lbT.setBorder(new EmptyBorder(0, 0, 6, 0));
+        JLabel lbT = lbl(title, Font.BOLD, 14);
+        lbT.setForeground(new Color(60, 65, 90));
+        lbT.setBorder(new EmptyBorder(0, 0, 4, 0));
         card.add(lbT,  BorderLayout.NORTH);
         card.add(inner, BorderLayout.CENTER);
         return card;
@@ -184,31 +184,30 @@ public class ThongKeManagerGUI extends JPanel {
 
     // ═══════════════════════════ STAFF TABLE ═════════════════════════════════
     private JPanel buildStaffTable() {
-        JPanel card = new JPanel(new BorderLayout(0, 12));
+        JPanel card = new JPanel(new BorderLayout(0, 10));
         card.setBackground(Color.WHITE);
         card.setBorder(BorderFactory.createCompoundBorder(
             new LineBorder(BORDER_C, 1, true),
-            new EmptyBorder(16, 18, 16, 18)
+            new EmptyBorder(14, 16, 14, 16)
         ));
-        card.setMaximumSize(new Dimension(Integer.MAX_VALUE, 280)); // Tăng size chứa bảng rộng rãi hơn
+        card.setMaximumSize(new Dimension(Integer.MAX_VALUE, 240));
 
-        JLabel lbT = lbl("BẢNG XẾP HẠNG DOANH SỐ NHÂN VIÊN XUẤT SẮC", Font.BOLD, 14); // Nâng từ 13 lên 14
-        lbT.setForeground(new Color(32, 38, 58));
+        JLabel lbT = lbl("TOP NHÂN VIÊN THEO DOANH THU", Font.BOLD, 13);
+        lbT.setForeground(new Color(60, 65, 90));
 
         staffModel = new DefaultTableModel(
-            new Object[]{"Thứ hạng", "Mã Nhân Viên", "Họ Tên Nhân Viên", "Số Lượng Vé Bán", "Doanh Thu Mang Về"}, 0) {
+            new Object[]{"#", "Mã NV", "Họ tên", "Vé đã bán", "Doanh thu"}, 0) {
             @Override public boolean isCellEditable(int r, int c) { return false; }
         };
 
         JTable tbl = new JTable(staffModel);
-        tbl.setRowHeight(38); // Nâng từ 34 lên hẳn 38 giúp font 14 đứng thoải mái, không lo bị chạm viền dòng
-        tbl.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14)); // Font chữ bảng: 14
-        tbl.getTableHeader().setFont(GuiTheme.font("Segoe UI", Font.BOLD, 14)); // Font tiêu đề bảng: 14
-        tbl.getTableHeader().setBackground(new Color(36, 48, 76)); // Màu nền tối sang trọng đồng bộ hệ thống điều hành
-        tbl.getTableHeader().setForeground(Color.WHITE);
-        tbl.getTableHeader().setPreferredSize(new Dimension(0, 40));
+        tbl.setRowHeight(34);
+        tbl.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 13));
+        tbl.getTableHeader().setFont(GuiTheme.font("Segoe UI", Font.BOLD, 13));
+        tbl.getTableHeader().setBackground(new Color(245, 247, 252));
+        tbl.getTableHeader().setForeground(new Color(80, 85, 110));
         tbl.setShowVerticalLines(false);
-        tbl.setGridColor(new Color(230, 235, 242));
+        tbl.setGridColor(new Color(235, 237, 243));
         tbl.setSelectionBackground(new Color(71, 71, 156, 30));
         tbl.setSelectionForeground(GuiTheme.TEXT);
 
@@ -229,9 +228,8 @@ public class ThongKeManagerGUI extends JPanel {
         };
         for (int i = 0; i < tbl.getColumnCount(); i++)
             tbl.getColumnModel().getColumn(i).setCellRenderer(render);
-        
-        tbl.getColumnModel().getColumn(0).setPreferredWidth(90);
-        tbl.getColumnModel().getColumn(1).setPreferredWidth(120);
+        tbl.getColumnModel().getColumn(0).setMaxWidth(40);
+        tbl.getColumnModel().getColumn(1).setMaxWidth(90);
         ((DefaultTableCellRenderer) tbl.getTableHeader().getDefaultRenderer())
             .setHorizontalAlignment(SwingConstants.CENTER);
 
@@ -275,12 +273,14 @@ public class ThongKeManagerGUI extends JPanel {
                 List<String> barLabels = new ArrayList<>();
                 List<Long>   barVals   = new ArrayList<>();
                 if (isThang) {
+                    // Doanh thu từng ngày trong tháng
                     for (int d = 1; d <= from.lengthOfMonth(); d++) {
                         LocalDate day = LocalDate.of(nam, thang, d);
                         barLabels.add(String.valueOf(d));
                         barVals.add(queryDoanhThu(day, day));
                     }
                 } else {
+                    // Doanh thu từng tháng trong năm
                     for (int m = 1; m <= 12; m++) {
                         LocalDate mFrom = LocalDate.of(nam, m, 1);
                         LocalDate mTo   = mFrom.withDayOfMonth(mFrom.lengthOfMonth());
@@ -296,13 +296,13 @@ public class ThongKeManagerGUI extends JPanel {
                 List<Object[]> staffData = queryTopStaff(from, to);
 
                 // ── Update UI ────────────────────────────────────────────────
-                final long dt = doanhThu, cb = tbNgay;
+                final long dt = doanhThu, tb = tbNgay;
                 final int  vb = veBan,    vh = veHuy;
                 SwingUtilities.invokeLater(() -> {
                     lblKpi[0].setText(String.format("%,.0f đ", (double) dt));
                     lblKpi[1].setText(vb + " vé");
                     lblKpi[2].setText(vh + " vé");
-                    lblKpi[3].setText(String.format("%,.0f đ", (double) cb));
+                    lblKpi[3].setText(String.format("%,.0f đ", (double) tb));
 
                     barChart.setData(barLabels, barVals, isThang ? "Ngày" : "Tháng");
                     donutChart.setData(gheData[0], gheData[1], gheData[2]);
@@ -310,7 +310,7 @@ public class ThongKeManagerGUI extends JPanel {
                     staffModel.setRowCount(0);
                     int rank = 1;
                     for (Object[] row : staffData) {
-                        String medal = rank == 1 ? "🥇 Hạng 1" : rank == 2 ? "🥈 Hạng 2" : rank == 3 ? "🥉 Hạng 3" : "  " + rank;
+                        String medal = rank == 1 ? "🥇" : rank == 2 ? "🥈" : rank == 3 ? "🥉" : String.valueOf(rank);
                         staffModel.addRow(new Object[]{
                             medal, row[0], row[1], row[2] + " vé",
                             String.format("%,.0f đ", ((Number) row[3]).doubleValue())
@@ -432,7 +432,7 @@ public class ThongKeManagerGUI extends JPanel {
 
     private void styleCombo(JComboBox<?> cb, int w, int h) {
         cb.setPreferredSize(new Dimension(w, h));
-        cb.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14)); // Đồng bộ font combo lên 14
+        cb.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 13));
         cb.setBackground(Color.WHITE);
     }
 
@@ -452,8 +452,8 @@ public class ThongKeManagerGUI extends JPanel {
                 g2.dispose();
             }
         };
-        btn.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 14)); // Nâng font nút lên 14
-        btn.setPreferredSize(new Dimension(150, 36)); // Nới rộng nút cho vừa chữ
+        btn.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 13));
+        btn.setPreferredSize(new Dimension(140, 34));
         btn.setContentAreaFilled(false);
         btn.setBorderPainted(false);
         btn.setFocusPainted(false);
@@ -495,7 +495,7 @@ class BarChartPanelMgr extends JPanel {
 
     private int getBarIndexAt(int x) {
         if (values.isEmpty()) return -1;
-        int padL = 65, padR = 20, padT = 20, padB = 40;
+        int padL = 60, padR = 20, padT = 20, padB = 40;
         int w = getWidth() - padL - padR;
         int n = values.size();
         float barW = (float) w / n;
@@ -511,7 +511,7 @@ class BarChartPanelMgr extends JPanel {
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
 
-        int padL = 70, padR = 20, padT = 25, padB = 40; // Mở rộng lề trái cho nhãn tiền triệu lớn
+        int padL = 60, padR = 20, padT = 20, padB = 40;
         int W = getWidth() - padL - padR;
         int H = getHeight() - padT - padB;
         int n = values.size();
@@ -520,18 +520,18 @@ class BarChartPanelMgr extends JPanel {
         if (maxVal == 0) maxVal = 1;
 
         // Grid lines + Y labels
-        g2.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14)); // Nâng font nhãn Y lên 14
+        g2.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 10));
         int gridLines = 4;
         for (int i = 0; i <= gridLines; i++) {
             int y = padT + H - (i * H / gridLines);
             long val = maxVal * i / gridLines;
             g2.setColor(new Color(235, 237, 243));
             g2.drawLine(padL, y, padL + W, y);
-            g2.setColor(new Color(130, 135, 155));
-            String s = val >= 1_000_000 ? String.format("%,.1fM", val / 1_000_000.0)
+            g2.setColor(new Color(150, 155, 170));
+            String s = val >= 1_000_000 ? String.format("%,.0fM", val / 1_000_000.0)
                      : val >= 1_000     ? String.format("%,.0fK", val / 1_000.0)
                      : String.valueOf(val);
-            g2.drawString(s, padL - g2.getFontMetrics().stringWidth(s) - 6, y + 5);
+            g2.drawString(s, padL - g2.getFontMetrics().stringWidth(s) - 4, y + 4);
         }
 
         // Bars
@@ -557,22 +557,23 @@ class BarChartPanelMgr extends JPanel {
                 String tip = v >= 1_000_000 ? String.format("%,.1fM", v / 1_000_000.0)
                            : v >= 1_000     ? String.format("%,.0fK", v / 1_000.0)
                            : String.valueOf(v);
-                g2.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 14)); // Nâng font tooltip lên 14
+                g2.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 10));
                 int tw = g2.getFontMetrics().stringWidth(tip);
-                g2.setColor(new Color(32, 38, 58));
-                g2.drawString(tip, bx + (int)(bw/2) - tw/2, by - 6);
+                g2.setColor(new Color(40, 45, 70));
+                g2.drawString(tip, bx + (int)(bw/2) - tw/2, by - 4);
             }
 
-            // X label
-            g2.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14)); // Nâng nhãn trục X lên 14
-            g2.setColor(new Color(110, 115, 135));
-            boolean show = (n <= 12) || (i % Math.max(1, n / 10) == 0);
+            // X label (hiện cách nhau để không chồng)
+            g2.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 10));
+            g2.setColor(new Color(130, 135, 155));
+            boolean show = (n <= 12) || (i % Math.max(1, n / 12) == 0);
             if (show) {
                 String lb = labels.get(i);
                 int lw = g2.getFontMetrics().stringWidth(lb);
-                g2.drawString(lb, bx + (int)(bw/2) - lw/2, padT + H + 22);
+                g2.drawString(lb, bx + (int)(bw/2) - lw/2, padT + H + 16);
             }
         }
+
         g2.dispose();
     }
 }
@@ -601,9 +602,9 @@ class DonutChartPanelMgr extends JPanel {
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
         int W = getWidth(), H = getHeight();
-        int R = Math.min(W, H) / 2 - 45; // Co nhỏ bán kính hình tròn để dành chỗ cho font chữ chú thích lớn bên dưới
-        int r = (int)(R * 0.58);
-        int cx = W / 2, cy = R + 20;
+        int R = Math.min(W, H) / 2 - 20;
+        int r = (int)(R * 0.55);
+        int cx = W / 2, cy = R + 16;
         int total = data[0] + data[1] + data[2];
 
         int sa = 90;
@@ -615,41 +616,36 @@ class DonutChartPanelMgr extends JPanel {
             g2.fillArc(cx-R, cy-R, R*2, R*2, sa, arc);
             sa += arc;
         }
-        
         // Lỗ giữa
         g2.setColor(Color.WHITE);
         g2.fillOval(cx-r, cy-r, r*2, r*2);
 
-        // Tổng số ở giữa
-        g2.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 16)); // Nâng size tâm từ 14 lên 16
-        g2.setColor(new Color(32, 38, 58));
+        // Tổng ở giữa
+        g2.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 16));
+        g2.setColor(new Color(40, 45, 70));
         String tot = String.valueOf(total);
         int tw = g2.getFontMetrics().stringWidth(tot);
-        g2.drawString(tot, cx - tw/2, cy + 5);
-        
-        g2.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14)); // Nâng chữ "vé" lên 14
-        g2.setColor(new Color(135, 142, 158));
+        g2.drawString(tot, cx - tw/2, cy + 6);
+        g2.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 10));
+        g2.setColor(new Color(130, 135, 155));
         String sub = "vé";
         int sw = g2.getFontMetrics().stringWidth(sub);
-        g2.drawString(sub, cx - sw/2, cy + 20);
+        g2.drawString(sub, cx - sw/2, cy + 18);
 
-        // Chú thích (Legend) phía bên dưới biểu đồ
-        int legendY = cy + R + 24;
-        int legendStep = 42; // Tăng khoảng cách dòng từ 28 lên 42 để chữ 14 đứng thoải mái
+        // Legend
+        int legendY = cy + R + 18;
+        int legendStep = 28;
         for (int i = 0; i < 3; i++) {
             double pct = (total == 0) ? 0 : (data[i] * 100.0 / total);
             int ly = legendY + i * legendStep;
-            
             g2.setColor(COLORS[i]);
-            g2.fillRoundRect(16, ly, 14, 14, 4, 4); // Tăng size khối màu marker
-            
+            g2.fillRoundRect(16, ly, 12, 12, 4, 4);
             g2.setColor(new Color(50, 55, 75));
-            g2.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 14)); // Nâng font tên loại ghế lên 14
-            g2.drawString(LABELS[i], 38, ly + 12);
-            
-            g2.setColor(new Color(130, 135, 155));
-            g2.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14)); // Nâng font chỉ số phần trăm/vé lên 14
-            g2.drawString(String.format("%.1f%% (%d vé)", pct, data[i]), 145, ly + 12);
+            g2.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 12));
+            g2.drawString(LABELS[i], 34, ly + 11);
+            g2.setColor(new Color(120, 125, 145));
+            g2.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 11));
+            g2.drawString(String.format("%.1f%% (%d vé)", pct, data[i]), 34, ly + 23);
         }
         g2.dispose();
     }
