@@ -32,9 +32,6 @@ public class KhuyenMaiGUI extends JPanel {
     private static final Color TAG_SAP_FG = new Color(37, 99, 235);
     private static final int   BTN_H      = 38;
 
-    // =========================================================
-    // Mapping LoaiKhachHang <-> Tiếng Việt
-    // =========================================================
     static final String[]        LOAI_KH_VIET = {
             "Tất cả", "Dưới 6 tuổi", "Từ 6 đến dưới 10 tuổi",
             "Từ 60 tuổi trở lên", "Sinh viên", "Người lớn"
@@ -71,7 +68,6 @@ public class KhuyenMaiGUI extends JPanel {
         return !today.isAfter(end) ? "Đang áp dụng" : "Ngừng áp dụng";
     }
 
-    // =========================================================
     private final KhuyenMaiDAO     dao          = new KhuyenMaiDAO();
     private       String           filterStatus = "ALL";
     private       String           searchText   = "";
@@ -83,7 +79,6 @@ public class KhuyenMaiGUI extends JPanel {
     private       JMenuItem        menuSua, menuXoa;
     private       int              popupRow     = -1;
 
-    // =========================================================
     public KhuyenMaiGUI() {
         setLayout(new BorderLayout(0, 0));
         setBackground(LIGHT_BG);
@@ -95,8 +90,8 @@ public class KhuyenMaiGUI extends JPanel {
         centerWrap.add(buildTableArea(), BorderLayout.CENTER);
         centerWrap.add(buildBottomBar(), BorderLayout.SOUTH);
 
-        add(buildTopBar(), BorderLayout.NORTH);
-        add(centerWrap,    BorderLayout.CENTER);
+        add(buildTopBar(),  BorderLayout.NORTH);
+        add(centerWrap,     BorderLayout.CENTER);
         loadData();
     }
 
@@ -391,9 +386,9 @@ public class KhuyenMaiGUI extends JPanel {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                 boolean active = filterStatus.equals(status);
-                Color activeFg = status.equals("ACTIVE") ? TAG_ACT_FG
+                Color activeFg = status.equals("ACTIVE")   ? TAG_ACT_FG
                         : status.equals("UPCOMING") ? TAG_SAP_FG
-                          : status.equals("INACTIVE") ? TAG_OFF_FG : TAG_ALL_FG;
+                        : status.equals("INACTIVE") ? TAG_OFF_FG : TAG_ALL_FG;
                 g2.setColor(active ? activeFg : bg);
                 g2.fillRoundRect(0, 0, getWidth(), getHeight(), 20, 20);
                 g2.setColor(active ? Color.WHITE : fg);
@@ -421,17 +416,16 @@ public class KhuyenMaiGUI extends JPanel {
         private boolean confirmed = false;
         private final String editMaKM;
         private final KhuyenMaiDAO dao = new KhuyenMaiDAO();
-        private static final DateTimeFormatter FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
-        private JTextField    tfMaKM, tfTenKM, tfTiLe;
-        private JTextArea     taMoTa;
+        private JTextField        tfMaKM, tfTenKM, tfTiLe;
+        private JTextArea         taMoTa;
         private JComboBox<String> cbLoaiKH, cbTrangThai;
-        private JDateChooser  dcBatDau, dcKetThuc;
+        private JDateChooser      dcBatDau, dcKetThuc;
 
         KhuyenMaiFormDialog(Frame owner, String maKM) {
             super(owner, maKM == null ? "Thêm khuyến mãi mới" : "Chỉnh sửa khuyến mãi", true);
             this.editMaKM = maKM;
-            setSize(540, 600);
+            setSize(540, maKM == null ? 560 : 600); // nhỏ hơn khi tạo mới vì bỏ 1 dòng
             setResizable(false);
             setLocationRelativeTo(owner);
             setLayout(new BorderLayout());
@@ -443,7 +437,6 @@ public class KhuyenMaiGUI extends JPanel {
 
         boolean isConfirmed() { return confirmed; }
 
-        // Build JDateChooser giống bên NhanVien
         private JDateChooser buildDateChooser() {
             JDateChooser dc = new JDateChooser();
             dc.setDateFormatString("dd/MM/yyyy");
@@ -454,11 +447,9 @@ public class KhuyenMaiGUI extends JPanel {
                     new LineBorder(new Color(210, 215, 224), 1),
                     new EmptyBorder(2, 4, 2, 4)));
             dc.setPreferredSize(new Dimension(0, 34));
-            // Bỏ border của editor bên trong
             Component editor = dc.getDateEditor().getUiComponent();
             if (editor instanceof JComponent) ((JComponent) editor).setBorder(null);
-            // Lắng nghe thay đổi ngày để tự cập nhật trạng thái
-            dc.addPropertyChangeListener("date", evt -> SwingUtilities.invokeLater(() -> updateAutoStatus()));
+            dc.addPropertyChangeListener("date", evt -> SwingUtilities.invokeLater(this::updateAutoStatus));
             return dc;
         }
 
@@ -493,16 +484,16 @@ public class KhuyenMaiGUI extends JPanel {
             cbLoaiKH.setBackground(Color.WHITE);
             cbTrangThai.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
             cbTrangThai.setBackground(Color.WHITE);
-            cbTrangThai.setEnabled(false); // chỉ auto-tính từ ngày
+            cbTrangThai.setEnabled(false);
 
-            if (editMaKM == null) addRow(p, g, 0, "Mã KM *", tfMaKM);
-            else {
+            // Khi chỉnh sửa → hiện mã (read-only); khi tạo mới → không hiện, tự sinh sau
+            if (editMaKM != null) {
                 tfMaKM.setEditable(false);
                 tfMaKM.setBackground(new Color(245, 247, 250));
                 addRow(p, g, 0, "Mã KM", tfMaKM);
             }
             addRow(p, g, 1, "Tên khuyến mãi *",     tfTenKM);
-            addRow(p, g, 2, "Tỉ lệ giảm (0.1 - 1)", tfTiLe);
+            addRow(p, g, 2, "Tỉ lệ giảm (0 - 100%)", tfTiLe);
             addRow(p, g, 3, "Loại khách hàng",       cbLoaiKH);
             addRow(p, g, 4, "Ngày bắt đầu *",        dcBatDau);
             addRow(p, g, 5, "Ngày kết thúc *",       dcKetThuc);
@@ -518,7 +509,6 @@ public class KhuyenMaiGUI extends JPanel {
             return p;
         }
 
-        // Tự tính trạng thái từ 2 JDateChooser
         private void updateAutoStatus() {
             if (cbTrangThai == null) return;
             LocalDateTime bd = toLocalDateTime(dcBatDau.getDate());
@@ -526,7 +516,6 @@ public class KhuyenMaiGUI extends JPanel {
             cbTrangThai.setSelectedItem(computeStatus(bd, kt));
         }
 
-        // Chuyển java.util.Date -> LocalDateTime
         private LocalDateTime toLocalDateTime(Date date) {
             if (date == null) return null;
             return date.toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime();
@@ -569,7 +558,7 @@ public class KhuyenMaiGUI extends JPanel {
             tfTenKM.setText(km.getTenKhuyenMai());
             tfTiLe.setText(String.valueOf(km.getTiLeGiamGia()));
             cbLoaiKH.setSelectedItem(loaiKHToViet(km.getLoaiKhachHang()));
-            if (km.getThoiGianBatDau() != null)
+            if (km.getThoiGianBatDau()  != null)
                 dcBatDau.setDate(java.sql.Timestamp.valueOf(km.getThoiGianBatDau()));
             if (km.getThoiGianKetThuc() != null)
                 dcKetThuc.setDate(java.sql.Timestamp.valueOf(km.getThoiGianKetThuc()));
@@ -577,31 +566,27 @@ public class KhuyenMaiGUI extends JPanel {
             cbTrangThai.setSelectedItem(computeStatus(km.getThoiGianBatDau(), km.getThoiGianKetThuc()));
         }
 
+        // Tự sinh mã KMXXXXXX (6 số ngẫu nhiên), đảm bảo không trùng DB
+        private String generateMaKhuyenMai() {
+            java.util.Random rnd = new java.util.Random();
+            String ma;
+            do {
+                ma = String.format("KM%06d", rnd.nextInt(1_000_000));
+            } while (dao.selectById(ma) != null);
+            return ma;
+        }
+
         private void saveKhuyenMai() {
-            String maKM  = tfMaKM.getText().trim();
+            // Tạo mới → tự sinh mã; chỉnh sửa → giữ mã cũ
+            String maKM  = (editMaKM == null) ? generateMaKhuyenMai() : tfMaKM.getText().trim();
             String tenKM = tfTenKM.getText().trim();
 
-            // Validate mã KM
-            if (!maKM.matches("^KM\\d{3}$")) {
-                JOptionPane.showMessageDialog(this,
-                        "Mã khuyến mãi phải có dạng KMXXX\nVí dụ: KM001, KM012, KM999",
-                        "Mã không hợp lệ", JOptionPane.WARNING_MESSAGE);
-                return;
-            }
-            // Kiểm tra trùng mã khi thêm mới
-            if (editMaKM == null && dao.selectById(maKM) != null) {
-                JOptionPane.showMessageDialog(this,
-                        "Mã khuyến mãi \"" + maKM + "\" đã tồn tại!",
-                        "Trùng mã", JOptionPane.WARNING_MESSAGE);
-                return;
-            }
             if (tenKM.isEmpty()) {
                 JOptionPane.showMessageDialog(this, "Vui lòng nhập Tên khuyến mãi.",
                         "Cảnh báo", JOptionPane.WARNING_MESSAGE);
                 return;
             }
 
-            // Validate tỉ lệ giảm
             double tiLe = 0.0;
             try { tiLe = Double.parseDouble(tfTiLe.getText().trim()); } catch (Exception ignored) {}
             if (tiLe <= 0 || tiLe > 1) {
@@ -613,7 +598,6 @@ public class KhuyenMaiGUI extends JPanel {
 
             LoaiKhachHang loaiKH = vietToLoaiKH(cbLoaiKH.getSelectedItem().toString());
 
-            // Validate ngày — bắt buộc nhập cả 2
             LocalDateTime bd = toLocalDateTime(dcBatDau.getDate());
             LocalDateTime kt = toLocalDateTime(dcKetThuc.getDate());
 
@@ -628,13 +612,11 @@ public class KhuyenMaiGUI extends JPanel {
                 return;
             }
             if (!bd.isBefore(kt)) {
-                JOptionPane.showMessageDialog(this,
-                        "Ngày bắt đầu phải trước ngày kết thúc.",
+                JOptionPane.showMessageDialog(this, "Ngày bắt đầu phải trước ngày kết thúc.",
                         "Ngày không hợp lệ", JOptionPane.WARNING_MESSAGE);
                 return;
             }
 
-            // trangThai tính nhất quán từ ngày
             boolean trangThai = "Đang áp dụng".equals(computeStatus(bd, kt));
             String  moTa      = taMoTa.getText().trim();
 
@@ -643,7 +625,8 @@ public class KhuyenMaiGUI extends JPanel {
 
             if (ok) {
                 confirmed = true;
-                JOptionPane.showMessageDialog(this, editMaKM == null ? "Thêm mới thành công!" : "Cập nhật thành công!");
+                JOptionPane.showMessageDialog(this,
+                        editMaKM == null ? "Thêm mới thành công!" : "Cập nhật thành công!");
                 dispose();
             } else {
                 JOptionPane.showMessageDialog(this, "Lỗi khi lưu dữ liệu!", "Lỗi", JOptionPane.ERROR_MESSAGE);
