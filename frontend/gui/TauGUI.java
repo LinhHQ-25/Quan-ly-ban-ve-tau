@@ -88,8 +88,6 @@ final class TauGUI extends JPanel {
         JLabel lblTitle = new JLabel("TRẠNG THÁI ĐỘI TÀU TRỰC TUYẾN");
         lblTitle.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 14));
         lblTitle.setForeground(GuiTheme.NAVY);
-        lblTitle.setIcon(GuiIcons.loadIcon(TauGUI.class, "/Images/traCuu.png", 16, 16));
-        lblTitle.setIconTextGap(8);
         pnlHeader.add(lblTitle, BorderLayout.WEST);
 
         JPanel line = new JPanel();
@@ -126,9 +124,10 @@ final class TauGUI extends JPanel {
 
         JLabel lblTitle = new JLabel("Thông tin tra cứu");
         lblTitle.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 15));
-        lblTitle.setForeground(GuiTheme.NAVY);
-        lblTitle.setIcon(GuiIcons.loadIcon(TauGUI.class, "/Images/traCuu.png", 16, 16));
-        lblTitle.setIconTextGap(8);
+        lblTitle.setForeground(Color.WHITE);
+        lblTitle.setOpaque(true);
+        lblTitle.setBackground(new Color(44, 82, 150));
+        lblTitle.setBorder(new EmptyBorder(6, 15, 6, 15));
         pnlHeader.add(lblTitle, BorderLayout.WEST);
 
         JPanel line = new JPanel();
@@ -257,9 +256,10 @@ final class TauGUI extends JPanel {
 
         JLabel lblTitle = new JLabel("Danh sách tàu");
         lblTitle.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 15));
-        lblTitle.setForeground(GuiTheme.NAVY);
-        lblTitle.setIcon(GuiIcons.loadIcon(TauGUI.class, "/Images/DanhSach.png", 16, 16));
-        lblTitle.setIconTextGap(8);
+        lblTitle.setForeground(Color.WHITE);
+        lblTitle.setOpaque(true);
+        lblTitle.setBackground(new Color(44, 82, 150));
+        lblTitle.setBorder(new EmptyBorder(6, 15, 6, 15));
         pnlTitleRow.add(lblTitle, BorderLayout.WEST);
 
         lblResults = new JLabel("");
@@ -343,9 +343,10 @@ final class TauGUI extends JPanel {
 
         lblDetailTitle = new JLabel("DANH SÁCH TOA TÀU");
         lblDetailTitle.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 15));
-        lblDetailTitle.setForeground(GuiTheme.NAVY);
-        lblDetailTitle.setIcon(GuiIcons.loadIcon(TauGUI.class, "/Images/DanhSach.png", 16, 16));
-        lblDetailTitle.setIconTextGap(8);
+        lblDetailTitle.setForeground(Color.WHITE);
+        lblDetailTitle.setOpaque(true);
+        lblDetailTitle.setBackground(new Color(44, 82, 150));
+        lblDetailTitle.setBorder(new EmptyBorder(6, 15, 6, 15));
         pnlTitleRow.add(lblDetailTitle, BorderLayout.WEST);
 
         lblDetailSummary = new JLabel("");
@@ -394,9 +395,10 @@ final class TauGUI extends JPanel {
 
         JLabel lblTitle = new JLabel("Danh sách ghế trong toa");
         lblTitle.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 15));
-        lblTitle.setForeground(GuiTheme.NAVY);
-        lblTitle.setIcon(GuiIcons.loadIcon(TauGUI.class, "/Images/DanhSach.png", 16, 16));
-        lblTitle.setIconTextGap(8);
+        lblTitle.setForeground(Color.WHITE);
+        lblTitle.setOpaque(true);
+        lblTitle.setBackground(new Color(44, 82, 150));
+        lblTitle.setBorder(new EmptyBorder(6, 15, 6, 15));
         pnlHeader.add(lblTitle, BorderLayout.WEST);
 
         JPanel line = new JPanel();
@@ -774,10 +776,10 @@ final class TauGUI extends JPanel {
             this.tongSoGhe = ghe;
             this.status = status;
 
-            setPreferredSize(new Dimension(67, 80));
+            setPreferredSize(new Dimension(67, 95));
             setOpaque(false);
             setLayout(new BorderLayout(0, 4));
-            setBorder(new EmptyBorder(33, 5, 5, 5)); // Less top padding to fit smaller card
+            setBorder(new EmptyBorder(38, 5, 5, 5)); // More top padding for taller icon
 
             JLabel lblId = new JLabel(id, SwingConstants.CENTER);
             lblId.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 10));
@@ -887,7 +889,8 @@ final class TauGUI extends JPanel {
 
             // Paint train icon procedurally on top (centered at y = 10, width/height = 32)
             Color iconColor = isActive ? new Color(40, 100, 220) : new Color(220, 38, 38);
-            drawTrainIcon(g2, (getWidth() - 22) / 2, 7, 22, 22, iconColor);
+            int iconHeight = Math.min(28, Math.max(24, getHeight() - 56));
+            drawTrainIcon(g2, (getWidth() - 22) / 2, 7, 22, iconHeight, iconColor);
 
             g2.dispose();
             super.paintComponent(g);
@@ -898,20 +901,21 @@ final class TauGUI extends JPanel {
             g2.setStroke(new BasicStroke(2.0f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
             
             // 1. Train outer profile (roof dome + body)
-            g2.drawRoundRect(x + 2, y + 2, w - 4, h - 6, 6, 6);
+            g2.drawRoundRect(x + 2, y + 2, w - 4, h - 10, 6, 6);
             
             // 2. Windshield glass area
-            g2.drawRect(x + 6, y + 8, w - 12, 10);
-            // Center window divider line
-            g2.drawLine(x + w / 2, y + 8, x + w / 2, y + 18);
+            int windowY = y + 8;
+            int windowH = Math.max(10, h - 18);
+            g2.drawRect(x + 6, windowY, w - 12, windowH);
+            g2.drawLine(x + w / 2, windowY, x + w / 2, windowY + windowH);
             
             // 3. Headlights (filled circles)
-            g2.fillOval(x + 7, y + 24, 5, 5);
-            g2.fillOval(x + w - 12, y + 24, 5, 5);
+            g2.fillOval(x + 7, y + h - 12, 5, 5);
+            g2.fillOval(x + w - 12, y + h - 12, 5, 5);
             
             // 4. Bumper/lower grille details
-            g2.drawLine(x + 8, y + 31, x + w - 8, y + 31);
-            g2.drawLine(x + 11, y + 34, x + w - 11, y + 34);
+            g2.drawLine(x + 8, y + h - 7, x + w - 8, y + h - 7);
+            g2.drawLine(x + 11, y + h - 4, x + w - 11, y + h - 4);
         }
     }
 
@@ -928,10 +932,10 @@ final class TauGUI extends JPanel {
             this.loaiToa = loaiToa;
             this.isSelected = isSelected;
 
-            setPreferredSize(new Dimension(53, 63));
+            setPreferredSize(new Dimension(53, 76));
             setOpaque(false);
             setLayout(new BorderLayout(0, 4));
-            setBorder(new EmptyBorder(30, 4, 5, 4));
+            setBorder(new EmptyBorder(34, 4, 5, 4));
 
             JLabel lblToa = new JLabel("Toa " + String.format("%02d", soToa), SwingConstants.CENTER);
             lblToa.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 9));
@@ -971,11 +975,11 @@ final class TauGUI extends JPanel {
             Color iconColor = isSelected ? new Color(40, 100, 220) : new Color(156, 163, 175);
             boolean isVip = "TOA_VIP".equals(loaiToa) || (loaiToa != null && loaiToa.toUpperCase().contains("VIP"));
             String iconPath = isVip ? "/Images/logoToaVip.png" : "/Images/logoToaThuong.png";
-            ImageIcon imgIcon = GuiIcons.loadIcon(TauGUI.class, iconPath, 20, 20);
+            ImageIcon imgIcon = GuiIcons.loadIcon(TauGUI.class, iconPath, 20, 24);
             if (imgIcon != null) {
                 g2.drawImage(imgIcon.getImage(), (getWidth() - 20) / 2, 7, null);
             } else {
-                drawToaIcon(g2, (getWidth() - 20) / 2, 7, 20, 20, iconColor);
+                drawToaIcon(g2, (getWidth() - 20) / 2, 7, 20, 24, iconColor);
             }
 
             g2.dispose();
@@ -985,12 +989,12 @@ final class TauGUI extends JPanel {
         private void drawToaIcon(Graphics2D g2, int x, int y, int w, int h, Color color) {
             g2.setColor(color);
             g2.setStroke(new BasicStroke(1.5f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
-            g2.drawRoundRect(x + 2, y + 2, w - 4, h - 10, 4, 4);
-            g2.drawRect(x + 4, y + 5, 5, 5);
-            g2.drawRect(x + w - 9, y + 5, 5, 5);
-            g2.drawOval(x + 4, y + h - 6, 4, 4);
-            g2.drawOval(x + w - 8, y + h - 6, 4, 4);
-            g2.drawLine(x + 8, y + h - 4, x + w - 8, y + h - 4);
+            g2.drawRoundRect(x + 2, y + 2, w - 4, h - 12, 4, 4);
+            g2.drawRect(x + 4, y + 6, 6, 6);
+            g2.drawRect(x + w - 12, y + 6, 6, 6);
+            g2.drawOval(x + 4, y + h - 8, 5, 5);
+            g2.drawOval(x + w - 10, y + h - 8, 5, 5);
+            g2.drawLine(x + 8, y + h - 5, x + w - 8, y + h - 5);
         }
     }
 

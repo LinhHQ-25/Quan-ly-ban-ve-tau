@@ -88,8 +88,6 @@ public final class QuanLyTauGUI extends JPanel {
         JLabel lblTitle = new JLabel("TRẠNG THÁI ĐỘI TÀU TRỰC TUYẾN");
         lblTitle.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 14));
         lblTitle.setForeground(GuiTheme.NAVY);
-        lblTitle.setIcon(GuiIcons.loadIcon(QuanLyTauGUI.class, "/Images/traCuu.png", 16, 16));
-        lblTitle.setIconTextGap(8);
         pnlHeader.add(lblTitle, BorderLayout.WEST);
 
         JPanel line = new JPanel();
@@ -126,9 +124,10 @@ public final class QuanLyTauGUI extends JPanel {
 
         JLabel lblTitle = new JLabel("Thông tin tra cứu");
         lblTitle.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 15));
-        lblTitle.setForeground(GuiTheme.NAVY);
-        lblTitle.setIcon(GuiIcons.loadIcon(QuanLyTauGUI.class, "/Images/traCuu.png", 16, 16));
-        lblTitle.setIconTextGap(8);
+        lblTitle.setForeground(Color.WHITE);
+        lblTitle.setOpaque(true);
+        lblTitle.setBackground(new Color(44, 82, 150));
+        lblTitle.setBorder(new EmptyBorder(6, 15, 6, 15));
         pnlHeader.add(lblTitle, BorderLayout.WEST);
 
         JPanel line = new JPanel();
@@ -256,9 +255,10 @@ public final class QuanLyTauGUI extends JPanel {
 
         JLabel lblTitle = new JLabel("Danh sách tàu");
         lblTitle.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 15));
-        lblTitle.setForeground(GuiTheme.NAVY);
-        lblTitle.setIcon(GuiIcons.loadIcon(QuanLyTauGUI.class, "/Images/DanhSach.png", 16, 16));
-        lblTitle.setIconTextGap(8);
+        lblTitle.setForeground(Color.WHITE);
+        lblTitle.setOpaque(true);
+        lblTitle.setBackground(new Color(44, 82, 150));
+        lblTitle.setBorder(new EmptyBorder(6, 15, 6, 15));
         pnlTitleRow.add(lblTitle, BorderLayout.WEST);
 
         // Actions panel for management
@@ -371,9 +371,10 @@ public final class QuanLyTauGUI extends JPanel {
 
         lblDetailTitle = new JLabel("DANH SÁCH TOA TÀU");
         lblDetailTitle.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 15));
-        lblDetailTitle.setForeground(GuiTheme.NAVY);
-        lblDetailTitle.setIcon(GuiIcons.loadIcon(QuanLyTauGUI.class, "/Images/DanhSach.png", 16, 16));
-        lblDetailTitle.setIconTextGap(8);
+        lblDetailTitle.setForeground(Color.WHITE);
+        lblDetailTitle.setOpaque(true);
+        lblDetailTitle.setBackground(new Color(44, 82, 150));
+        lblDetailTitle.setBorder(new EmptyBorder(6, 15, 6, 15));
              // Carriage Management Actions inside the title header
         JPanel pnlCarriageActions = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
         pnlCarriageActions.setOpaque(false);
@@ -437,9 +438,10 @@ public final class QuanLyTauGUI extends JPanel {
 
         JLabel lblTitle = new JLabel("Danh sách ghế trong toa");
         lblTitle.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 15));
-        lblTitle.setForeground(GuiTheme.NAVY);
-        lblTitle.setIcon(GuiIcons.loadIcon(QuanLyTauGUI.class, "/Images/DanhSach.png", 16, 16));
-        lblTitle.setIconTextGap(8);
+        lblTitle.setForeground(Color.WHITE);
+        lblTitle.setOpaque(true);
+        lblTitle.setBackground(new Color(44, 82, 150));
+        lblTitle.setBorder(new EmptyBorder(6, 15, 6, 15));
         pnlHeader.add(lblTitle, BorderLayout.WEST);
 
         // Seat toggle button inside the seat title header
@@ -1555,10 +1557,10 @@ public final class QuanLyTauGUI extends JPanel {
             this.status = status;
             this.isSelected = id.equals(selectedTrainIdForDetail);
 
-            setPreferredSize(new Dimension(67, 80));
+            setPreferredSize(new Dimension(67, 95));
             setOpaque(false);
             setLayout(new BorderLayout(0, 4));
-            setBorder(new EmptyBorder(33, 5, 5, 5));
+            setBorder(new EmptyBorder(38, 5, 5, 5));
 
             JLabel lblId = new JLabel(id, SwingConstants.CENTER);
             lblId.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 10));
@@ -1661,7 +1663,8 @@ public final class QuanLyTauGUI extends JPanel {
             g2.fillRoundRect(2, 0, getWidth() - 4, 4, 4, 4);
 
             Color iconColor = isActive ? new Color(40, 100, 220) : new Color(220, 38, 38);
-            drawTrainIcon(g2, (getWidth() - 22) / 2, 7, 22, 22, iconColor);
+            int iconHeight = Math.min(28, Math.max(24, getHeight() - 56));
+            drawTrainIcon(g2, (getWidth() - 22) / 2, 7, 22, iconHeight, iconColor);
 
             g2.dispose();
             super.paintComponent(g);
@@ -1692,10 +1695,10 @@ public final class QuanLyTauGUI extends JPanel {
             this.loaiToa = loaiToa;
             this.isSelected = isSelected;
 
-            setPreferredSize(new Dimension(53, 63));
+            setPreferredSize(new Dimension(53, 76));
             setOpaque(false);
             setLayout(new BorderLayout(0, 4));
-            setBorder(new EmptyBorder(30, 4, 5, 4));
+            setBorder(new EmptyBorder(34, 4, 5, 4));
 
             JLabel lblToa = new JLabel("Toa " + String.format("%02d", soToa), SwingConstants.CENTER);
             lblToa.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 9));
@@ -1735,11 +1738,11 @@ public final class QuanLyTauGUI extends JPanel {
             Color iconColor = isSelected ? new Color(40, 100, 220) : new Color(156, 163, 175);
             boolean isVip = "TOA_VIP".equals(loaiToa) || (loaiToa != null && loaiToa.toUpperCase().contains("VIP"));
             String iconPath = isVip ? "/Images/logoToaVip.png" : "/Images/logoToaThuong.png";
-            ImageIcon imgIcon = GuiIcons.loadIcon(QuanLyTauGUI.class, iconPath, 20, 20);
+            ImageIcon imgIcon = GuiIcons.loadIcon(QuanLyTauGUI.class, iconPath, 20, 24);
             if (imgIcon != null) {
                 g2.drawImage(imgIcon.getImage(), (getWidth() - 20) / 2, 7, null);
             } else {
-                drawToaIcon(g2, (getWidth() - 20) / 2, 7, 20, 20, iconColor);
+                drawToaIcon(g2, (getWidth() - 20) / 2, 7, 20, 24, iconColor);
             }
 
             g2.dispose();
