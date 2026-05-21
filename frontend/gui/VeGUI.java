@@ -14,7 +14,8 @@ final class VeGUI extends JPanel {
     private static final Color BORDER = GuiTheme.SEARCH_FIELD_BORDER;
     private static final Color PRIMARY = new Color(71, 71, 156);
 
-    private JTextField txtMaVe, txtHoTen, txtCccd, txtGaDi, txtGaDen, txtViTri;
+    private JTextField txtMaVe, txtHoTen, txtGaDi, txtGaDen, txtCccdViTri;
+    private JLabel lblResults;
     private DefaultTableModel tblModel;
     private JTable tblData;
     
@@ -53,57 +54,91 @@ final class VeGUI extends JPanel {
     }
 
     private JPanel buildFilterPanel() {
-        JPanel pnlSection = new JPanel(new BorderLayout(0, 5));
-        pnlSection.setOpaque(false);
-        pnlSection.add(buildSectionTitle("Thông tin tra cứu"), BorderLayout.NORTH);
-
         RoundedPanel pnlOuter = new RoundedPanel(12, Color.WHITE, GuiTheme.SEARCH_FIELD_BORDER, 1.0f);
-        pnlOuter.setLayout(new BorderLayout(0, 5));
-        pnlOuter.setBorder(new EmptyBorder(5, 10, 5, 10));
+        pnlOuter.setLayout(new BorderLayout(0, 10));
+        pnlOuter.setBorder(new EmptyBorder(15, 20, 15, 20));
 
+        // Title Row
+        JPanel pnlHeader = new JPanel(new BorderLayout(0, 8));
+        pnlHeader.setOpaque(false);
+
+        JLabel lblTitle = new JLabel("Thông tin tra cứu");
+        lblTitle.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 15));
+        lblTitle.setForeground(GuiTheme.NAVY);
+        lblTitle.setIcon(GuiIcons.loadIcon(VeGUI.class, "/Images/traCuu.png", 16, 16));
+        lblTitle.setIconTextGap(8);
+        pnlHeader.add(lblTitle, BorderLayout.WEST);
+
+        JPanel line = new JPanel();
+        line.setBackground(new Color(230, 235, 245));
+        line.setPreferredSize(new java.awt.Dimension(0, 1));
+        pnlHeader.add(line, BorderLayout.SOUTH);
+
+        pnlOuter.add(pnlHeader, BorderLayout.NORTH);
+
+        // Fields Grid
         JPanel pnlGrid = new JPanel(new GridBagLayout());
         pnlGrid.setOpaque(false);
 
         GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(4, 5, 4, 5);
+        gbc.insets = new Insets(6, 6, 6, 6);
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.weightx = 1.0;
         
         // Hàng 0
         gbc.gridy = 0;
-        txtMaVe = buildTextField();
+        
+        txtMaVe = buildTextField("Nhập mã vé");
         gbc.gridx = 0; pnlGrid.add(buildField("Mã vé:", txtMaVe), gbc);
         
-        cboLoaiVe = buildCombo("", "Một chiều", "Khứ hồi");
+        cboLoaiVe = buildCombo("Tất cả", "Một chiều", "Khứ hồi");
         gbc.gridx = 1; pnlGrid.add(buildField("Loại vé:", cboLoaiVe), gbc);
         
-        cboTrangThai = buildCombo("", "Chờ thanh toán", "Đã thanh toán", "Đã hủy");
+        cboTrangThai = buildCombo("Tất cả", "Chờ thanh toán", "Đã thanh toán", "Đã hủy");
         gbc.gridx = 2; pnlGrid.add(buildField("Trạng thái vé:", cboTrangThai), gbc);
 
-        txtHoTen = buildTextField();
+        txtHoTen = buildTextField("Nhập họ tên");
         gbc.gridx = 3; pnlGrid.add(buildField("Họ tên khách:", txtHoTen), gbc);
-        
-        txtCccd = buildTextField();
-        gbc.gridx = 4; pnlGrid.add(buildField("CCCD / Hộ chiếu:", txtCccd), gbc);
         
         // Hàng 1
         gbc.gridy = 1;
+        
         dcNgayMua = buildDateField();
         gbc.gridx = 0; pnlGrid.add(buildField("Ngày mua:", dcNgayMua), gbc);
 
-        txtGaDi = buildTextField();
+        txtGaDi = buildTextField("Nhập ga đi");
         gbc.gridx = 1; pnlGrid.add(buildField("Ga đi:", txtGaDi), gbc);
         
-        txtGaDen = buildTextField();
+        txtGaDen = buildTextField("Nhập ga đến");
         gbc.gridx = 2; pnlGrid.add(buildField("Ga đến:", txtGaDen), gbc);
 
-        txtViTri = buildTextField();
-        gbc.gridx = 3; pnlGrid.add(buildField("Vị trí ghế:", txtViTri), gbc);
+        txtCccdViTri = buildTextField("Nhập thông tin");
+        gbc.gridx = 3; pnlGrid.add(buildField("CCCD / Hộ chiếu / Vị trí ghế:", txtCccdViTri), gbc);
 
         pnlOuter.add(pnlGrid, BorderLayout.CENTER);
+
+        // Buttons Row
+        JPanel pnlButtons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 15, 0));
+        pnlButtons.setOpaque(false);
+
+        JButton btnSearch = buildNavyButton("Tìm kiếm", GuiTheme.NAVY, GuiTheme.NAVY_HOVER);
+        JButton btnReset = buildNavyButton("Xóa trắng", GuiTheme.NAVY, GuiTheme.NAVY_HOVER);
+
+        btnSearch.addActionListener(e -> { activeCard = "ALL"; loadDataToTable(); });
+        btnReset.addActionListener(e -> {
+            txtMaVe.setText(""); txtHoTen.setText("");
+            txtGaDi.setText(""); txtGaDen.setText(""); txtCccdViTri.setText("");
+            cboLoaiVe.setSelectedIndex(0); cboTrangThai.setSelectedIndex(0);
+            dcNgayMua.setDate(null); activeCard = "ALL";
+            loadDataToTable();
+        });
+
+        pnlButtons.add(btnReset);
+        pnlButtons.add(btnSearch);
         
-        pnlSection.add(pnlOuter, BorderLayout.CENTER);
-        return pnlSection;
+        pnlOuter.add(pnlButtons, BorderLayout.SOUTH);
+
+        return pnlOuter;
     }
 
     private JPanel buildSmartFilters() {
@@ -141,8 +176,8 @@ final class VeGUI extends JPanel {
         return pnlField;
     }
 
-    private JTextField buildTextField() {
-        JTextField tf = new JTextField();
+    private JTextField buildTextField(String placeholder) {
+        JTextField tf = new JTextFieldWithPlaceholder(placeholder);
         tf.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
         tf.setBackground(GuiTheme.SEARCH_FIELD_BG);
         tf.setForeground(GuiTheme.TEXT);
@@ -171,26 +206,7 @@ final class VeGUI extends JPanel {
         return dc;
     }
 
-    private JPanel buildActionBlock() {
-        JPanel pnlButtons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
-        pnlButtons.setOpaque(false);
 
-        JButton btnSearch = buildNavyButton("Tìm kiếm", GuiTheme.NAVY, GuiTheme.NAVY_HOVER);
-        JButton btnReset = buildNavyButton("Xóa trắng", GuiTheme.NAVY, GuiTheme.NAVY_HOVER);
-
-        btnSearch.addActionListener(e -> { activeCard = "ALL"; loadDataToTable(); });
-        btnReset.addActionListener(e -> {
-            txtMaVe.setText(""); txtHoTen.setText(""); txtCccd.setText("");
-            txtGaDi.setText(""); txtGaDen.setText(""); txtViTri.setText("");
-            cboLoaiVe.setSelectedIndex(0); cboTrangThai.setSelectedIndex(0);
-            dcNgayMua.setDate(null); activeCard = "ALL";
-            loadDataToTable();
-        });
-
-        pnlButtons.add(btnSearch);
-        pnlButtons.add(btnReset);
-        return pnlButtons;
-    }
 
     private JButton buildNavyButton(String text, Color baseColor, Color hoverColor) {
         JButton btn = new JButton(text) {
@@ -199,14 +215,14 @@ final class VeGUI extends JPanel {
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                 g2.setColor(getModel().isPressed() ? baseColor.darker()
                     : getModel().isRollover() ? hoverColor : baseColor);
-                g2.fillRoundRect(0,0,getWidth(),getHeight(),8,8);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
                 g2.dispose();
                 super.paintComponent(g);
             }
         };
         btn.setPreferredSize(new Dimension(120, 30));
         btn.setForeground(Color.WHITE);
-        btn.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 11));
+        btn.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 12));
         btn.setContentAreaFilled(false); btn.setBorderPainted(false); btn.setFocusPainted(false);
         btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
         btn.setIconTextGap(8);
@@ -218,10 +234,36 @@ final class VeGUI extends JPanel {
     }
 
     private JPanel buildTablePanel() {
-        JPanel pnlOuter = new JPanel(new BorderLayout(0, 10));
-        pnlOuter.setOpaque(false);
-        JPanel pnlActions = buildActionBlock();
-        pnlOuter.add(buildSectionTitleWithActions("Danh sách vé tàu", pnlActions), BorderLayout.NORTH);
+        RoundedPanel pnlOuter = new RoundedPanel(12, Color.WHITE, GuiTheme.SEARCH_FIELD_BORDER, 1.0f);
+        pnlOuter.setLayout(new BorderLayout(0, 10));
+        pnlOuter.setBorder(new EmptyBorder(15, 20, 15, 20));
+
+        JPanel pnlHeader = new JPanel(new BorderLayout(0, 8));
+        pnlHeader.setOpaque(false);
+
+        JPanel pnlTitleRow = new JPanel(new BorderLayout());
+        pnlTitleRow.setOpaque(false);
+
+        JLabel lblTitle = new JLabel("Danh sách vé tàu");
+        lblTitle.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 15));
+        lblTitle.setForeground(GuiTheme.NAVY);
+        lblTitle.setIcon(GuiIcons.loadIcon(VeGUI.class, "/Images/DanhSach.png", 16, 16));
+        lblTitle.setIconTextGap(8);
+        pnlTitleRow.add(lblTitle, BorderLayout.WEST);
+
+        lblResults = new JLabel("");
+        lblResults.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 13));
+        lblResults.setForeground(new Color(120, 130, 140));
+        pnlTitleRow.add(lblResults, BorderLayout.EAST);
+
+        pnlHeader.add(pnlTitleRow, BorderLayout.CENTER);
+
+        JPanel line = new JPanel();
+        line.setBackground(new Color(230, 235, 245));
+        line.setPreferredSize(new java.awt.Dimension(0, 1));
+        pnlHeader.add(line, BorderLayout.SOUTH);
+
+        pnlOuter.add(pnlHeader, BorderLayout.NORTH);
 
         tblModel = new DefaultTableModel(
                 new Object[]{"STT", "Mã vé", "Khách hàng", "Loại vé", "Loại ghế", "Khởi hành", "Tuyến đường", "Vị trí", "Ngày mua", "Trạng thái"},
@@ -230,7 +272,7 @@ final class VeGUI extends JPanel {
             @Override public boolean isCellEditable(int row, int column) { return false; }
         };
         tblData = new JTable(tblModel);
-        tblData.setRowHeight(32);
+        tblData.setRowHeight(36);
         tblData.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 13));
         tblData.getTableHeader().setFont(GuiTheme.font("Segoe UI", Font.BOLD, 13));
         tblData.setShowVerticalLines(false);
@@ -249,36 +291,9 @@ final class VeGUI extends JPanel {
             }
         };
 
-        DefaultTableCellRenderer statusRenderer = new DefaultTableCellRenderer() {
-            @Override public Component getTableCellRendererComponent(JTable t, Object v, boolean s, boolean f, int row, int col) {
-                Component c = super.getTableCellRendererComponent(t, v, s, f, row, col);
-                setHorizontalAlignment(SwingConstants.CENTER);
-                String status = v != null ? v.toString() : "";
-                if (!s) {
-                    c.setBackground(row % 2 == 0 ? Color.WHITE : new Color(250, 250, 250));
-                    if (status.equals("Đã thanh toán")) {
-                        c.setForeground(new Color(40, 167, 69)); // Green
-                        c.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 13));
-                    } else if (status.equals("Chờ thanh toán")) {
-                        c.setForeground(new Color(253, 126, 20)); // Orange
-                        c.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 13));
-                    } else if (status.equals("Đã hủy")) {
-                        c.setForeground(new Color(220, 53, 69)); // Red
-                        c.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 13));
-                    } else {
-                        c.setForeground(GuiTheme.TEXT);
-                        c.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 13));
-                    }
-                } else {
-                    c.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 13));
-                }
-                return c;
-            }
-        };
-
         for (int i = 0; i < tblData.getColumnCount(); i++) {
             if (i == 9) {
-                tblData.getColumnModel().getColumn(i).setCellRenderer(statusRenderer);
+                tblData.getColumnModel().getColumn(i).setCellRenderer(new StatusBadgeRenderer());
             } else {
                 tblData.getColumnModel().getColumn(i).setCellRenderer(zebraRenderer);
             }
@@ -318,7 +333,7 @@ final class VeGUI extends JPanel {
         ((DefaultTableCellRenderer)tblData.getTableHeader().getDefaultRenderer()).setHorizontalAlignment(SwingConstants.CENTER);
 
         JScrollPane spnScroll = new JScrollPane(tblData);
-        spnScroll.setBorder(new LineBorder(BORDER, 1, true));
+        spnScroll.setBorder(null);
         spnScroll.getViewport().setBackground(Color.WHITE);
         pnlOuter.add(spnScroll, BorderLayout.CENTER);
         return pnlOuter;
@@ -354,8 +369,8 @@ final class VeGUI extends JPanel {
                          "JOIN Ga gDi ON dt.maGaDi = gDi.maGa " +
                          "JOIN Ga gDen ON dt.maGaDen = gDen.maGa " +
                          "JOIN Ghe g ON v.maGhe = g.maGhe " +
-                         "WHERE v.maVe LIKE ? AND kh.hoTenKH LIKE ? AND v.maGhe LIKE ? AND gDi.tenGa LIKE ? AND gDen.tenGa LIKE ? " +
-                         "AND kh.cccd LIKE ?";
+                         "WHERE v.maVe LIKE ? AND kh.hoTenKH LIKE ? AND gDi.tenGa LIKE ? AND gDen.tenGa LIKE ? " +
+                         "AND (kh.cccd LIKE ? OR v.maGhe LIKE ?)";
             
             if (activeCard.equals("CHO")) {
                 sql += " AND v.trangThaiVe = N'Chờ thanh toán'";
@@ -364,25 +379,37 @@ final class VeGUI extends JPanel {
             }
 
             String trangThai = (String) cboTrangThai.getSelectedItem();
-            if (trangThai != null && !trangThai.isEmpty()) sql += " AND v.trangThaiVe = ?";
+            if (trangThai != null && !trangThai.isEmpty() && !trangThai.equals("Tất cả")) {
+                sql += " AND v.trangThaiVe = ?";
+            }
             
             String loaiVe = (String) cboLoaiVe.getSelectedItem();
-            if (loaiVe != null && !loaiVe.isEmpty()) sql += " AND v.loaiVe = ?";
+            if (loaiVe != null && !loaiVe.isEmpty() && !loaiVe.equals("Tất cả")) {
+                sql += " AND v.loaiVe = ?";
+            }
 
-            if (dcNgayMua.getDate() != null) sql += " AND CAST(hd.ngayLapHD AS DATE) = ?";
+            if (dcNgayMua.getDate() != null) {
+                sql += " AND CAST(hd.ngayLapHD AS DATE) = ?";
+            }
 
             PreparedStatement stmt = conn.prepareStatement(sql);
             stmt.setString(1, "%" + txtMaVe.getText().trim() + "%");
             stmt.setString(2, "%" + txtHoTen.getText().trim() + "%");
-            stmt.setString(3, "%" + txtViTri.getText().trim() + "%");
-            stmt.setString(4, "%" + txtGaDi.getText().trim() + "%");
-            stmt.setString(5, "%" + txtGaDen.getText().trim() + "%");
-            stmt.setString(6, "%" + txtCccd.getText().trim() + "%");
+            stmt.setString(3, "%" + txtGaDi.getText().trim() + "%");
+            stmt.setString(4, "%" + txtGaDen.getText().trim() + "%");
+            stmt.setString(5, "%" + txtCccdViTri.getText().trim() + "%");
+            stmt.setString(6, "%" + txtCccdViTri.getText().trim() + "%");
             
             int idx = 7;
-            if (trangThai != null && !trangThai.isEmpty()) stmt.setString(idx++, trangThai);
-            if (loaiVe != null && !loaiVe.isEmpty()) stmt.setString(idx++, loaiVe);
-            if (dcNgayMua.getDate() != null) stmt.setDate(idx++, new java.sql.Date(dcNgayMua.getDate().getTime()));
+            if (trangThai != null && !trangThai.isEmpty() && !trangThai.equals("Tất cả")) {
+                stmt.setString(idx++, trangThai);
+            }
+            if (loaiVe != null && !loaiVe.isEmpty() && !loaiVe.equals("Tất cả")) {
+                stmt.setString(idx++, loaiVe);
+            }
+            if (dcNgayMua.getDate() != null) {
+                stmt.setDate(idx++, new java.sql.Date(dcNgayMua.getDate().getTime()));
+            }
 
             ResultSet rs = stmt.executeQuery();
             int stt = 1;
@@ -395,6 +422,9 @@ final class VeGUI extends JPanel {
                     rs.getString("loaiGhe"), khoiHanh, rs.getString("gaDi") + " - " + rs.getString("gaDen"),
                     rs.getString("maGhe"), ngayMua, rs.getString("trangThaiVe")
                 });
+            }
+            if (lblResults != null) {
+                lblResults.setText("");
             }
         } catch (SQLException e) { e.printStackTrace(); }
         updateSmartFilters();
@@ -476,6 +506,79 @@ final class VeGUI extends JPanel {
             g2.drawRoundRect(1, 1, getWidth() - 3, getHeight() - 3, arc, arc);
             g2.dispose();
             super.paintComponent(g);
+        }
+    }
+
+    private static final class JTextFieldWithPlaceholder extends JTextField {
+        private final String placeholder;
+        private JTextFieldWithPlaceholder(String placeholder) {
+            this.placeholder = placeholder;
+        }
+        @Override
+        protected void paintComponent(Graphics g) {
+            super.paintComponent(g);
+            if (getText().isEmpty() && placeholder != null) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(new Color(160, 160, 160));
+                g2.setFont(getFont().deriveFont(Font.ITALIC));
+                int padding = getInsets().left;
+                g2.drawString(placeholder, padding + 4, g.getFontMetrics().getAscent() + (getHeight() - g.getFontMetrics().getHeight()) / 2);
+                g2.dispose();
+            }
+        }
+    }
+
+    private static final class StatusBadgeRenderer extends DefaultTableCellRenderer {
+        private final JPanel panel = new JPanel(new GridBagLayout());
+        private final JLabel label = new JLabel() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(getBackground());
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 12, 12);
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
+
+        public StatusBadgeRenderer() {
+            panel.setOpaque(false);
+            label.setOpaque(false);
+            label.setHorizontalAlignment(SwingConstants.CENTER);
+            label.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 11));
+            label.setBorder(new EmptyBorder(4, 10, 4, 10));
+            panel.add(label);
+        }
+
+        @Override
+        public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int col) {
+            super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, col);
+            String status = value != null ? value.toString() : "";
+            label.setText(status.toUpperCase());
+            
+            if (isSelected) {
+                panel.setBackground(table.getSelectionBackground());
+                label.setBackground(table.getSelectionBackground());
+                label.setForeground(table.getSelectionForeground());
+            } else {
+                panel.setBackground(row % 2 == 0 ? Color.WHITE : new Color(250, 250, 250));
+                if (status.equals("Đã thanh toán")) {
+                    label.setBackground(new Color(222, 247, 236)); // Light green
+                    label.setForeground(new Color(3, 84, 63)); // Dark green
+                } else if (status.equals("Chờ thanh toán")) {
+                    label.setBackground(new Color(254, 240, 138)); // Light orange
+                    label.setForeground(new Color(133, 77, 14)); // Dark orange
+                } else if (status.equals("Đã hủy")) {
+                    label.setBackground(new Color(253, 232, 232)); // Light red
+                    label.setForeground(new Color(224, 36, 36)); // Dark red
+                } else {
+                    label.setBackground(new Color(243, 244, 246)); // Light gray
+                    label.setForeground(new Color(55, 65, 81)); // Dark gray
+                }
+            }
+            return panel;
         }
     }
 }

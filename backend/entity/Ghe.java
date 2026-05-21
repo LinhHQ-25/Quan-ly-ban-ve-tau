@@ -6,14 +6,22 @@ public class Ghe {
     private LoaiGhe loaiGhe;
     private ToaTau toaTau;
 
+    private TrangThaiGhe trangThai;
+
     public Ghe() {
+        this.trangThai = TrangThaiGhe.HOAT_DONG;
     }
 
     public Ghe(String maGhe, String soGhe, LoaiGhe loaiGhe, ToaTau toaTau) {
+        this(maGhe, soGhe, loaiGhe, toaTau, TrangThaiGhe.HOAT_DONG);
+    }
+
+    public Ghe(String maGhe, String soGhe, LoaiGhe loaiGhe, ToaTau toaTau, TrangThaiGhe trangThai) {
         this.maGhe = maGhe;
         this.soGhe = soGhe;
         this.loaiGhe = loaiGhe;
         this.toaTau = toaTau;
+        this.trangThai = trangThai != null ? trangThai : TrangThaiGhe.HOAT_DONG;
     }
 
     public String getMaGhe() {
@@ -39,13 +47,20 @@ public class Ghe {
     public void setLoaiGhe(LoaiGhe loaiGhe) {
         this.loaiGhe = loaiGhe;
     }
-
     public ToaTau getToaTau() {
         return toaTau;
     }
 
     public void setToaTau(ToaTau toaTau) {
         this.toaTau = toaTau;
+    }
+
+    public TrangThaiGhe getTrangThai() {
+        return trangThai;
+    }
+
+    public void setTrangThai(TrangThaiGhe trangThai) {
+        this.trangThai = trangThai;
     }
 
     @Override
