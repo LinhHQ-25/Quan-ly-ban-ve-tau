@@ -165,7 +165,7 @@ public class DoiMatKhauDialog extends JDialog {
         lbl.setForeground(new Color(60, 70, 85));
         group.add(lbl, BorderLayout.NORTH);
 
-        // Wrapper vẽ border, chứa ô nhập + icon mắt
+      
         JPanel inputWrapper = new JPanel(new BorderLayout()) {
             @Override protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
