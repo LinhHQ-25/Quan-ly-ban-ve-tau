@@ -26,7 +26,9 @@ import com.itextpdf.text.Paragraph;
 import com.itextpdf.text.Phrase;
 import com.itextpdf.text.pdf.BarcodeQRCode;
 import com.itextpdf.text.pdf.BaseFont;
+import com.itextpdf.text.pdf.PdfContentByte;
 import com.itextpdf.text.pdf.PdfPCell;
+import com.itextpdf.text.pdf.PdfPCellEvent;
 import com.itextpdf.text.pdf.PdfPTable;
 import com.itextpdf.text.pdf.PdfWriter;
 import util.MaTuDong;
@@ -888,265 +890,208 @@ public class DatVeGUI3 extends JPanel {
 	        });
 	    }
 	}
-	private void taoVePDF() {
-        try {
-            File folder = new File("Ve");
-            if (!folder.exists()) folder.mkdir();
+	// Đặt class này ngoài class DatVeGUI3 hoặc để là static bên trong
+	static class RoundBorder implements PdfPCellEvent {
+	    public void cellLayout(PdfPCell cell, Rectangle position, PdfContentByte[] canvases) {
+	        PdfContentByte cb = canvases[PdfPTable.LINECANVAS];
+	        cb.setLineWidth(1.2f);
+	        cb.setRGBColorStroke(0, 0, 0); 
+	        // Vẽ bo góc sát mép cell
+	        cb.roundRectangle(position.getLeft() + 1, position.getBottom() + 1, 
+	                          position.getWidth() - 2, position.getHeight() - 2, 10);
+	        cb.stroke();
+	    }
+	}
+		// --- HÀM TẠO VÉ PDF MỚI (CHUẨN TỶ LỆ 100% ẢNH MẪU) ---
+		private void taoVePDF() {
+			try {
+				File folder = new File("Ve");
+				if (!folder.exists()) folder.mkdir();
 
-            // Load Font Arial để hỗ trợ tiếng Việt
-            BaseFont bf = BaseFont.createFont("c:/windows/fonts/arial.ttf", BaseFont.IDENTITY_H, BaseFont.EMBEDDED);
-            Font fontHeaderTitle = new Font(bf, 13, Font.BOLD); // Chữ Header nhỏ "GA SÀI GÒN"
-            Font fontBOARDING = new Font(bf, 9, Font.NORMAL);  // Chữ Header nhỏ "BOARDING TICKET"
-            Font fontTitleMain = new Font(bf, 18, Font.BOLD, BaseColor.BLACK); // "VÉ LÊN TÀU HỎA"
-            Font fontTitleEn = new Font(bf, 10, Font.ITALIC, BaseColor.DARK_GRAY); // English translation
-            Font fontNormal = new Font(bf, 11, Font.NORMAL); // Nội dung thường ( labels)
-            Font fontBold = new Font(bf, 12, Font.BOLD);   // Nội dung đậm (values)
-            Font fontGaBOLD = new Font(bf, 22, Font.BOLD, BaseColor.BLACK); // Chữ Ga đi/đến cực to
-            Font fontEnSmall = new Font(bf, 9, Font.NORMAL, BaseColor.GRAY); // English smaller
+				// Font chữ (Đảm bảo font này có thật trên máy của bác)
+				BaseFont bf = BaseFont.createFont("c:/windows/fonts/arial.ttf", BaseFont.IDENTITY_H, BaseFont.EMBEDDED);
+				Font fHeader = new Font(bf, 13, Font.BOLD);
+				Font fGaTo = new Font(bf, 15, Font.BOLD);
+				Font fTitle = new Font(bf, 14, Font.BOLD);
+				Font fSub = new Font(bf, 11, Font.NORMAL);
+				Font fLabel = new Font(bf, 11, Font.NORMAL);
+				Font fValue = new Font(bf, 11, Font.BOLD);
+				Font fGaLabel = new Font(bf, 11, Font.NORMAL);
+				Font fGaName = new Font(bf, 13, Font.BOLD);
 
-            // BƯỚC 1: Đổi Document thành khổ ngang ( Landscape) để chứa mã QR và mã vạch
-            Document doc = new Document(new com.itextpdf.text.Rectangle(600, 320)); // Bố cục ngang
-            File pdfFile = new File(folder, "Ve_In_" + System.currentTimeMillis() + ".pdf");
-            PdfWriter writer = PdfWriter.getInstance(doc, new FileOutputStream(pdfFile));
-            doc.open();
-            doc.setMargins(20, 20, 15, 15);
+				for (int i = 0; i < modelChiTiet.getRowCount(); i++) {
+					String maVeStr = modelChiTiet.getValueAt(i, 1).toString();
+					String loaiVe = modelFromGUI2.getValueAt(i, 2).toString();
+					String maGhe = modelFromGUI2.getValueAt(i, 4).toString();
+					String tenKH = modelFromGUI2.getValueAt(i, 5).toString();
+					String cccd = cheCCCD(modelFromGUI2.getValueAt(i, 6).toString());
+					String loaiCho = modelChiTiet.getValueAt(i, 3).toString();
+					String hangVe = loaiCho.equals("Giường nằm") ? "VIP" : "Thường";
 
-            for (int i = 0; i < modelChiTiet.getRowCount(); i++) {
-                // 1. Lấy dữ liệu (như code gốc của bác)
-                String maVeStr = modelChiTiet.getValueAt(i, 1).toString();
-                String maGhe = modelFromGUI2.getValueAt(i, 4).toString();
-                String loaiVe = modelFromGUI2.getValueAt(i, 2).toString();
-                String tenKH = modelFromGUI2.getValueAt(i, 5).toString();
-                String cccd = modelFromGUI2.getValueAt(i, 6).toString();
-                String maChuyen = modelFromGUI2.getValueAt(i, 12).toString();
-                String loaiCho = modelChiTiet.getValueAt(i, 3).toString(); // Ghế cứng / Ghế mềm / Giường nằm
-                String hangVe = loaiCho.equals("Giường nằm") ? "VIP" : "Thường";
-                String thoiGianDiStr = modelFromGUI2.getValueAt(i, 9).toString();
-                String gaDiStr = modelFromGUI2.getValueAt(i, 7).toString();
-                String gaDenStr = modelFromGUI2.getValueAt(i, 8).toString();
-                double giaVe = Double.parseDouble(modelChiTiet.getValueAt(i, 7).toString());
+					// Dùng Mã Chuyến (Cột 12) để tự động truy vấn DB lấy thông tin sạch, tránh lỗi Cột
+					String maChuyen = modelFromGUI2.getValueAt(i, 12).toString();
+					String tenTau = "", ngayDi = "", gioDi = "", gaDi = "", gaDen = "", maToaTau = "", soGhe = "";
 
-                // 2. YÊU CẦU: Che CCCD 4 số ở giữa (dùng hàm cheCCCD ở dưới)
-                cccd = cheCCCD(cccd);
+					try (java.sql.Connection con = connect_DB.Connect_DB.getInstance().getConnection()) {
+						String sqlCT = "SELECT t.tenTau, ct.thoiGianKhoiHanh, g1.tenGa AS GaDi, g2.tenGa AS GaDen "
+								+ "FROM ChuyenTau c JOIN Tau t ON c.maTau = t.maTau "
+								+ "JOIN ChiTietChuyenTau ct ON c.maChuyenTau = ct.maChuyenTau "
+								+ "JOIN Ga g1 ON ct.maGaDi = g1.maGa JOIN Ga g2 ON ct.maGaDen = g2.maGa "
+								+ "WHERE c.maChuyenTau = ?";
+						try (java.sql.PreparedStatement ps = con.prepareStatement(sqlCT)) {
+							ps.setString(1, maChuyen);
+							try (java.sql.ResultSet rs = ps.executeQuery()) {
+								if (rs.next()) {
+									tenTau = rs.getString("tenTau");
+									gaDi = rs.getString("GaDi");
+									gaDen = rs.getString("GaDen");
+									java.sql.Timestamp ts = rs.getTimestamp("thoiGianKhoiHanh");
+									if (ts != null) {
+										ngayDi = new SimpleDateFormat("dd/MM/yyyy").format(ts);
+										gioDi = new SimpleDateFormat("HH:mm").format(ts);
+									}
+								}
+							}
+						}
+						String sqlGhe = "SELECT g.soGhe, t.soToa FROM Ghe g JOIN ToaTau t ON g.maToaTau = t.maToaTau WHERE g.maGhe = ?";
+						try (java.sql.PreparedStatement ps = con.prepareStatement(sqlGhe)) {
+							ps.setString(1, maGhe);
+							try (java.sql.ResultSet rs = ps.executeQuery()) {
+								if (rs.next()) {
+									soGhe = rs.getString("soGhe");
+									maToaTau = String.valueOf(rs.getInt("soToa"));
+								}
+							}
+						}
+					} catch (Exception ignored) {
+					}
 
-                // Lấy thêm thông tin từ database (như code gốc của bác)
-                String tenTau = "", maToaTau = "", soGhe = "", gaDi = gaDiStr, gaDen = gaDenStr;
-                SimpleDateFormat sdfInput = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-                SimpleDateFormat sdfOutputDay = new SimpleDateFormat("dd/MM/yyyy");
-                SimpleDateFormat sdfOutputTime = new SimpleDateFormat("HH:mm");
-                String ngayDi = "", gioDi = "";
+					// Đổi Sài Gòn thành Diêu Trì theo yêu cầu của bác
+					if (gaDi.equalsIgnoreCase("Sài Gòn")) gaDi = "Diêu Trì";
 
-                try (java.sql.Connection con = connect_DB.Connect_DB.getInstance().getConnection()) {
-                    // Tên tàu + thời gian + ga
-                    String sqlCT = "SELECT t.tenTau, ct.thoiGianKhoiHanh " +
-                                   "FROM ChuyenTau c " +
-                                   "JOIN Tau t ON c.maTau = t.maTau " +
-                                   "JOIN ChiTietChuyenTau ct ON c.maChuyenTau = ct.maChuyenTau " +
-                                   "WHERE c.maChuyenTau = ?";
-                    try (java.sql.PreparedStatement ps = con.prepareStatement(sqlCT)) {
-                        ps.setString(1, maChuyen);
-                        try (java.sql.ResultSet rs = ps.executeQuery()) {
-                            if (rs.next()) {
-                                tenTau = rs.getString(1);
-                                try {
-                                    java.util.Date dateDi = sdfInput.parse(thoiGianDiStr);
-                                    ngayDi = sdfOutputDay.format(dateDi);
-                                    gioDi = sdfOutputTime.format(dateDi);
-                                } catch (Exception e) {}
-                            }
-                        }
-                    }
-                    // Số toa + số ghế
-                    String sqlGhe = "SELECT g.soGhe, t.soToa " +
-                                    "FROM Ghe g JOIN ToaTau t ON g.maToaTau = t.maToaTau " +
-                                    "WHERE g.maGhe = ?";
-                    try (java.sql.PreparedStatement ps = con.prepareStatement(sqlGhe)) {
-                        ps.setString(1, maGhe);
-                        try (java.sql.ResultSet rs = ps.executeQuery()) {
-                            if (rs.next()) {
-                                soGhe = rs.getString(1);
-                                maToaTau = String.valueOf(rs.getInt(2));
-                            }
-                        }
-                    }
-                } catch (Exception ignored) {}
+					// THIẾT LẬP KÍCH THƯỚC TRANG VỪA ĐÚNG KHỔ VÉ MÁY IN (Rộng 280, Cao 520)
+					Rectangle pageSize = new Rectangle(280, 520);
+					File pdfFile = new File(folder, "Ve_" + maVeStr + ".pdf");
+					Document doc = new Document(pageSize, 10, 10, 15, 15);
+					PdfWriter writer = PdfWriter.getInstance(doc, new FileOutputStream(pdfFile));
+					doc.open();
 
-                // =====================================================================================================
-                // 3. THIẾT KẾ BỐ CỤC PDF (GIỐNG HÌNH)
-                // =====================================================================================================
+					// --- TẠO BẢNG BỌC NGOÀI (ÁP DỤNG BO GÓC) ---
+					PdfPTable wrapperTable = new PdfPTable(1);
+					wrapperTable.setWidthPercentage(100);
+					PdfPCell wrapperCell = new PdfPCell();
+					wrapperCell.setBorder(Rectangle.NO_BORDER); // Đừng set border ở đây, để RoundBorder vẽ
+					wrapperCell.setCellEvent(new RoundBorder()); // <--- DÒNG NÀY LÀ QUAN TRỌNG NHẤT
+					wrapperCell.setPadding(15);
 
-                // Header Table: Logo (trái) + "VÉ LÊN TÀU HỎA" (giữa-phải)
-                PdfPTable headerTbl = new PdfPTable(2);
-                headerTbl.setWidthPercentage(100);
-                headerTbl.setWidths(new float[] { 1f, 3f });
+					// 1. HEADER
+					Paragraph p1 = new Paragraph("TỔNG CÔNG TY ĐƯỜNG SẮT VIỆT NAM", fHeader);
+					p1.setAlignment(Element.ALIGN_CENTER);
+					wrapperCell.addElement(p1);
 
-                PdfPCell cLogoText = new PdfPCell();
-                cLogoText.setBorder(PdfPCell.NO_BORDER);
-                Paragraph pLogo = new Paragraph("GA SÀI GÒN", fontHeaderTitle);
-                pLogo.setAlignment(Element.ALIGN_CENTER);
-                cLogoText.addElement(pLogo);
-                Paragraph pEnBoarding = new Paragraph("BOARDING TICKET", fontEnSmall);
-                pEnBoarding.setAlignment(Element.ALIGN_CENTER);
-                cLogoText.addElement(pEnBoarding);
-                headerTbl.addCell(cLogoText);
+					Paragraph p2 = new Paragraph("GA DIÊU TRÌ", fGaTo);
+					p2.setAlignment(Element.ALIGN_CENTER);
+					wrapperCell.addElement(p2);
 
-                PdfPCell cTitle = new PdfPCell();
-                cTitle.setBorder(PdfPCell.NO_BORDER);
-                cTitle.setPaddingTop(5);
-                Paragraph pTitleVn = new Paragraph("VÉ LÊN TÀU HỎA", fontTitleMain);
-                pTitleVn.setAlignment(Element.ALIGN_LEFT);
-                cTitle.addElement(pTitleVn);
-                headerTbl.addCell(cTitle);
-                doc.add(headerTbl);
+					Paragraph pLine = new Paragraph("---------------------------------------------------------", fSub);
+					pLine.setAlignment(Element.ALIGN_CENTER);
+					wrapperCell.addElement(pLine);
 
-                doc.add(new Paragraph(" ", fontEnSmall)); // Khoảng trống nhỏ
+					Paragraph p3 = new Paragraph("VÉ LÊN TÀU HỎA", fTitle);
+					p3.setAlignment(Element.ALIGN_CENTER);
+					wrapperCell.addElement(p3);
 
-                // Main Content Table: Mã QR (trái) + Chi tiết ga/chuyến (phải)
-                PdfPTable mainTbl = new PdfPTable(2);
-                mainTbl.setWidthPercentage(100);
-                mainTbl.setWidths(new float[] { 1f, 3f });
+					Paragraph p4 = new Paragraph("BOARDING TICKET", fSub);
+					p4.setAlignment(Element.ALIGN_CENTER);
+					p4.setSpacingAfter(8);
+					wrapperCell.addElement(p4);
 
-                // LEFT CELL: Mã QR
-                PdfPCell cLeft = new PdfPCell();
-                cLeft.setBorder(PdfPCell.NO_BORDER);
-                cLeft.setPaddingTop(10);
-                BarcodeQRCode qrcode = new BarcodeQRCode("Mã vé: " + maVeStr, 1, 1, null);
-                Image imageQR = qrcode.getImage();
-                imageQR.scalePercent(100);
-                imageQR.setAlignment(Element.ALIGN_CENTER);
-                cLeft.addElement(imageQR);
-                mainTbl.addCell(cLeft);
+					// 2. BARCODE CHUẨN FORM
+					com.itextpdf.text.pdf.Barcode128 barcode = new com.itextpdf.text.pdf.Barcode128();
+					barcode.setCode(maVeStr);
+					barcode.setBarHeight(45f);
+					barcode.setX(1.3f);
+					barcode.setBaseline(12f);
+					barcode.setFont(bf);
+					barcode.setSize(10f);
+					barcode.setAltText("Mã vé/TicketID: " + maVeStr);
+					
+					// Ép chuẩn màu để không lỗi thư viện
+					java.awt.Image awtImage = barcode.createAwtImage(java.awt.Color.BLACK, java.awt.Color.WHITE);
+					com.itextpdf.text.Image imgBar = com.itextpdf.text.Image.getInstance(awtImage, null);
+					imgBar.setAlignment(Element.ALIGN_CENTER);
+					imgBar.setSpacingAfter(12);
+					wrapperCell.addElement(imgBar);
 
-                // RIGHT CELL: Thông tin chuyến và các thông tin chi tiết
-                PdfPCell cRight = new PdfPCell();
-                cRight.setBorder(PdfPCell.NO_BORDER);
-                
-                // --- THIẾT KẾ CHỮ GA ĐI/ĐẾN TO VÀ ĐẬM (GIỐNG HÌNH) ---
-                PdfPTable tblGa = new PdfPTable(2);
-                tblGa.setWidthPercentage(100);
-                
-                PdfPCell cGDi = new PdfPCell();
-                cGDi.setBorder(PdfPCell.NO_BORDER);
-                Paragraph pGDiFrom = new Paragraph("Ga Đi / From:", fontEnSmall);
-                pGDiFrom.setAlignment(Element.ALIGN_LEFT);
-                cGDi.addElement(pGDiFrom);
-                Paragraph pGDiValue = new Paragraph(gaDi.toUpperCase(), fontGaBOLD);
-                pGDiValue.setAlignment(Element.ALIGN_LEFT);
-                cGDi.addElement(pGDiValue);
-                
-                PdfPCell cGDen = new PdfPCell();
-                cGDen.setBorder(PdfPCell.NO_BORDER);
-                Paragraph pGDenTo = new Paragraph("Ga Đến / To:", fontEnSmall);
-                pGDenTo.setAlignment(Element.ALIGN_RIGHT);
-                cGDen.addElement(pGDenTo);
-                Paragraph pGDenValue = new Paragraph(gaDen.toUpperCase(), fontGaBOLD);
-                pGDenValue.setAlignment(Element.ALIGN_RIGHT);
-                cGDen.addElement(pGDenValue);
-                
-                tblGa.addCell(cGDi);
-                tblGa.addCell(cGDen);
-                cRight.addElement(tblGa);
+					// 3. KHỐI GA ĐI - GA ĐẾN
+					PdfPTable gaTable = new PdfPTable(2);
+					gaTable.setWidthPercentage(100);
+					gaTable.setSpacingAfter(8);
 
-                cRight.addElement(new Paragraph(" ", fontEnSmall)); // Khoảng trống nhỏ
+					PdfPCell cGaDi = new PdfPCell();
+					cGaDi.setBorder(Rectangle.NO_BORDER);
+					cGaDi.addElement(new Paragraph("Ga đi", fGaLabel));
+					cGaDi.addElement(new Paragraph(gaDi.toUpperCase(), fGaName));
 
-                // Grid Table cho thông tin chuyến
-                PdfPTable gridTbl = new PdfPTable(2);
-                gridTbl.setWidthPercentage(100);
-                gridTbl.setWidths(new float[] { 1.2f, 2.8f });
+					PdfPCell cGaDen = new PdfPCell();
+					cGaDen.setBorder(Rectangle.NO_BORDER);
+					Paragraph pDenLbl = new Paragraph("Ga đến", fGaLabel);
+					pDenLbl.setAlignment(Element.ALIGN_RIGHT);
+					cGaDen.addElement(pDenLbl);
+					Paragraph pDenVal = new Paragraph(gaDen.toUpperCase(), fGaName);
+					pDenVal.setAlignment(Element.ALIGN_RIGHT);
+					cGaDen.addElement(pDenVal);
 
-                gridTbl.addCell(createLabelCell("Chuyến Tàu / Train:", fontEnSmall));
-                gridTbl.addCell(createValueCell(tenTau, fontBold));
-                gridTbl.addCell(createLabelCell("Ngày Đi / Date:", fontEnSmall));
-                gridTbl.addCell(createValueCell(ngayDi, fontBold));
-                gridTbl.addCell(createLabelCell("Giờ Đi / Time:", fontEnSmall));
-                gridTbl.addCell(createValueCell(gioDi, fontBold));
-                cRight.addElement(gridTbl);
-                mainTbl.addCell(cRight);
-                doc.add(mainTbl);
+					gaTable.addCell(cGaDi);
+					gaTable.addCell(cGaDen);
+					wrapperCell.addElement(gaTable);
 
-                doc.add(new Paragraph(" ", fontEnSmall)); // Khoảng trống nhỏ
+					// 4. DANH SÁCH THÔNG TIN CHI TIẾT
+					PdfPTable infoTable = new PdfPTable(2);
+					infoTable.setWidthPercentage(100);
+					infoTable.setWidths(new float[] { 1.1f, 1.9f });
 
-                // ĐƯỜNG KẺ GẠCH NỐI (GIỐNG HÌNH)
-                Paragraph pDivider = new Paragraph("= = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =", fontEnSmall);
-                pDivider.setAlignment(Element.ALIGN_CENTER);
-                doc.add(pDivider);
+					String[][] details = { 
+							{ "Số hiệu tàu/Train ID:", tenTau }, 
+							{ "Ngày khởi hành/Date:", ngayDi },
+							{ "Giờ khởi hành/Time:", gioDi }, 
+							{ "Số Toa/Coach:", maToaTau }, 
+							{ "Loại Toa/Type:", loaiCho },
+							{ "Số ghế/Seat:", soGhe }, 
+							{ "Loại vé/Ticket:", loaiVe }, 
+							{ "Hạng vé/Class:", hangVe },
+							{ "Họ Tên/Name:", tenKH.toUpperCase() }, 
+							{ "Giấy tờ/Passport:", cccd } 
+					};
 
-                doc.add(new Paragraph(" ", fontEnSmall)); // Khoảng trống nhỏ
+					for (String[] d : details) {
+						PdfPCell cL = new PdfPCell(new Phrase(d[0], fLabel));
+						cL.setBorder(Rectangle.NO_BORDER);
+						cL.setPaddingBottom(5);
+						infoTable.addCell(cL);
 
-                // Bottom Details Section: Bảng chi tiết vé/ghế và thông tin khách hàng (2 cột)
-                PdfPTable bottomTbl = new PdfPTable(2);
-                bottomTbl.setWidthPercentage(100);
-                bottomTbl.setWidths(new float[] { 1f, 1f });
+						PdfPCell cR = new PdfPCell(new Phrase(d[1], fValue));
+						cR.setBorder(Rectangle.NO_BORDER);
+						cR.setPaddingBottom(5);
+						infoTable.addCell(cR);
+					}
 
-                // Bottom Left Details
-                PdfPCell cBottomLeft = new PdfPCell();
-                cBottomLeft.setBorder(PdfPCell.NO_BORDER);
-                PdfPTable blTbl = new PdfPTable(2);
-                blTbl.setWidthPercentage(100);
-                blTbl.setWidths(new float[] { 1f, 2f });
+					wrapperCell.addElement(infoTable);
+					wrapperTable.addCell(wrapperCell);
+					
+					// Nạp bảng viền bo góc vào PDF
+					doc.add(wrapperTable);
+					doc.close();
 
-                blTbl.addCell(createLabelCell("Số Toa / Coach:", fontEnSmall));
-                blTbl.addCell(createValueCell(maToaTau, fontBold));
-                blTbl.addCell(createLabelCell("Loại Toa / Type:", fontEnSmall));
-                blTbl.addCell(createValueCell(loaiCho, fontBold));
-                blTbl.addCell(createLabelCell("Số Ghế / Seat:", fontEnSmall));
-                blTbl.addCell(createValueCell(soGhe, fontBold));
-                blTbl.addCell(createLabelCell("Hạng Vé / Class:", fontEnSmall));
-                blTbl.addCell(createValueCell(hangVe, fontBold));
-                cBottomLeft.addElement(blTbl);
-                bottomTbl.addCell(cBottomLeft);
+					if (i == modelChiTiet.getRowCount() - 1 && Desktop.isDesktopSupported()) {
+						Desktop.getDesktop().open(pdfFile);
+					}
+				}
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
 
-                // Bottom Right Details
-                PdfPCell cBottomRight = new PdfPCell();
-                cBottomRight.setBorder(PdfPCell.NO_BORDER);
-                PdfPTable brTbl = new PdfPTable(2);
-                brTbl.setWidthPercentage(100);
-                brTbl.setWidths(new float[] { 1f, 2f });
-
-                brTbl.addCell(createLabelCell("Họ Tên / Name:", fontEnSmall));
-                brTbl.addCell(createValueCell(tenKH.toUpperCase(), fontBold));
-                brTbl.addCell(createLabelCell("CCCD / Passport:", fontEnSmall));
-                brTbl.addCell(createValueCell(cccd, fontBold)); // cccd has been masked
-                brTbl.addCell(createLabelCell("Giá vé/Price (VND):", fontEnSmall));
-                
-                DecimalFormat df = new DecimalFormat("#,###");
-                brTbl.addCell(createValueCell(df.format(giaVe), fontGaBOLD)); // Giá vé to và đậm
-                cBottomRight.addElement(brTbl);
-                bottomTbl.addCell(cBottomRight);
-                doc.add(bottomTbl);
-
-                doc.add(new Paragraph(" ", fontEnSmall)); // Khoảng trống nhỏ
-
-                // THIẾT KẾ MÃ VẠCH Barcode Ở CUỐI CÙNG (GIỐNG HÌNH)
-                doc.add(pDivider); // Thêm một đường gạch nối trước mã vạch
-                doc.add(new Paragraph(" ", fontEnSmall));
-
-                // 4. Barcode section
-                com.itextpdf.text.pdf.Barcode128 barcode = new com.itextpdf.text.pdf.Barcode128();
-                barcode.setCode(maVeStr);
-                barcode.setBarHeight(40f); // Higher barcode
-                barcode.setX(1.4f); // Wider
-                barcode.setBaseline(10f); // Label position
-                barcode.setAltText("Mã vé/TicketID: " + maVeStr);
-                imageQR = Image.getInstance(barcode.createAwtImage(java.awt.Color.BLACK, java.awt.Color.WHITE), null);
-                imageQR.setAlignment(Element.ALIGN_CENTER);
-                doc.add(imageQR);
-
-                // Nếu là vé cuối cùng, đóng document
-                if (i == modelChiTiet.getRowCount() - 1) {
-                    doc.close();
-                } else {
-                    doc.newPage(); // Sang trang mới cho vé tiếp theo
-                }
-            }
-
-            if (Desktop.isDesktopSupported())
-                Desktop.getDesktop().open(pdfFile);
-
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
 	private PdfPCell createLabelCell(String text, Font font) {
         PdfPCell cell = new PdfPCell(new Phrase(text, font));
         cell.setBorder(PdfPCell.NO_BORDER);

@@ -44,7 +44,12 @@ public class MoCaDialog extends JDialog {
         // Chỉnh lại padding để chữ không bị chèn ép
         body.setBorder(new EmptyBorder(15, 30, 5, 30));
 
-        JLabel lblInfo = new JLabel("<html><div style='text-align: center; width: 100%;'>Nhân viên: Trần Văn A<br>Mã nhân viên: NV001</div></html>");
+     // Lấy thông tin người đang đăng nhập từ hệ thống
+        String tenNV = service.AuthService.getCurrentHoTen();
+        String maNV = service.AuthService.getCurrentMaNV();
+
+        // Ghép nối vào chuỗi HTML để hiển thị
+        JLabel lblInfo = new JLabel("<html><div style='text-align: center; width: 100%;'>Nhân viên: <b>" + tenNV + "</b><br>Mã nhân viên: " + maNV + "</div></html>");
         lblInfo.setHorizontalAlignment(SwingConstants.CENTER);
         lblInfo.setFont(new Font("Segoe UI", Font.PLAIN, 15));
         lblInfo.setAlignmentX(Component.CENTER_ALIGNMENT);

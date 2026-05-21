@@ -29,6 +29,10 @@ public class DatVeGUI2 extends JPanel {
 	private static final String REGEX_NAM = "^(19|20)\\d{2}$";
 	private static final String REGEX_NGAY = "^\\d{2}/\\d{2}/(19|20)\\d{2}$";
 
+	private List<String> danhSachThoiGian;
+	private String gaDi, gaDen;
+
+  
 	private JTextField txtSdt, txtHoTen, txtIdCard, txtEmail, txtNamSinh;
 	private JTextField txtLoaiDoiTuong;
 	private JRadioButton rdoCccd, rdoHoChieu;
@@ -62,13 +66,20 @@ public class DatVeGUI2 extends JPanel {
 	private static final int COL_EMAIL = 9;
 	private static final int COL_NAMSINH = 10;
 	private static final int COL_LASISV = 11;
-
+	  // Sửa lại Index cột ẩn cho chuẩn
+		private static final int COL_MACHUYEN = 12;
+		private static final int COL_GADI = 13;
+		private static final int COL_GADEN = 14;
+		private static final int COL_THOIGIANDI = 15;
 	private boolean isLoadingRow = false;
 
 	// ĐÃ SỬA: Cập nhật hàm khởi tạo để nhận tham số thứ 2 là danhSachMaChuyen
-	public DatVeGUI2(List<String> danhSachGhe, List<String> danhSachMaChuyen, String loaiVe, Runnable onQuayLai) {
+	public DatVeGUI2(List<String> danhSachGhe, List<String> danhSachMaChuyen, List<String> danhSachThoiGian, String gaDi, String gaDen, String loaiVe, Runnable onQuayLai) {
 		this.danhSachGhe = danhSachGhe;
 		this.danhSachMaChuyen = danhSachMaChuyen;
+		this.danhSachThoiGian = danhSachThoiGian;
+		this.gaDi = gaDi;
+		this.gaDen = gaDen;
 		this.loaiVe = loaiVe;
 		this.onQuayLai = onQuayLai;
 
@@ -826,7 +837,7 @@ public class DatVeGUI2 extends JPanel {
 		wrapper.add(headerRow, BorderLayout.NORTH);
 		String[] cols = { "STT", "Mã vé", "Loại vé", "Chiều vé", "Mã ghế", "Họ tên", "CCCD/Hộ chiếu", "SĐT",
 				"Loại đối tượng", "email_hidden", "namsinh_hidden", "lasisv_hidden", "machuyen_hidden",
-				"magaden_hidden" };
+				"gadi_hidden", "gaden_hidden", "thoigiandi_hidden" };
 		modelVe = new DefaultTableModel(cols, 0) {
 			@Override
 			public boolean isCellEditable(int r, int c) {
@@ -860,7 +871,7 @@ public class DatVeGUI2 extends JPanel {
 		header.setPreferredSize(new Dimension(0, 36));
 		header.setBorder(new MatteBorder(0, 0, 1, 0, BORDER_C));
 
-		int[] widths = { 35, 90, 80, 80, 110, 140, 120, 100, 120, 0, 0, 0, 0, 0 };
+		int[] widths = { 35, 90, 80, 80, 110, 140, 120, 100, 120, 0, 0, 0, 0, 0, 0, 0 };
 		for (int i = 0; i < widths.length; i++) {
 			tblVe.getColumnModel().getColumn(i).setPreferredWidth(widths[i]);
 			if (i >= 9) {
@@ -930,37 +941,20 @@ public class DatVeGUI2 extends JPanel {
 		int half = khuHoi ? danhSachGhe.size() / 2 : danhSachGhe.size();
 		for (int i = 0; i < danhSachGhe.size(); i++) {
 			String chieu = !khuHoi ? "Chiều đi" : (i < half ? "Chiều đi" : "Chiều về");
-			// Lấy maGaDen từ maChuyen: query DB để tìm ga đến tương ứng
 			String maChuyen = danhSachMaChuyen.get(i);
-			String maGaDen = layMaGaDen(maChuyen);
+			String tgDi = danhSachThoiGian.get(i);
+			
+            // Nếu là vé khứ hồi & đang là chiều về thì đảo ngược ga đi và ga đến
+			String gaDiHienTai = chieu.equals("Chiều về") ? gaDen : gaDi;
+			String gaDenHienTai = chieu.equals("Chiều về") ? gaDi : gaDen;
+
 			modelVe.addRow(new Object[] { i + 1, generateUniqueMaVe(), loaiVe, chieu, danhSachGhe.get(i), "", "", "",
-					"", "", "", false, maChuyen, maGaDen });
+					"", "", "", false, maChuyen, gaDiHienTai, gaDenHienTai, tgDi });
 		}
 		if (tblVe.getRowCount() > 0)
 			tblVe.setRowSelectionInterval(0, 0);
 	}
-
-	/**
-	 * Lấy maGa đến từ maChuyenTau (lấy ga cuối cùng trong ChiTietChuyenTau của
-	 * chuyến đó)
-	 */
-	private String layMaGaDen(String maChuyen) {
-		if (maChuyen == null || maChuyen.isEmpty())
-			return "";
-		String sql = "SELECT TOP 1 dt.maGaDen FROM ChiTietChuyenTau dt "
-				+ "WHERE dt.maChuyenTau = ? ORDER BY dt.thoiGianKhoiHanh DESC";
-		try (java.sql.Connection con = connect_DB.Connect_DB.getInstance().getConnection();
-				java.sql.PreparedStatement ps = con.prepareStatement(sql)) {
-			ps.setString(1, maChuyen);
-			try (java.sql.ResultSet rs = ps.executeQuery()) {
-				if (rs.next())
-					return rs.getString(1);
-			}
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-		return "";
-	}
+    // (Bác XÓA luôn cái hàm layMaGaDen(...) trong GUI 2 đi, không xài tới nữa)
 
 	private void startCountdown() {
 		countdownTimer = new javax.swing.Timer(1000, e -> {

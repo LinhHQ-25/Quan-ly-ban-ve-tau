@@ -251,7 +251,7 @@ public class AppFrameManager extends JFrame {
 		contentCards.setBackground(GuiTheme.LIGHT_BG);
 		contentCards.add(new ThongKeManagerGUI(), "dashboard"); 
 		contentCards.add(new QLyNhanVienGUI(), "ql-nhanvien");
-		contentCards.add(createBlankPage("Giao diện Quản lý Ca làm đang xây dựng..."), "ql-calam");
+		contentCards.add(new QuanLyCaLamGUI(), "ql-calam");
 		contentCards.add(new QuanLyTauGUI(), "ql-tau");
 		contentCards.add(new QuanLyChuyenTauGUI(), "ql-chuyentau");
 		contentCards.add(new KhuyenMaiGUI(), "ql-khuyenmai");

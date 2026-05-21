@@ -1234,8 +1234,8 @@ public class DatVeGUI1 extends JPanel {
 	}
 
 	// ĐÃ SỬA: Hàm này đón thêm danh sách Mã Chuyến
-	private void chuyenSangGUI2(List<String> listGheChon, List<String> listMaChuyen) {
-		DatVeGUI2 gui2 = new DatVeGUI2(listGheChon, listMaChuyen, loaiVe, () -> {
+	private void chuyenSangGUI2(List<String> listGheChon, List<String> listMaChuyen, List<String> listThoiGian, String gaDi, String gaDen) {
+		DatVeGUI2 gui2 = new DatVeGUI2(listGheChon, listMaChuyen, listThoiGian, gaDi, gaDen, loaiVe, () -> {
 			Container parent = getParent();
 			if (parent != null) {
 				LayoutManager lm = parent.getLayout();
@@ -1306,29 +1306,41 @@ public class DatVeGUI1 extends JPanel {
 						return;
 					}
 
-					// ĐÃ SỬA: Tạo thêm giỏ hàng chứa Mã Chuyến song song với Mã Ghế
+					// Thay thế đoạn tạo list ở btnAction bằng đoạn này:
 					List<String> listGhe = new ArrayList<>();
 					List<String> listMaChuyen = new ArrayList<>();
+					List<String> listThoiGian = new ArrayList<>(); // Thêm list thời gian
 
 					if (motChieu) {
 						listGhe.addAll(gheChon);
 						String maC = CHUYEN_FILTERED[chuyenIdx][5];
-						for (int i = 0; i < gheChon.size(); i++)
+						String tgDi = CHUYEN_FILTERED[chuyenIdx][1]; // Cột 1 là thời gian đi
+						for (int i = 0; i < gheChon.size(); i++) {
 							listMaChuyen.add(maC);
+							listThoiGian.add(tgDi);
+						}
 					} else {
+						// Chiều đi
 						listGhe.addAll(gheChonDi);
 						String maCDi = CHUYEN_FILTERED[chuyenIdxDi][5];
-						for (int i = 0; i < gheChonDi.size(); i++)
+						String tgDi = CHUYEN_FILTERED[chuyenIdxDi][1];
+						for (int i = 0; i < gheChonDi.size(); i++) {
 							listMaChuyen.add(maCDi);
-
+							listThoiGian.add(tgDi);
+						}
+						// Chiều về
 						gheChonVe.clear();
 						gheChonVe.addAll(gheChon);
 						listGhe.addAll(gheChonVe);
 						String maCVe = CHUYEN_FILTERED_VE[chuyenIdx][5];
-						for (int i = 0; i < gheChonVe.size(); i++)
+						String tgVe = CHUYEN_FILTERED_VE[chuyenIdx][1];
+						for (int i = 0; i < gheChonVe.size(); i++) {
 							listMaChuyen.add(maCVe);
+							listThoiGian.add(tgVe);
+						}
 					}
-					chuyenSangGUI2(listGhe, listMaChuyen); // Chuyền cả 2 danh sách sang
+					// Chuyền đầy đủ dữ liệu sang GUI 2
+					chuyenSangGUI2(listGhe, listMaChuyen, listThoiGian, gaDi, gaDen);
 				}
 			} else {
 				String[][] filtered = dangXemChieuVe ? CHUYEN_FILTERED_VE : CHUYEN_FILTERED;
