@@ -127,7 +127,7 @@ public class DatVeGUI2 extends JPanel {
 						showErrMsg(txtSdt, "Vui lòng kiểm tra thông tin \"Số điện thoại\"");
 						return;
 					}
-					
+
 					KhachHang kh = new KhachHangDAO().timTheoSDT(phone);
 					if (kh != null) {
 						khachTonTai = true;
@@ -145,18 +145,25 @@ public class DatVeGUI2 extends JPanel {
 						txtEmail.setText(kh.getEmail() != null ? kh.getEmail() : "");
 						if (kh.getNamSinh() != null) {
 							LocalDate ld = kh.getNamSinh();
-							txtNamSinh.setText(String.format("%02d/%02d/%04d", ld.getDayOfMonth(), ld.getMonthValue(), ld.getYear()));
+							txtNamSinh.setText(String.format("%02d/%02d/%04d", ld.getDayOfMonth(), ld.getMonthValue(),
+									ld.getYear()));
 							boolean laSV = kh.getLaSinhVien();
 							chkSinhVien.setSelected(laSV);
-							if (laSV) setLoaiDoiTuong("Sinh viên");
+							if (laSV)
+								setLoaiDoiTuong("Sinh viên");
 							else {
 								int age = LocalDate.now().getYear() - ld.getYear();
-								if (age < 6) setLoaiDoiTuong("Trẻ em (<6 tuổi)");
-								else if (age <= 10) setLoaiDoiTuong("Trẻ em (6-10 tuổi)");
-								else if (age >= 60) setLoaiDoiTuong("Người cao tuổi");
-								else setLoaiDoiTuong("Người lớn");
+								if (age < 6)
+									setLoaiDoiTuong("Trẻ em (<6 tuổi)");
+								else if (age <= 10)
+									setLoaiDoiTuong("Trẻ em (6-10 tuổi)");
+								else if (age >= 60)
+									setLoaiDoiTuong("Người cao tuổi");
+								else
+									setLoaiDoiTuong("Người lớn");
 							}
-						} else txtNamSinh.setText("");
+						} else
+							txtNamSinh.setText("");
 						setFormEditable(true);
 						btnXacNhan.requestFocus();
 					} else {
@@ -197,7 +204,8 @@ public class DatVeGUI2 extends JPanel {
 				if (e.getKeyCode() == KeyEvent.VK_ENTER) {
 					String id = txtIdCard.getText().trim();
 					if (id.isEmpty()) {
-						showErrMsg(txtIdCard, "Vui lòng kiểm tra thông tin \"" + (rdoCccd.isSelected() ? "CCCD" : "Hộ chiếu") + "\"");
+						showErrMsg(txtIdCard,
+								"Vui lòng kiểm tra thông tin \"" + (rdoCccd.isSelected() ? "CCCD" : "Hộ chiếu") + "\"");
 						return;
 					}
 					if (rdoCccd.isSelected()) {
@@ -218,24 +226,35 @@ public class DatVeGUI2 extends JPanel {
 
 		rdoCccd = new JRadioButton("CCCD", true);
 		rdoHoChieu = new JRadioButton("Hộ chiếu", false);
-		rdoCccd.setFont(FONT_14); rdoCccd.setOpaque(false);
-		rdoHoChieu.setFont(FONT_14); rdoHoChieu.setOpaque(false);
+		rdoCccd.setFont(FONT_14);
+		rdoCccd.setOpaque(false);
+		rdoHoChieu.setFont(FONT_14);
+		rdoHoChieu.setOpaque(false);
 		ButtonGroup grpId = new ButtonGroup();
-		grpId.add(rdoCccd); grpId.add(rdoHoChieu);
+		grpId.add(rdoCccd);
+		grpId.add(rdoHoChieu);
 
 		JPanel pnlRadioRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
 		pnlRadioRow.setOpaque(false);
-		pnlRadioRow.add(rdoCccd); pnlRadioRow.add(rdoHoChieu);
+		pnlRadioRow.add(rdoCccd);
+		pnlRadioRow.add(rdoHoChieu);
 
 		JPanel pnlIdCard = new JPanel(new GridBagLayout());
 		pnlIdCard.setOpaque(false);
 		GridBagConstraints idGbc = new GridBagConstraints();
-		idGbc.gridx = 0; idGbc.gridy = 0; idGbc.weightx = 1; idGbc.weighty = 0;
-		idGbc.fill = GridBagConstraints.HORIZONTAL; idGbc.anchor = GridBagConstraints.NORTH;
+		idGbc.gridx = 0;
+		idGbc.gridy = 0;
+		idGbc.weightx = 1;
+		idGbc.weighty = 0;
+		idGbc.fill = GridBagConstraints.HORIZONTAL;
+		idGbc.anchor = GridBagConstraints.NORTH;
 		pnlIdCard.add(pnlRadioRow, idGbc);
-		idGbc.gridy = 1; idGbc.insets = new Insets(-5, 0, 0, 0);
+		idGbc.gridy = 1;
+		idGbc.insets = new Insets(-5, 0, 0, 0);
 		pnlIdCard.add(txtIdCard, idGbc);
-		idGbc.gridy = 2; idGbc.weighty = 1; idGbc.fill = GridBagConstraints.VERTICAL;
+		idGbc.gridy = 2;
+		idGbc.weighty = 1;
+		idGbc.fill = GridBagConstraints.VERTICAL;
 		pnlIdCard.add(Box.createVerticalGlue(), idGbc);
 
 		txtEmail = createTextField();
@@ -254,13 +273,16 @@ public class DatVeGUI2 extends JPanel {
 		});
 
 		txtLoaiDoiTuong = new JTextField("");
-		txtLoaiDoiTuong.setFont(FONT_14); txtLoaiDoiTuong.setEditable(false);
+		txtLoaiDoiTuong.setFont(FONT_14);
+		txtLoaiDoiTuong.setEditable(false);
 		txtLoaiDoiTuong.setPreferredSize(new Dimension(150, 32));
 		txtLoaiDoiTuong.setBackground(new Color(245, 246, 248));
 		txtLoaiDoiTuong.setForeground(new Color(80, 80, 80));
-		txtLoaiDoiTuong.setBorder(BorderFactory.createCompoundBorder(new LineBorder(BORDER_C), new EmptyBorder(2, 8, 2, 8)));
+		txtLoaiDoiTuong
+				.setBorder(BorderFactory.createCompoundBorder(new LineBorder(BORDER_C), new EmptyBorder(2, 8, 2, 8)));
 
-		cbLoaiDoiTuong = new JComboBox<>(new String[] { "Người lớn", "Trẻ em (<6 tuổi)", "Trẻ em (6-10 tuổi)", "Người cao tuổi" });
+		cbLoaiDoiTuong = new JComboBox<>(
+				new String[] { "Người lớn", "Trẻ em (<6 tuổi)", "Trẻ em (6-10 tuổi)", "Người cao tuổi" });
 		cbLoaiDoiTuong.setVisible(false);
 		cbLoaiDoiTuong.addActionListener(e -> {
 			Object sel = cbLoaiDoiTuong.getSelectedItem();
@@ -268,15 +290,20 @@ public class DatVeGUI2 extends JPanel {
 		});
 
 		chkSinhVien = new JCheckBox("Sinh viên");
-		chkSinhVien.setFont(FONT_14); chkSinhVien.setOpaque(false);
+		chkSinhVien.setFont(FONT_14);
+		chkSinhVien.setOpaque(false);
 		chkSinhVien.addActionListener(e -> {
-			if (chkSinhVien.isSelected()) setLoaiDoiTuong("Sinh viên");
-			else tinhLoaiDoiTuongTuNamSinh();
+			if (chkSinhVien.isSelected())
+				setLoaiDoiTuong("Sinh viên");
+			else
+				tinhLoaiDoiTuongTuNamSinh();
 		});
 
 		JPanel pnlLoaiDT = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
 		pnlLoaiDT.setOpaque(false);
-		pnlLoaiDT.add(chkSinhVien); pnlLoaiDT.add(txtLoaiDoiTuong); pnlLoaiDT.add(cbLoaiDoiTuong);
+		pnlLoaiDT.add(chkSinhVien);
+		pnlLoaiDT.add(txtLoaiDoiTuong);
+		pnlLoaiDT.add(cbLoaiDoiTuong);
 
 		txtNamSinh = createTextField();
 		txtNamSinh.setToolTipText("Nhập năm sinh (vd: 1995) hoặc ngày đầy đủ (vd: 15/03/1995)");
@@ -284,69 +311,99 @@ public class DatVeGUI2 extends JPanel {
 			@Override
 			public void keyTyped(KeyEvent e) {
 				char c = e.getKeyChar();
-				if (c == KeyEvent.VK_BACK_SPACE) return;
-				if (!Character.isDigit(c) && c != '/') e.consume();
-				if (txtNamSinh.getText().length() >= 10) e.consume();
+				if (c == KeyEvent.VK_BACK_SPACE)
+					return;
+				if (!Character.isDigit(c) && c != '/')
+					e.consume();
+				if (txtNamSinh.getText().length() >= 10)
+					e.consume();
 			}
+
 			@Override
 			public void keyPressed(KeyEvent e) {
-				if (e.getKeyCode() != KeyEvent.VK_ENTER) return;
+				if (e.getKeyCode() != KeyEvent.VK_ENTER)
+					return;
 				String ns = txtNamSinh.getText().trim();
 				if (ns.isEmpty() || (!ns.matches(REGEX_NAM) && !ns.matches(REGEX_NGAY))) {
 					showErrMsg(txtNamSinh, "Vui lòng kiểm tra thông tin \"Năm sinh\"");
 					return;
 				}
-				if (chkSinhVien.isSelected()) setLoaiDoiTuong("Sinh viên");
-				else tinhLoaiDoiTuongTuNamSinh();
+				if (chkSinhVien.isSelected())
+					setLoaiDoiTuong("Sinh viên");
+				else
+					tinhLoaiDoiTuongTuNamSinh();
 				xacNhanVaDuaXuongBang();
 			}
 		});
 		txtNamSinh.addFocusListener(new FocusAdapter() {
 			@Override
 			public void focusLost(FocusEvent e) {
-				if (!chkSinhVien.isSelected()) tinhLoaiDoiTuongTuNamSinh();
+				if (!chkSinhVien.isSelected())
+					tinhLoaiDoiTuongTuNamSinh();
 			}
 		});
 
-        JButton btnLamMoi = makeNavyBtn("Làm mới", loadIcon("/Images/logoLammoi.png", 14, 14));
-        btnLamMoi.setHorizontalTextPosition(SwingConstants.RIGHT); 
-        btnLamMoi.addActionListener(e -> {
-            txtSdt.setText(""); txtHoTen.setText(""); txtIdCard.setText("");
-            txtEmail.setText(""); txtNamSinh.setText(""); txtLoaiDoiTuong.setText("");
-            chkSinhVien.setSelected(false); rdoCccd.setSelected(true);
-            setFormEditable(true); khachTonTai = false; txtSdt.requestFocus();
-        });
+		JButton btnLamMoi = makeNavyBtn("Làm mới", loadIcon("/Images/logoLammoi.png", 14, 14));
+		btnLamMoi.setHorizontalTextPosition(SwingConstants.RIGHT);
+		btnLamMoi.addActionListener(e -> {
+			txtSdt.setText("");
+			txtHoTen.setText("");
+			txtIdCard.setText("");
+			txtEmail.setText("");
+			txtNamSinh.setText("");
+			txtLoaiDoiTuong.setText("");
+			chkSinhVien.setSelected(false);
+			rdoCccd.setSelected(true);
+			setFormEditable(true);
+			khachTonTai = false;
+			txtSdt.requestFocus();
+		});
 
-        btnXacNhan = makeNavyBtn("Xác nhận", loadIcon("/Images/logoXacNhan.png", 14, 14));
-        btnXacNhan.setHorizontalTextPosition(SwingConstants.RIGHT);
-        btnXacNhan.addActionListener(e -> xacNhanVaDuaXuongBang());
+		btnXacNhan = makeNavyBtn("Xác nhận", loadIcon("/Images/logoXacNhan.png", 14, 14));
+		btnXacNhan.setHorizontalTextPosition(SwingConstants.RIGHT);
+		btnXacNhan.addActionListener(e -> xacNhanVaDuaXuongBang());
 
-        JPanel pnlActionBtns = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
-        pnlActionBtns.setOpaque(false);
-        pnlActionBtns.add(btnLamMoi);
-        pnlActionBtns.add(btnXacNhan);
+		JPanel pnlActionBtns = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
+		pnlActionBtns.setOpaque(false);
+		pnlActionBtns.add(btnLamMoi);
+		pnlActionBtns.add(btnXacNhan);
 
-		gbc.weightx = 0.15; addFormItem(pnlForm, gbc, 0, 0, "Số điện thoại", txtSdt);
-		gbc.weightx = 0.25; addFormItem(pnlForm, gbc, 1, 0, "Họ và tên", txtHoTen);
-		gbc.weightx = 0.28; gbc.gridx = 2; gbc.gridy = 0;
-		gbc.fill = GridBagConstraints.BOTH; gbc.anchor = GridBagConstraints.WEST;
+		gbc.weightx = 0.15;
+		addFormItem(pnlForm, gbc, 0, 0, "Số điện thoại", txtSdt);
+		gbc.weightx = 0.25;
+		addFormItem(pnlForm, gbc, 1, 0, "Họ và tên", txtHoTen);
+		gbc.weightx = 0.28;
+		gbc.gridx = 2;
+		gbc.gridy = 0;
+		gbc.fill = GridBagConstraints.BOTH;
+		gbc.anchor = GridBagConstraints.WEST;
 		gbc.insets = new Insets(10, 10, 6, 10);
 		pnlForm.add(pnlIdCard, gbc);
-		gbc.weightx = 0.22; addFormItem(pnlForm, gbc, 3, 0, "Email", txtEmail);
+		gbc.weightx = 0.22;
+		addFormItem(pnlForm, gbc, 3, 0, "Email", txtEmail);
 
-		gbc.weightx = 0.15; addFormItem(pnlForm, gbc, 0, 1, "Năm sinh", txtNamSinh);
-		gbc.weightx = 0.45; gbc.gridx = 1; gbc.gridy = 1; gbc.gridwidth = 2;
+		gbc.weightx = 0.15;
+		addFormItem(pnlForm, gbc, 0, 1, "Năm sinh", txtNamSinh);
+		gbc.weightx = 0.45;
+		gbc.gridx = 1;
+		gbc.gridy = 1;
+		gbc.gridwidth = 2;
 		gbc.fill = GridBagConstraints.HORIZONTAL;
 		JPanel wrapLoai = new JPanel(new BorderLayout(0, 4));
 		wrapLoai.setOpaque(false);
 		JLabel lblLoai = new JLabel("Loại đối tượng");
-		lblLoai.setFont(FONT_14); lblLoai.setForeground(new Color(40, 40, 40));
-		wrapLoai.add(lblLoai, BorderLayout.NORTH); wrapLoai.add(pnlLoaiDT, BorderLayout.CENTER);
+		lblLoai.setFont(FONT_14);
+		lblLoai.setForeground(new Color(40, 40, 40));
+		wrapLoai.add(lblLoai, BorderLayout.NORTH);
+		wrapLoai.add(pnlLoaiDT, BorderLayout.CENTER);
 		pnlForm.add(wrapLoai, gbc);
 		gbc.gridwidth = 1;
 
-		gbc.gridx = 3; gbc.gridy = 1; gbc.weightx = 0.22;
-		gbc.anchor = GridBagConstraints.SOUTHEAST; gbc.fill = GridBagConstraints.NONE;
+		gbc.gridx = 3;
+		gbc.gridy = 1;
+		gbc.weightx = 0.22;
+		gbc.anchor = GridBagConstraints.SOUTHEAST;
+		gbc.fill = GridBagConstraints.NONE;
 		gbc.insets = new Insets(10, 10, 10, 10);
 		pnlForm.add(pnlActionBtns, gbc);
 
@@ -362,27 +419,61 @@ public class DatVeGUI2 extends JPanel {
 		String ns = txtNamSinh.getText().trim();
 		String loaiDT = txtLoaiDoiTuong.getText().trim();
 
-		if (sdt.isEmpty()) { showErr(txtSdt, "Số điện thoại"); return false; }
-		if (!sdt.matches(REGEX_SDT)) { showErrMsg(txtSdt, "Vui lòng kiểm tra thông tin \"Số điện thoại\""); return false; }
-
-		if (hoten.isEmpty()) { showErr(txtHoTen, "Họ và tên"); return false; }
-		if (!hoten.matches(REGEX_HOTEN)) { showErrMsg(txtHoTen, "Vui lòng kiểm tra thông tin \"Họ và tên\""); return false; }
-
-		if (id.isEmpty()) { showErr(txtIdCard, rdoCccd.isSelected() ? "CCCD" : "Hộ chiếu"); return false; }
-		if (rdoCccd.isSelected()) {
-			if (!id.matches(REGEX_CCCD)) { showErrMsg(txtIdCard, "Vui lòng kiểm tra thông tin \"CCCD\""); return false; }
-		} else {
-			if (!id.matches(REGEX_HC)) { showErrMsg(txtIdCard, "Vui lòng kiểm tra thông tin \"Hộ chiếu\""); return false; }
+		if (sdt.isEmpty()) {
+			showErr(txtSdt, "Số điện thoại");
+			return false;
+		}
+		if (!sdt.matches(REGEX_SDT)) {
+			showErrMsg(txtSdt, "Vui lòng kiểm tra thông tin \"Số điện thoại\"");
+			return false;
 		}
 
-		if (email.isEmpty()) { showErr(txtEmail, "Email"); return false; }
-		if (!email.matches(REGEX_EMAIL)) { showErrMsg(txtEmail, "Vui lòng kiểm tra thông tin \"Email\""); return false; }
+		if (hoten.isEmpty()) {
+			showErr(txtHoTen, "Họ và tên");
+			return false;
+		}
+		if (!hoten.matches(REGEX_HOTEN)) {
+			showErrMsg(txtHoTen, "Vui lòng kiểm tra thông tin \"Họ và tên\"");
+			return false;
+		}
 
-		if (ns.isEmpty()) { showErr(txtNamSinh, "Năm sinh"); return false; }
-		if (!ns.matches(REGEX_NAM) && !ns.matches(REGEX_NGAY)) { showErrMsg(txtNamSinh, "Vui lòng kiểm tra thông tin \"Năm sinh\""); return false; }
+		if (id.isEmpty()) {
+			showErr(txtIdCard, rdoCccd.isSelected() ? "CCCD" : "Hộ chiếu");
+			return false;
+		}
+		if (rdoCccd.isSelected()) {
+			if (!id.matches(REGEX_CCCD)) {
+				showErrMsg(txtIdCard, "Vui lòng kiểm tra thông tin \"CCCD\"");
+				return false;
+			}
+		} else {
+			if (!id.matches(REGEX_HC)) {
+				showErrMsg(txtIdCard, "Vui lòng kiểm tra thông tin \"Hộ chiếu\"");
+				return false;
+			}
+		}
+
+		if (email.isEmpty()) {
+			showErr(txtEmail, "Email");
+			return false;
+		}
+		if (!email.matches(REGEX_EMAIL)) {
+			showErrMsg(txtEmail, "Vui lòng kiểm tra thông tin \"Email\"");
+			return false;
+		}
+
+		if (ns.isEmpty()) {
+			showErr(txtNamSinh, "Năm sinh");
+			return false;
+		}
+		if (!ns.matches(REGEX_NAM) && !ns.matches(REGEX_NGAY)) {
+			showErrMsg(txtNamSinh, "Vui lòng kiểm tra thông tin \"Năm sinh\"");
+			return false;
+		}
 
 		if (loaiDT.isEmpty()) {
-			JOptionPane.showMessageDialog(this, "Vui lòng kiểm tra thông tin \"Loại đối tượng\"", "Thiếu thông tin", JOptionPane.WARNING_MESSAGE);
+			JOptionPane.showMessageDialog(this, "Vui lòng kiểm tra thông tin \"Loại đối tượng\"", "Thiếu thông tin",
+					JOptionPane.WARNING_MESSAGE);
 			return false;
 		}
 		return true;
@@ -394,33 +485,44 @@ public class DatVeGUI2 extends JPanel {
 
 	private void showErrMsg(JTextField field, String msg) {
 		JOptionPane.showMessageDialog(this, msg, "Thông tin không hợp lệ", JOptionPane.WARNING_MESSAGE);
-		field.requestFocus(); field.selectAll();
+		field.requestFocus();
+		field.selectAll();
 		field.setBorder(BorderFactory.createCompoundBorder(new LineBorder(ERR_C, 2), new EmptyBorder(2, 8, 2, 8)));
 		field.addFocusListener(new FocusAdapter() {
-			@Override public void focusGained(FocusEvent e) {
-				field.setBorder(BorderFactory.createCompoundBorder(new LineBorder(BORDER_C), new EmptyBorder(2, 8, 2, 8)));
+			@Override
+			public void focusGained(FocusEvent e) {
+				field.setBorder(
+						BorderFactory.createCompoundBorder(new LineBorder(BORDER_C), new EmptyBorder(2, 8, 2, 8)));
 				field.removeFocusListener(this);
 			}
 		});
 	}
 
 	private void setFormEditable(boolean editable) {
-		txtHoTen.setEditable(editable); txtIdCard.setEditable(editable);
-		txtEmail.setEditable(editable); txtNamSinh.setEditable(editable);
-		rdoCccd.setEnabled(editable); rdoHoChieu.setEnabled(editable); chkSinhVien.setEnabled(editable);
+		txtHoTen.setEditable(editable);
+		txtIdCard.setEditable(editable);
+		txtEmail.setEditable(editable);
+		txtNamSinh.setEditable(editable);
+		rdoCccd.setEnabled(editable);
+		rdoHoChieu.setEnabled(editable);
+		chkSinhVien.setEnabled(editable);
 		Color bg = editable ? Color.WHITE : new Color(240, 240, 240);
-		txtHoTen.setBackground(bg); txtIdCard.setBackground(bg);
-		txtEmail.setBackground(bg); txtNamSinh.setBackground(bg);
+		txtHoTen.setBackground(bg);
+		txtIdCard.setBackground(bg);
+		txtEmail.setBackground(bg);
+		txtNamSinh.setBackground(bg);
 	}
 
 	private String capitalizeWords(String s) {
-		if (s == null || s.isEmpty()) return s;
+		if (s == null || s.isEmpty())
+			return s;
 		String[] parts = s.trim().split("\\s+");
 		StringBuilder sb = new StringBuilder();
 		for (String p : parts) {
 			if (!p.isEmpty()) {
 				sb.append(Character.toUpperCase(p.charAt(0)));
-				if (p.length() > 1) sb.append(p.substring(1).toLowerCase());
+				if (p.length() > 1)
+					sb.append(p.substring(1).toLowerCase());
 			}
 			sb.append(' ');
 		}
@@ -428,7 +530,8 @@ public class DatVeGUI2 extends JPanel {
 	}
 
 	private void xacNhanVaDuaXuongBang() {
-		if (!validateForm()) return;
+		if (!validateForm())
+			return;
 
 		String hoten = capitalizeWords(txtHoTen.getText().trim());
 
@@ -447,36 +550,55 @@ public class DatVeGUI2 extends JPanel {
 		lblSub.setForeground(new Color(100, 100, 100));
 		lblSub.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-		pnlMsg.add(lblTitle); pnlMsg.add(Box.createVerticalStrut(10)); pnlMsg.add(lblSub);
+		pnlMsg.add(lblTitle);
+		pnlMsg.add(Box.createVerticalStrut(10));
+		pnlMsg.add(lblSub);
 
 		JButton btnOk = new JButton("Xác nhận") {
-			@Override protected void paintComponent(Graphics g) {
+			@Override
+			protected void paintComponent(Graphics g) {
 				Graphics2D g2 = (Graphics2D) g.create();
 				g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-				g2.setColor(getModel().isPressed() ? new Color(18, 42, 85) : getModel().isRollover() ? new Color(38, 68, 128) : NAVY);
-				g2.fillRoundRect(0, 0, getWidth(), getHeight(), 6, 6); g2.dispose(); super.paintComponent(g);
+				g2.setColor(getModel().isPressed() ? new Color(18, 42, 85)
+						: getModel().isRollover() ? new Color(38, 68, 128) : NAVY);
+				g2.fillRoundRect(0, 0, getWidth(), getHeight(), 6, 6);
+				g2.dispose();
+				super.paintComponent(g);
 			}
 		};
-		btnOk.setFont(FONT_B14); btnOk.setForeground(Color.WHITE); btnOk.setContentAreaFilled(false);
-		btnOk.setBorderPainted(false); btnOk.setFocusPainted(false); btnOk.setCursor(new Cursor(Cursor.HAND_CURSOR));
+		btnOk.setFont(FONT_B14);
+		btnOk.setForeground(Color.WHITE);
+		btnOk.setContentAreaFilled(false);
+		btnOk.setBorderPainted(false);
+		btnOk.setFocusPainted(false);
+		btnOk.setCursor(new Cursor(Cursor.HAND_CURSOR));
 		btnOk.setPreferredSize(new Dimension(100, 34));
 
 		JButton btnCancel = new JButton("Hủy") {
-			@Override protected void paintComponent(Graphics g) {
+			@Override
+			protected void paintComponent(Graphics g) {
 				Graphics2D g2 = (Graphics2D) g.create();
 				g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-				g2.setColor(getModel().isPressed() ? new Color(220, 220, 220) : getModel().isRollover() ? new Color(235, 235, 235) : Color.WHITE);
+				g2.setColor(getModel().isPressed() ? new Color(220, 220, 220)
+						: getModel().isRollover() ? new Color(235, 235, 235) : Color.WHITE);
 				g2.fillRoundRect(0, 0, getWidth(), getHeight(), 6, 6);
 				g2.setColor(new Color(180, 180, 180));
-				g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 6, 6); g2.dispose(); super.paintComponent(g);
+				g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 6, 6);
+				g2.dispose();
+				super.paintComponent(g);
 			}
 		};
-		btnCancel.setFont(FONT_B14); btnCancel.setForeground(new Color(80, 80, 80)); btnCancel.setContentAreaFilled(false);
-		btnCancel.setBorderPainted(false); btnCancel.setFocusPainted(false); btnCancel.setCursor(new Cursor(Cursor.HAND_CURSOR));
+		btnCancel.setFont(FONT_B14);
+		btnCancel.setForeground(new Color(80, 80, 80));
+		btnCancel.setContentAreaFilled(false);
+		btnCancel.setBorderPainted(false);
+		btnCancel.setFocusPainted(false);
+		btnCancel.setCursor(new Cursor(Cursor.HAND_CURSOR));
 		btnCancel.setPreferredSize(new Dimension(80, 34));
 
 		Object[] options = { btnOk, btnCancel };
-		JOptionPane optionPane = new JOptionPane(pnlMsg, JOptionPane.PLAIN_MESSAGE, JOptionPane.DEFAULT_OPTION, null, options, options[0]);
+		JOptionPane optionPane = new JOptionPane(pnlMsg, JOptionPane.PLAIN_MESSAGE, JOptionPane.DEFAULT_OPTION, null,
+				options, options[0]);
 		optionPane.setBackground(Color.WHITE);
 
 		JDialog dialog = optionPane.createDialog(this, "Xác nhận");
@@ -492,14 +614,18 @@ public class DatVeGUI2 extends JPanel {
 
 	private void capNhatVaoBang() {
 		int row = tblVe.getSelectedRow();
-		if (row == -1) { JOptionPane.showMessageDialog(this, "Vui lòng chọn 1 vé trong bảng!"); return; }
-		if (!validateForm()) return;
+		if (row == -1) {
+			JOptionPane.showMessageDialog(this, "Vui lòng chọn 1 vé trong bảng!");
+			return;
+		}
+		if (!validateForm())
+			return;
 
 		int modelRow = tblVe.getRowSorter() != null ? tblVe.convertRowIndexToModel(row) : row;
 
 		String hotenRaw = txtHoTen.getText().trim();
 		String hotenCap = capitalizeWords(hotenRaw);
-		txtHoTen.setText(hotenCap); 
+		txtHoTen.setText(hotenCap);
 
 		String hoten = hotenCap;
 		String cccd = txtIdCard.getText().trim();
@@ -558,7 +684,8 @@ public class DatVeGUI2 extends JPanel {
 	}
 
 	private LocalDate parseNgaySinh(String ns) {
-		if (ns == null || ns.isEmpty()) return null;
+		if (ns == null || ns.isEmpty())
+			return null;
 		try {
 			if (ns.matches(REGEX_NGAY)) {
 				String[] p = ns.split("/");
@@ -594,40 +721,59 @@ public class DatVeGUI2 extends JPanel {
 			Object svObj = modelVe.getValueAt(row, COL_LASISV);
 			boolean laSV = svObj instanceof Boolean && (Boolean) svObj;
 
-			txtSdt.setText(sdt); txtHoTen.setText(hoten); txtIdCard.setText(cccd);
-			txtEmail.setText(email); txtNamSinh.setText(ns); chkSinhVien.setSelected(laSV);
+			txtSdt.setText(sdt);
+			txtHoTen.setText(hoten);
+			txtIdCard.setText(cccd);
+			txtEmail.setText(email);
+			txtNamSinh.setText(ns);
+			chkSinhVien.setSelected(laSV);
 
 			if (!cccd.isEmpty()) {
 				boolean isHc = cccd.matches(REGEX_HC);
 				rdoHoChieu.setSelected(isHc);
 				rdoCccd.setSelected(!isHc);
-			} else rdoCccd.setSelected(true);
+			} else
+				rdoCccd.setSelected(true);
 
-			if (!loaiDT.isEmpty()) setLoaiDoiTuong(loaiDT);
-			else txtLoaiDoiTuong.setText("");
+			if (!loaiDT.isEmpty())
+				setLoaiDoiTuong(loaiDT);
+			else
+				txtLoaiDoiTuong.setText("");
 
 			setFormEditable(true);
 
-			if (!sdt.isEmpty()) khachTonTai = new KhachHangDAO().timTheoSDT(sdt) != null;
-			else khachTonTai = false;
-			
+			if (!sdt.isEmpty())
+				khachTonTai = new KhachHangDAO().timTheoSDT(sdt) != null;
+			else
+				khachTonTai = false;
+
 		} finally {
 			isLoadingRow = false;
 		}
 	}
 
-	private String nullToEmpty(Object obj) { return obj == null ? "" : obj.toString(); }
+	private String nullToEmpty(Object obj) {
+		return obj == null ? "" : obj.toString();
+	}
 
 	private void tinhLoaiDoiTuongTuNamSinh() {
 		String ns = txtNamSinh.getText().trim();
-		if (ns.isEmpty()) { txtLoaiDoiTuong.setText(""); return; }
+		if (ns.isEmpty()) {
+			txtLoaiDoiTuong.setText("");
+			return;
+		}
 		try {
-			int namSinh = ns.contains("/") ? Integer.parseInt(ns.split("/")[ns.split("/").length - 1]) : Integer.parseInt(ns);
+			int namSinh = ns.contains("/") ? Integer.parseInt(ns.split("/")[ns.split("/").length - 1])
+					: Integer.parseInt(ns);
 			int age = LocalDate.now().getYear() - namSinh;
-			if (age < 6) setLoaiDoiTuong("Trẻ em (<6 tuổi)");
-			else if (age <= 10) setLoaiDoiTuong("Trẻ em (6-10 tuổi)");
-			else if (age >= 60) setLoaiDoiTuong("Người cao tuổi");
-			else setLoaiDoiTuong("Người lớn");
+			if (age < 6)
+				setLoaiDoiTuong("Trẻ em (<6 tuổi)");
+			else if (age <= 10)
+				setLoaiDoiTuong("Trẻ em (6-10 tuổi)");
+			else if (age >= 60)
+				setLoaiDoiTuong("Người cao tuổi");
+			else
+				setLoaiDoiTuong("Người lớn");
 		} catch (Exception ex) {
 			setLoaiDoiTuong("Người lớn");
 		}
@@ -636,9 +782,14 @@ public class DatVeGUI2 extends JPanel {
 	private void setLoaiDoiTuong(String loai) {
 		boolean found = false;
 		for (int i = 0; i < cbLoaiDoiTuong.getItemCount(); i++)
-			if (cbLoaiDoiTuong.getItemAt(i).equals(loai)) { found = true; break; }
-		if (!found) cbLoaiDoiTuong.addItem(loai);
-		cbLoaiDoiTuong.setSelectedItem(loai); txtLoaiDoiTuong.setText(loai);
+			if (cbLoaiDoiTuong.getItemAt(i).equals(loai)) {
+				found = true;
+				break;
+			}
+		if (!found)
+			cbLoaiDoiTuong.addItem(loai);
+		cbLoaiDoiTuong.setSelectedItem(loai);
+		txtLoaiDoiTuong.setText(loai);
 	}
 
 	private JPanel buildCenterTable() {
@@ -663,38 +814,56 @@ public class DatVeGUI2 extends JPanel {
 		JLabel lblFilter = new JLabel("Lọc chiều:");
 		lblFilter.setFont(FONT_B14);
 		cbFilterChieu = new JComboBox<>(new String[] { "Tất cả", "Chiều đi", "Chiều về" });
-		cbFilterChieu.setFont(FONT_14); cbFilterChieu.setBackground(Color.WHITE);
+		cbFilterChieu.setFont(FONT_14);
+		cbFilterChieu.setBackground(Color.WHITE);
 		cbFilterChieu.setPreferredSize(new Dimension(110, 28));
 		cbFilterChieu.addActionListener(e -> applyFilter());
-		rightH.add(lblFilter); rightH.add(cbFilterChieu);
+		rightH.add(lblFilter);
+		rightH.add(cbFilterChieu);
 
-		headerRow.add(leftH, BorderLayout.WEST); headerRow.add(rightH, BorderLayout.EAST);
+		headerRow.add(leftH, BorderLayout.WEST);
+		headerRow.add(rightH, BorderLayout.EAST);
 		wrapper.add(headerRow, BorderLayout.NORTH);
-
-		// ĐÃ SỬA: Cập nhật cột số 12 để hứng danh sách Mã Chuyến truyền qua từ GUI 1
-		String[] cols = { "STT", "Mã vé", "Loại vé", "Chiều vé", "Mã ghế", "Họ tên", "CCCD/Hộ chiếu", "SĐT", "Loại đối tượng", "email_hidden", "namsinh_hidden", "lasisv_hidden", "machuyen_hidden" };
-		modelVe = new DefaultTableModel(cols, 0) { @Override public boolean isCellEditable(int r, int c) { return false; } };
+		String[] cols = { "STT", "Mã vé", "Loại vé", "Chiều vé", "Mã ghế", "Họ tên", "CCCD/Hộ chiếu", "SĐT",
+				"Loại đối tượng", "email_hidden", "namsinh_hidden", "lasisv_hidden", "machuyen_hidden",
+				"magaden_hidden" };
+		modelVe = new DefaultTableModel(cols, 0) {
+			@Override
+			public boolean isCellEditable(int r, int c) {
+				return false;
+			}
+		};
 
 		tblVe = new JTable(modelVe) {
-			@Override public Component prepareRenderer(TableCellRenderer r, int row, int col) {
+			@Override
+			public Component prepareRenderer(TableCellRenderer r, int row, int col) {
 				Component c = super.prepareRenderer(r, row, col);
-				if (isRowSelected(row)) { c.setBackground(new Color(210, 228, 245)); c.setForeground(Color.BLACK); } 
-				else { c.setBackground(row % 2 == 0 ? Color.WHITE : new Color(248, 251, 255)); c.setForeground(Color.BLACK); }
+				if (isRowSelected(row)) {
+					c.setBackground(new Color(210, 228, 245));
+					c.setForeground(Color.BLACK);
+				} else {
+					c.setBackground(row % 2 == 0 ? Color.WHITE : new Color(248, 251, 255));
+					c.setForeground(Color.BLACK);
+				}
 				return c;
 			}
 		};
-		tblVe.setRowHeight(32); tblVe.setFont(FONT_14); tblVe.setShowGrid(false); tblVe.setIntercellSpacing(new Dimension(0, 0));
+		tblVe.setRowHeight(32);
+		tblVe.setFont(FONT_14);
+		tblVe.setShowGrid(false);
+		tblVe.setIntercellSpacing(new Dimension(0, 0));
 
 		JTableHeader header = tblVe.getTableHeader();
-		header.setFont(FONT_B14); header.setBackground(new Color(235, 241, 252));
-		header.setForeground(NAVY); header.setPreferredSize(new Dimension(0, 36));
+		header.setFont(FONT_B14);
+		header.setBackground(new Color(235, 241, 252));
+		header.setForeground(NAVY);
+		header.setPreferredSize(new Dimension(0, 36));
 		header.setBorder(new MatteBorder(0, 0, 1, 0, BORDER_C));
 
-		// ĐÃ SỬA: Giấu cột mã chuyến đi không cho hiển thị lên giao diện
-		int[] widths = { 35, 90, 80, 80, 110, 140, 120, 100, 120, 0, 0, 0, 0 };
+		int[] widths = { 35, 90, 80, 80, 110, 140, 120, 100, 120, 0, 0, 0, 0, 0 };
 		for (int i = 0; i < widths.length; i++) {
 			tblVe.getColumnModel().getColumn(i).setPreferredWidth(widths[i]);
-			if (i >= 9) { 
+			if (i >= 9) {
 				tblVe.getColumnModel().getColumn(i).setMinWidth(0);
 				tblVe.getColumnModel().getColumn(i).setMaxWidth(0);
 				tblVe.getColumnModel().getColumn(i).setWidth(0);
@@ -702,7 +871,8 @@ public class DatVeGUI2 extends JPanel {
 		}
 
 		tblVe.getSelectionModel().addListSelectionListener(e -> {
-			if (!e.getValueIsAdjusting() && tblVe.getSelectedRow() != -1) loadRowToForm(tblVe.getSelectedRow());
+			if (!e.getValueIsAdjusting() && tblVe.getSelectedRow() != -1)
+				loadRowToForm(tblVe.getSelectedRow());
 		});
 
 		JScrollPane scroll = new JScrollPane(tblVe);
@@ -714,7 +884,8 @@ public class DatVeGUI2 extends JPanel {
 
 	private void applyFilter() {
 		String filter = (String) cbFilterChieu.getSelectedItem();
-		if (tblVe.getRowSorter() == null) tblVe.setRowSorter(new TableRowSorter<>(modelVe));
+		if (tblVe.getRowSorter() == null)
+			tblVe.setRowSorter(new TableRowSorter<>(modelVe));
 		TableRowSorter<?> sorter = (TableRowSorter<?>) tblVe.getRowSorter();
 		sorter.setRowFilter("Tất cả".equals(filter) ? null : RowFilter.regexFilter(filter, COL_CHIEU));
 	}
@@ -736,7 +907,8 @@ public class DatVeGUI2 extends JPanel {
 		try (java.sql.Connection con = connect_DB.Connect_DB.getInstance().getConnection()) {
 			while (true) {
 				String maVe = MaTuDong.taoMaVe(con);
-				if (!maVeTonTaiTrongBang(maVe)) return maVe;
+				if (!maVeTonTaiTrongBang(maVe))
+					return maVe;
 			}
 		} catch (Exception e) {
 			throw new IllegalStateException("Khong the tao ma ve", e);
@@ -744,9 +916,11 @@ public class DatVeGUI2 extends JPanel {
 	}
 
 	private boolean maVeTonTaiTrongBang(String maVe) {
-		if (modelVe == null) return false;
+		if (modelVe == null)
+			return false;
 		for (int i = 0; i < modelVe.getRowCount(); i++) {
-			if (maVe.equals(modelVe.getValueAt(i, COL_MAVE))) return true;
+			if (maVe.equals(modelVe.getValueAt(i, COL_MAVE)))
+				return true;
 		}
 		return false;
 	}
@@ -756,10 +930,36 @@ public class DatVeGUI2 extends JPanel {
 		int half = khuHoi ? danhSachGhe.size() / 2 : danhSachGhe.size();
 		for (int i = 0; i < danhSachGhe.size(); i++) {
 			String chieu = !khuHoi ? "Chiều đi" : (i < half ? "Chiều đi" : "Chiều về");
-			// ĐÃ SỬA: Nhét thêm cái danhSachMaChuyen.get(i) vào đuôi để chui xuống DB ở GUI3
-			modelVe.addRow(new Object[] { i + 1, generateUniqueMaVe(), loaiVe, chieu, danhSachGhe.get(i), "", "", "", "", "", "", false, danhSachMaChuyen.get(i) });
+			// Lấy maGaDen từ maChuyen: query DB để tìm ga đến tương ứng
+			String maChuyen = danhSachMaChuyen.get(i);
+			String maGaDen = layMaGaDen(maChuyen);
+			modelVe.addRow(new Object[] { i + 1, generateUniqueMaVe(), loaiVe, chieu, danhSachGhe.get(i), "", "", "",
+					"", "", "", false, maChuyen, maGaDen });
 		}
-		if (tblVe.getRowCount() > 0) tblVe.setRowSelectionInterval(0, 0);
+		if (tblVe.getRowCount() > 0)
+			tblVe.setRowSelectionInterval(0, 0);
+	}
+
+	/**
+	 * Lấy maGa đến từ maChuyenTau (lấy ga cuối cùng trong ChiTietChuyenTau của
+	 * chuyến đó)
+	 */
+	private String layMaGaDen(String maChuyen) {
+		if (maChuyen == null || maChuyen.isEmpty())
+			return "";
+		String sql = "SELECT TOP 1 dt.maGaDen FROM ChiTietChuyenTau dt "
+				+ "WHERE dt.maChuyenTau = ? ORDER BY dt.thoiGianKhoiHanh DESC";
+		try (java.sql.Connection con = connect_DB.Connect_DB.getInstance().getConnection();
+				java.sql.PreparedStatement ps = con.prepareStatement(sql)) {
+			ps.setString(1, maChuyen);
+			try (java.sql.ResultSet rs = ps.executeQuery()) {
+				if (rs.next())
+					return rs.getString(1);
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return "";
 	}
 
 	private void startCountdown() {
@@ -768,9 +968,12 @@ public class DatVeGUI2 extends JPanel {
 			if (secondsLeft <= 0) {
 				countdownTimer.stop();
 				lblCountdown.setText("Hết thời gian!");
-				JOptionPane.showMessageDialog(this, "Thời gian giữ vé đã hết!\nVui lòng thực hiện lại.", "Hết thời gian", JOptionPane.WARNING_MESSAGE);
-				if (onQuayLai != null) onQuayLai.run();
-			} else updateCountdownLabel();
+				JOptionPane.showMessageDialog(this, "Thời gian giữ vé đã hết!\nVui lòng thực hiện lại.",
+						"Hết thời gian", JOptionPane.WARNING_MESSAGE);
+				if (onQuayLai != null)
+					onQuayLai.run();
+			} else
+				updateCountdownLabel();
 		});
 		countdownTimer.start();
 		updateCountdownLabel();
@@ -790,26 +993,34 @@ public class DatVeGUI2 extends JPanel {
 
 		btnQuayLai = makeOutlineBtn("Quay lại", loadIcon("/Images/logoBack.png", 14, 14));
 		btnQuayLai.addActionListener(e -> {
-			if (countdownTimer != null) countdownTimer.stop();
-			if (onQuayLai != null) onQuayLai.run();
+			if (countdownTimer != null)
+				countdownTimer.stop();
+			if (onQuayLai != null)
+				onQuayLai.run();
 		});
 
 		lblCountdown = new JLabel("Thời hạn giữ vé: 30:00") {
-			@Override protected void paintComponent(Graphics g) {
+			@Override
+			protected void paintComponent(Graphics g) {
 				Graphics2D g2 = (Graphics2D) g.create();
 				g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 				g2.setColor(new Color(255, 235, 235));
 				g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
-				g2.setColor(getBackground()); g2.setStroke(new BasicStroke(1.5f));
-				g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 8, 8); g2.dispose(); super.paintComponent(g);
+				g2.setColor(getBackground());
+				g2.setStroke(new BasicStroke(1.5f));
+				g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 8, 8);
+				g2.dispose();
+				super.paintComponent(g);
 			}
 		};
-		lblCountdown.setFont(FONT_B14); lblCountdown.setForeground(new Color(190, 30, 30));
-		lblCountdown.setOpaque(false); lblCountdown.setBackground(new Color(200, 60, 60));
+		lblCountdown.setFont(FONT_B14);
+		lblCountdown.setForeground(new Color(190, 30, 30));
+		lblCountdown.setOpaque(false);
+		lblCountdown.setBackground(new Color(200, 60, 60));
 		lblCountdown.setBorder(new EmptyBorder(6, 14, 6, 14));
 
 		btnTiepTuc = makeNavyBtn("Tiếp tục", loadIcon("/Images/logoGoOn.png", 14, 14));
-		btnTiepTuc.setHorizontalTextPosition(SwingConstants.LEFT); 
+		btnTiepTuc.setHorizontalTextPosition(SwingConstants.LEFT);
 		btnTiepTuc.addActionListener(e -> {
 			for (int i = 0; i < modelVe.getRowCount(); i++) {
 				String ten = (String) modelVe.getValueAt(i, COL_HOTEN);
@@ -817,70 +1028,111 @@ public class DatVeGUI2 extends JPanel {
 					JOptionPane.showMessageDialog(this, "Chưa điền đủ thông tin cho vé số " + (i + 1));
 					for (int v = 0; v < tblVe.getRowCount(); v++) {
 						int mr = tblVe.getRowSorter() != null ? tblVe.convertRowIndexToModel(v) : v;
-						if (mr == i) { tblVe.setRowSelectionInterval(v, v); break; }
+						if (mr == i) {
+							tblVe.setRowSelectionInterval(v, v);
+							break;
+						}
 					}
 					return;
 				}
 			}
-			if (countdownTimer != null) countdownTimer.stop();
+			if (countdownTimer != null)
+				countdownTimer.stop();
 			chuyenSangGUI3();
 		});
 
-		JPanel left = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 4)); left.setBackground(Color.WHITE); left.add(btnQuayLai);
-		JPanel right = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 4)); right.setBackground(Color.WHITE);
-		right.add(lblCountdown); right.add(Box.createHorizontalStrut(16)); right.add(btnTiepTuc);
+		JPanel left = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 4));
+		left.setBackground(Color.WHITE);
+		left.add(btnQuayLai);
+		JPanel right = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 4));
+		right.setBackground(Color.WHITE);
+		right.add(lblCountdown);
+		right.add(Box.createHorizontalStrut(16));
+		right.add(btnTiepTuc);
 
-		bar.add(left, BorderLayout.WEST); bar.add(right, BorderLayout.EAST);
+		bar.add(left, BorderLayout.WEST);
+		bar.add(right, BorderLayout.EAST);
 		return bar;
 	}
 
 	private JTextField createTextField() {
 		JTextField txt = new JTextField();
-		txt.setPreferredSize(new Dimension(150, 32)); txt.setFont(FONT_14);
+		txt.setPreferredSize(new Dimension(150, 32));
+		txt.setFont(FONT_14);
 		txt.setBorder(BorderFactory.createCompoundBorder(new LineBorder(BORDER_C), new EmptyBorder(2, 8, 2, 8)));
 		return txt;
 	}
 
 	private void addFormItem(JPanel pnl, GridBagConstraints gbc, int x, int y, String label, JComponent comp) {
-		gbc.gridx = x; gbc.gridy = y; gbc.fill = GridBagConstraints.HORIZONTAL; gbc.anchor = GridBagConstraints.WEST;
-		JPanel wrap = new JPanel(new BorderLayout(0, 4)); wrap.setOpaque(false);
-		JLabel lbl = new JLabel(label); lbl.setFont(FONT_14); lbl.setForeground(new Color(40, 40, 40));
-		wrap.add(lbl, BorderLayout.NORTH); wrap.add(comp, BorderLayout.CENTER);
+		gbc.gridx = x;
+		gbc.gridy = y;
+		gbc.fill = GridBagConstraints.HORIZONTAL;
+		gbc.anchor = GridBagConstraints.WEST;
+		JPanel wrap = new JPanel(new BorderLayout(0, 4));
+		wrap.setOpaque(false);
+		JLabel lbl = new JLabel(label);
+		lbl.setFont(FONT_14);
+		lbl.setForeground(new Color(40, 40, 40));
+		wrap.add(lbl, BorderLayout.NORTH);
+		wrap.add(comp, BorderLayout.CENTER);
 		pnl.add(wrap, gbc);
 	}
 
 	private Icon loadIcon(String path, int w, int h) {
 		try {
 			java.net.URL url = getClass().getResource(path);
-			if (url != null) return new ImageIcon(new ImageIcon(url).getImage().getScaledInstance(w, h, Image.SCALE_SMOOTH));
-		} catch (Exception ignored) {} return null;
+			if (url != null)
+				return new ImageIcon(new ImageIcon(url).getImage().getScaledInstance(w, h, Image.SCALE_SMOOTH));
+		} catch (Exception ignored) {
+		}
+		return null;
 	}
 
 	private JButton makeNavyBtn(String text, Icon icon) {
 		JButton b = new JButton(text) {
-			@Override protected void paintComponent(Graphics g) {
+			@Override
+			protected void paintComponent(Graphics g) {
 				Graphics2D g2 = (Graphics2D) g.create();
 				g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-				g2.setColor(getModel().isPressed() ? new Color(18, 42, 85) : getModel().isRollover() ? new Color(38, 68, 128) : NAVY);
-				g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10); g2.dispose(); super.paintComponent(g);
+				g2.setColor(getModel().isPressed() ? new Color(18, 42, 85)
+						: getModel().isRollover() ? new Color(38, 68, 128) : NAVY);
+				g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
+				g2.dispose();
+				super.paintComponent(g);
 			}
 		};
-		if (icon != null) { b.setIcon(icon); b.setHorizontalTextPosition(SwingConstants.LEFT); }
-		b.setFont(FONT_B14); b.setForeground(Color.WHITE); b.setIconTextGap(8); b.setBorder(new EmptyBorder(6, 18, 6, 18));
-		b.setContentAreaFilled(false); b.setBorderPainted(false); b.setFocusPainted(false); b.setCursor(new Cursor(Cursor.HAND_CURSOR));
+		if (icon != null) {
+			b.setIcon(icon);
+			b.setHorizontalTextPosition(SwingConstants.LEFT);
+		}
+		b.setFont(FONT_B14);
+		b.setForeground(Color.WHITE);
+		b.setIconTextGap(8);
+		b.setBorder(new EmptyBorder(6, 18, 6, 18));
+		b.setContentAreaFilled(false);
+		b.setBorderPainted(false);
+		b.setFocusPainted(false);
+		b.setCursor(new Cursor(Cursor.HAND_CURSOR));
 		return b;
 	}
 
 	private void chuyenSangGUI3() {
 		DatVeGUI3 gui3 = new DatVeGUI3(modelVe, secondsLeft, (remainingSeconds) -> {
-			this.secondsLeft = remainingSeconds; this.startCountdown();
+			this.secondsLeft = remainingSeconds;
+			this.startCountdown();
 			Container parent = getParent();
 			if (parent != null) {
 				LayoutManager lm = parent.getLayout();
-				if (lm instanceof CardLayout) { ((CardLayout) lm).show(parent, "datveGUI_next"); } 
-				else {
-					for (Component c : parent.getComponents()) if (c instanceof DatVeGUI3) parent.remove(c);
-					parent.add(this, BorderLayout.CENTER); parent.revalidate(); parent.repaint();
+				if (lm instanceof CardLayout) {
+					// Quay lại GUI2 (trang hiện tại)
+					((CardLayout) lm).show(parent, "datveGUI2_thongtin");
+				} else {
+					for (Component c : parent.getComponents())
+						if (c instanceof DatVeGUI3)
+							parent.remove(c);
+					parent.add(this, BorderLayout.CENTER);
+					parent.revalidate();
+					parent.repaint();
 				}
 			}
 		});
@@ -889,26 +1141,42 @@ public class DatVeGUI2 extends JPanel {
 		if (parent != null) {
 			LayoutManager lm = parent.getLayout();
 			if (lm instanceof CardLayout) {
-				parent.add(gui3, "datveGUI3_thanhtoan"); ((CardLayout) lm).show(parent, "datveGUI3_thanhtoan");
+				parent.add(gui3, "datveGUI3_thanhtoan");
+				((CardLayout) lm).show(parent, "datveGUI3_thanhtoan");
 			} else {
-				parent.remove(this); parent.add(gui3, BorderLayout.CENTER); parent.revalidate(); parent.repaint();
+				parent.remove(this);
+				parent.add(gui3, BorderLayout.CENTER);
+				parent.revalidate();
+				parent.repaint();
 			}
 		}
 	}
 
 	private JButton makeOutlineBtn(String text, Icon icon) {
 		JButton b = new JButton(text) {
-			@Override protected void paintComponent(Graphics g) {
+			@Override
+			protected void paintComponent(Graphics g) {
 				Graphics2D g2 = (Graphics2D) g.create();
 				g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-				g2.setColor(getModel().isPressed() ? new Color(198, 215, 242) : getModel().isRollover() ? new Color(212, 228, 250) : new Color(226, 236, 252));
+				g2.setColor(getModel().isPressed() ? new Color(198, 215, 242)
+						: getModel().isRollover() ? new Color(212, 228, 250) : new Color(226, 236, 252));
 				g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
-				g2.setColor(NAVY); g2.setStroke(new BasicStroke(1.2f)); g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 8, 8);
-				g2.dispose(); super.paintComponent(g);
+				g2.setColor(NAVY);
+				g2.setStroke(new BasicStroke(1.2f));
+				g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 8, 8);
+				g2.dispose();
+				super.paintComponent(g);
 			}
 		};
-		if (icon != null) b.setIcon(icon); b.setFont(FONT_14); b.setForeground(NAVY); b.setIconTextGap(8);
-		b.setBorder(new EmptyBorder(6, 16, 6, 16)); b.setContentAreaFilled(false); b.setFocusPainted(false); b.setCursor(new Cursor(Cursor.HAND_CURSOR));
+		if (icon != null)
+			b.setIcon(icon);
+		b.setFont(FONT_14);
+		b.setForeground(NAVY);
+		b.setIconTextGap(8);
+		b.setBorder(new EmptyBorder(6, 16, 6, 16));
+		b.setContentAreaFilled(false);
+		b.setFocusPainted(false);
+		b.setCursor(new Cursor(Cursor.HAND_CURSOR));
 		return b;
 	}
 }

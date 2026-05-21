@@ -48,7 +48,8 @@ public class AppFrame extends JFrame {
     private DoiTraGUI doiTraGUI;
     private ThongKeGUI thongKeGUI; // THÊM MỚI
     private HomeGUI homeGUI;
-
+    private DatVeGUI datVeGUI;
+    private LoginPanel loginPanel;
     private DoiVeGUI2 doiVeGUI2;;
 
 // Trong hàm khởi tạo / registerCards
@@ -296,6 +297,9 @@ public class AppFrame extends JFrame {
         if ("tra-ve".equals(card)        && traVeGUI  != null) traVeGUI .refresh();
         if ("tra-ve-step-2".equals(card) && traVeGUI1 != null) traVeGUI1.refresh();
         if ("doi-tra".equals(card)       && doiTraGUI != null) doiTraGUI.refresh();
+        if ("dat-ve".equals(card)  && datVeGUI   != null) datVeGUI.refresh();
+        if ("login".equals(card)   && loginPanel != null) loginPanel.refresh();
+        if ("home".equals(card)    && homeGUI    != null) homeGUI.refresh();
     }
 
     private void updateTitle(String card) {
@@ -428,16 +432,17 @@ public class AppFrame extends JFrame {
     private void registerCards() {
         loadingPanel = new LoadingPanel();
         contentCards.add(loadingPanel, "loading");
-
         contentCards.setBackground(GuiTheme.LIGHT_BG);
-        contentCards.add(new LoginPanel(this), "login");
+        datVeGUI = new DatVeGUI();
+        contentCards.add(datVeGUI, "dat-ve");
+        loginPanel = new LoginPanel(this);
+        contentCards.add(loginPanel, "login");
         homeGUI = new HomeGUI();
         contentCards.add(homeGUI, "home");
         contentCards.add(new DanhSachChuyenDiGUI(),  "tra-cuu-chuyen");
         contentCards.add(new TauGUI(),               "tra-cuu-tau");
         contentCards.add(new VeGUI(),                "tra-cuu-ve");
         contentCards.add(new KhachHangGUI(),         "tra-cuu-khach");
-        contentCards.add(new DatVeGUI(),             "dat-ve");
         contentCards.add(new HoTroGUI(),             "ho-tro");
         doiTraGUI = new DoiTraGUI(this);
         contentCards.add(doiTraGUI,        "doi-tra");

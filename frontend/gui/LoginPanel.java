@@ -8,6 +8,8 @@ import service.AuthService;
 
 public class LoginPanel extends JPanel {
     private AppFrame parent;
+	private JTextField txtUsername;
+	private JPasswordField txtPassword;
 
     public LoginPanel(AppFrame parent) {
         this.parent = parent;
@@ -46,10 +48,10 @@ public class LoginPanel extends JPanel {
         title.setAlignmentX(Component.CENTER_ALIGNMENT);
 
         // --- Ô nhập Tài khoản & Mật khẩu ---
-        JTextField txtUsername = new JTextField("Tài khoản");
+         txtUsername = new JTextField("Tài khoản");
         JPanel userWrapper = createInputWrapper(txtUsername, "Tài khoản", false);
 
-        JPasswordField txtPassword = new JPasswordField("Mật khẩu");
+		txtPassword = new JPasswordField("Mật khẩu");
         txtPassword.setEchoChar((char) 0); // Hiện chữ mờ lúc đầu
         JPanel passWrapper = createInputWrapper(txtPassword, "Mật khẩu", true);
 
@@ -298,7 +300,13 @@ public class LoginPanel extends JPanel {
 
         dialog.setVisible(true);
     }
-
+    public void refresh() {
+        if (txtUsername != null) txtUsername.setText("Tài khoản");
+        if (txtPassword != null) {
+            txtPassword.setText("Mật khẩu");
+            txtPassword.setEchoChar((char) 0); // hiện chữ như placeholder
+        }
+    }
     private JPanel createInputWrapper(JTextField textField, String placeholder, boolean isPassword) {
         final boolean[] isHovered = {false};
 
@@ -388,4 +396,5 @@ public class LoginPanel extends JPanel {
 
         return wrapper;
     }
+    
 }

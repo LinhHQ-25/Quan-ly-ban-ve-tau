@@ -7,17 +7,23 @@ public class Ve implements TinhGiaVe {
     private Ghe ghe;
     private LocalDateTime ngayMua;
     private LoaiVe loaiVe;
-    private String trangThaiVe; 
+    private String trangThaiVe;
     private HoaDon hoaDon;
     private KhachHang khachHang;
     private KhuyenMai khuyenMai;
     private ChiTietChuyenTau chiTietChuyenTau;
-    private double giaVe; // Thêm trường giaVe
+    private double giaVe;
 
-    public Ve() {
-    }
+    // Thêm 3 field mới để tính giá
+    private double heSoCuLy    = 1.0;
+    private double heSoLoaiToa = 1.0;
+    private String loaiDoiTuong = "";
 
-    public Ve(String maVe, Ghe ghe, LocalDateTime ngayMua, LoaiVe loaiVe, String trangThaiVe, HoaDon hoaDon, KhachHang khachHang, KhuyenMai khuyenMai, ChiTietChuyenTau chiTietChuyenTau, double giaVe) {
+    public Ve() {}
+
+    public Ve(String maVe, Ghe ghe, LocalDateTime ngayMua, LoaiVe loaiVe, String trangThaiVe,
+              HoaDon hoaDon, KhachHang khachHang, KhuyenMai khuyenMai,
+              ChiTietChuyenTau chiTietChuyenTau, double giaVe) {
         this.maVe = maVe;
         this.ghe = ghe;
         this.ngayMua = ngayMua;
@@ -30,13 +36,13 @@ public class Ve implements TinhGiaVe {
         this.giaVe = giaVe;
     }
 
+    // ── Getters/Setters cũ ──────────────────────────────────────
     public String getMaVe() { return maVe; }
     public void setMaVe(String maVe) { this.maVe = maVe; }
 
     public Ghe getGhe() { return ghe; }
     public void setGhe(Ghe ghe) { this.ghe = ghe; }
-    
-    // Helper để DAO lấy mã ghế
+
     public String getMaGhe() {
         return ghe != null ? ghe.getMaGhe() : null;
     }
@@ -52,8 +58,7 @@ public class Ve implements TinhGiaVe {
 
     public HoaDon getHoaDon() { return hoaDon; }
     public void setHoaDon(HoaDon hoaDon) { this.hoaDon = hoaDon; }
-    
-    // Helper để DAO lấy mã hóa đơn
+
     public String getMaHoaDon() {
         return hoaDon != null ? hoaDon.getMaHoaDon() : null;
     }
@@ -65,9 +70,10 @@ public class Ve implements TinhGiaVe {
     public void setKhuyenMai(KhuyenMai khuyenMai) { this.khuyenMai = khuyenMai; }
 
     public ChiTietChuyenTau getChiTietChuyenTau() { return chiTietChuyenTau; }
-    public void setChiTietChuyenTau(ChiTietChuyenTau chiTietChuyenTau) { this.chiTietChuyenTau = chiTietChuyenTau; }
-    
-    // Helper để DAO lấy mã chuyến tàu
+    public void setChiTietChuyenTau(ChiTietChuyenTau chiTietChuyenTau) {
+        this.chiTietChuyenTau = chiTietChuyenTau;
+    }
+
     public String getMaChuyenTau() {
         return chiTietChuyenTau != null ? chiTietChuyenTau.getMaChuyenTau() : null;
     }
@@ -75,14 +81,32 @@ public class Ve implements TinhGiaVe {
     public double getGiaVe() { return giaVe; }
     public void setGiaVe(double giaVe) { this.giaVe = giaVe; }
 
+    // ── Setters mới cho tính giá ────────────────────────────────
+    public void setHeSoCuLy(double heSoCuLy)       { this.heSoCuLy = heSoCuLy; }
+    public void setHeSoLoaiToa(double heSoLoaiToa) { this.heSoLoaiToa = heSoLoaiToa; }
+    public void setLoaiDoiTuong(String loaiDoiTuong) { this.loaiDoiTuong = loaiDoiTuong; }
+
+    // ── Implement TinhGiaVe ─────────────────────────────────────
     @Override
     public double tinhGiaVe() {
         return giaVe;
     }
 
     @Override
-    public String toString() {
-        return maVe;
+    public double tinhGiaGoc() {
+        return 300000 * heSoCuLy * heSoLoaiToa;
     }
-    
+
+    @Override
+    public double layTyLeGiamDoiTuong() {
+        if (loaiDoiTuong == null) return 0.0;
+        if (loaiDoiTuong.contains("Sinh viên"))  return 0.08;
+        if (loaiDoiTuong.contains("<6 tuổi"))    return 1.0;
+        if (loaiDoiTuong.contains("Trẻ em"))     return 0.5;
+        if (loaiDoiTuong.contains("cao tuổi"))   return 0.3;
+        return 0.0;
+    }
+
+    @Override
+    public String toString() { return maVe; }
 }

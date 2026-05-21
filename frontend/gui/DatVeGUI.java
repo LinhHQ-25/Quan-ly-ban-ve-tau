@@ -169,7 +169,21 @@ public class DatVeGUI extends JPanel {
 
         dcNgayDi = buildDateChooser(true);
         dcNgayDi.addPropertyChangeListener("date", evt -> {
-            if (rbMotChieu != null && rbMotChieu.isSelected()) syncNgayVe();
+            if (rbMotChieu != null && rbMotChieu.isSelected()) {
+                syncNgayVe();
+            }
+            // Cập nhật min ngày về luôn luôn
+            java.util.Date ngayDi = dcNgayDi.getDate();
+            if (ngayDi != null) {
+                dcNgayVe.setMinSelectableDate(ngayDi);
+                // Nếu ngày về đang chọn trước ngày đi → reset về ngày đi
+                if (dcNgayVe.getDate() != null && dcNgayVe.getDate().before(ngayDi)) {
+                    dcNgayVe.setDate(ngayDi);
+                }
+            } else {
+                // Ngày đi bị xóa → min ngày về về lại hôm nay
+                dcNgayVe.setMinSelectableDate(new java.util.Date());
+            }
         });
         addRow(form, gbc, 4, "Ngày đi:", wrapDC(dcNgayDi), 14);
 
@@ -248,20 +262,24 @@ public class DatVeGUI extends JPanel {
         boolean coChuyenVe = !rbKhuHoi.isSelected() || checkChuyenTonTai(gaDen, GA_DI_MAC_DINH, ngayVe);
 
         JPanel nextPanel;
-        if (coChuyenDi && coChuyenVe) {
-            // Cả hai chiều đều có chuyến -> vào trang chọn ghế
-            nextPanel = new DatVeGUI1(
+        if (!coChuyenDi) {
+            // Không có chuyến đi → hiện màn hình thông báo chiều đi
+            nextPanel = new DatVeGUI0(
                 GA_DI_MAC_DINH, gaDen, loaiVe, ngayDi, ngayVe, getSoLuong(),
                 () -> swapBack()
             );
-        } else {
-            // Một trong hai (hoặc cả hai) không có chuyến -> vào DatVeGUI0
-            // Nếu chiều đi lỗi thì hiện thông tin chiều đi, ngược lại hiện chiều về
-            String ngayHienThi  = coChuyenDi ? ngayVe  : ngayDi;
-            String gaDiHienThi  = coChuyenDi ? gaDen   : GA_DI_MAC_DINH;
-            String gaDenHienThi = coChuyenDi ? GA_DI_MAC_DINH : gaDen;
+        } else if (rbKhuHoi.isSelected() && !coChuyenVe) {
+            // Khứ hồi nhưng không có chuyến về → hiện thông báo chiều về
             nextPanel = new DatVeGUI0(
-                gaDiHienThi, gaDenHienThi, loaiVe, ngayHienThi, ngayVe, getSoLuong(),
+                gaDen, GA_DI_MAC_DINH, loaiVe, ngayVe, ngayVe, getSoLuong(),
+                () -> swapBack()
+            );
+        } else {
+            // Đủ chuyến → vào trang chọn ghế bình thường
+            // Nếu khứ hồi nhưng chỉ có 1 chuyến đi (không có chuyến về):
+            // trường hợp này đã xử lý ở trên rồi, nên đây chắc chắn đủ cả hai
+            nextPanel = new DatVeGUI1(
+                GA_DI_MAC_DINH, gaDen, loaiVe, ngayDi, ngayVe, getSoLuong(),
                 () -> swapBack()
             );
         }
@@ -573,63 +591,80 @@ public class DatVeGUI extends JPanel {
         Component editor = dc.getDateEditor().getUiComponent();
         if (editor instanceof JComponent) ((JComponent) editor).setBorder(null);
 
-        if (editor instanceof JTextField) {
-            JTextField tf = (JTextField) editor;
-
+        if (editor instanceof JTextField tf) {
             tf.addKeyListener(new KeyAdapter() {
                 @Override
-                public void keyReleased(KeyEvent e) {
-                    // Chỉ xử lý khi nhấn số
-                    String raw = tf.getText().replaceAll("[^0-9]", "");
-                    if (raw.isEmpty()) return;
-
-                    // Chỉ lấy 2 số đầu (ngày)
-                    if (raw.length() > 2) raw = raw.substring(0, 2);
-                    int day;
-                    try { day = Integer.parseInt(raw); }
-                    catch (Exception ex) { return; }
-                    if (day < 1 || day > 31) return;
-
-                    java.util.Calendar today = java.util.Calendar.getInstance();
-                    today.set(java.util.Calendar.HOUR_OF_DAY, 0);
-                    today.set(java.util.Calendar.MINUTE, 0);
-                    today.set(java.util.Calendar.SECOND, 0);
-                    today.set(java.util.Calendar.MILLISECOND, 0);
-
-                    int todayDay   = today.get(java.util.Calendar.DAY_OF_MONTH);
-                    int todayMonth = today.get(java.util.Calendar.MONTH);
-                    int todayYear  = today.get(java.util.Calendar.YEAR);
-
-                    java.util.Calendar suggested = java.util.Calendar.getInstance();
-                    if (day >= todayDay) {
-                        suggested.set(todayYear, todayMonth, 1);
-                    } else {
-                        // Sang tháng sau
-                        suggested.set(todayYear, todayMonth, 1);
-                        suggested.add(java.util.Calendar.MONTH, 1);
+                public void keyPressed(KeyEvent e) {
+                    if (e.getKeyCode() == KeyEvent.VK_DELETE
+                            || e.getKeyCode() == KeyEvent.VK_BACK_SPACE) {
+                        dc.setDate(null);
+                        e.consume();
+                        return;
                     }
-
-                    int maxDay = suggested.getActualMaximum(java.util.Calendar.DAY_OF_MONTH);
-                    if (day > maxDay) return;
-
-                    suggested.set(java.util.Calendar.DAY_OF_MONTH, day);
-                    suggested.set(java.util.Calendar.HOUR_OF_DAY, 0);
-                    suggested.set(java.util.Calendar.MINUTE, 0);
-                    suggested.set(java.util.Calendar.SECOND, 0);
-                    suggested.set(java.util.Calendar.MILLISECOND, 0);
-
-                    if (suggested.getTime().before(today.getTime())) return;
-
-                    // Chỉ gợi ý khi nhập đủ 2 chữ số hoặc nhấn Enter
-                    if (raw.length() == 2 || e.getKeyCode() == KeyEvent.VK_ENTER) {
-                        dc.setDate(suggested.getTime());
-                        SwingUtilities.invokeLater(() -> tf.select(2, tf.getText().length()));
+                    if (e.getKeyCode() == KeyEvent.VK_ENTER) {
+                        java.util.Date minDate = dc.getMinSelectableDate();
+                        tryParseAndSetDate(tf.getText(), dc, minDate);
+                        e.consume();
+                    }
+                }
+                @Override
+                public void keyReleased(KeyEvent e) {
+                    int code = e.getKeyCode();
+                    if (code == KeyEvent.VK_ENTER || code == KeyEvent.VK_DELETE
+                            || code == KeyEvent.VK_BACK_SPACE || code == KeyEvent.VK_ESCAPE
+                            || code == KeyEvent.VK_TAB) return;
+                    String raw = tf.getText().replaceAll("[^0-9]", "");
+                    if (raw.length() >= 2) {
+                        java.util.Date minDate = dc.getMinSelectableDate();
+                        tryParseAndSetDate(tf.getText(), dc, minDate);
                     }
                 }
             });
         }
 
         return dc;
+    }
+
+    /**
+     * Parse chuỗi bất kỳ lấy phần số làm ngày, tự quyết tháng/năm,
+     * rồi set vào dc. Nếu không hợp lệ thì bỏ qua.
+     */
+    private void tryParseAndSetDate(String text, JDateChooser dc, java.util.Date minDate) {
+        String raw = text.replaceAll("[^0-9]", "");
+        if (raw.isEmpty()) return;
+
+        if (raw.length() > 2) raw = raw.substring(0, 2);
+        int day;
+        try { day = Integer.parseInt(raw); }
+        catch (NumberFormatException ex) { return; }
+        if (day < 1 || day > 31) return;
+
+        // Dùng minDate làm mốc (hôm nay cho ngày đi, ngày đi cho ngày về)
+        java.util.Calendar base = java.util.Calendar.getInstance();
+        base.setTime(minDate != null ? minDate : new java.util.Date());
+        base.set(java.util.Calendar.HOUR_OF_DAY, 0);
+        base.set(java.util.Calendar.MINUTE, 0);
+        base.set(java.util.Calendar.SECOND, 0);
+        base.set(java.util.Calendar.MILLISECOND, 0);
+
+        java.util.Calendar suggested = java.util.Calendar.getInstance();
+        suggested.setTime(base.getTime());
+        suggested.set(java.util.Calendar.DAY_OF_MONTH, 1);
+
+        int baseDay = base.get(java.util.Calendar.DAY_OF_MONTH);
+        if (day < baseDay) {
+            // Ngày trước mốc → sang tháng sau
+            suggested.add(java.util.Calendar.MONTH, 1);
+        }
+
+        int maxDay = suggested.getActualMaximum(java.util.Calendar.DAY_OF_MONTH);
+        if (day > maxDay) return;
+
+        suggested.set(java.util.Calendar.DAY_OF_MONTH, day);
+
+        if (suggested.getTime().before(base.getTime())) return;
+
+        dc.setDate(suggested.getTime());
     }
 
     private JPanel wrapDC(JDateChooser dc) {
@@ -960,5 +995,8 @@ public class DatVeGUI extends JPanel {
         // Đóng popup autocomplete nếu còn mở
         if (autocompletePopup != null && autocompletePopup.isVisible())
             autocompletePopup.setVisible(false);
+    }
+    public void refresh() {
+        resetForm();
     }
 }
