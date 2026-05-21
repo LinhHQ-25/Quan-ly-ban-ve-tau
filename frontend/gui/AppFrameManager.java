@@ -68,6 +68,7 @@ public class AppFrameManager extends JFrame {
 		// Menu Quản lý
 		sb.add(mkBtn("ql-nhanvien", "Quản lý nhân viên", "/Images/iconNV.png"));
 		sb.add(mkBtn("ql-calam", "Quản lý ca làm", "/Images/logoCaLam.png"));
+		sb.add(mkBtn("ql-tau", "Quản lý tàu", "/Images/Tau.png"));
 		sb.add(mkBtn("ql-chuyentau", "Quản lý chuyến tàu", "/Images/iconChuyenTau.png"));
 		sb.add(mkBtn("ql-khuyenmai", "Quản lý khuyến mãi", "/Images/KhuyenMai.png"));
 		sb.add(mkBtn("thong-ke", "Thống kê", "/Images/ThongKe.png"));
@@ -102,6 +103,7 @@ public class AppFrameManager extends JFrame {
 	    switch (route) {
 	        case "ql-nhanvien":  return "Ctrl + N";
 	        case "ql-calam":     return "Ctrl + C";
+	        case "ql-tau":       return "Ctrl + U";
 	        case "ql-chuyentau": return "Ctrl + T";
 	        case "ql-khuyenmai": return "Ctrl + M";
 	        case "thong-ke":     return "Ctrl + G";
@@ -127,6 +129,7 @@ public class AppFrameManager extends JFrame {
 
 	    bind.accept(KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_N, CTRL), () -> showCard("ql-nhanvien"));
 	    bind.accept(KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_C, CTRL), () -> showCard("ql-calam"));
+	    bind.accept(KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_U, CTRL), () -> showCard("ql-tau"));
 	    bind.accept(KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_T, CTRL), () -> showCard("ql-chuyentau"));
 	    bind.accept(KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_M, CTRL), () -> showCard("ql-khuyenmai"));
 	    bind.accept(KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_G, CTRL), () -> showCard("thong-ke"));
@@ -158,6 +161,7 @@ public class AppFrameManager extends JFrame {
 			case "dashboard":    headerTitle.setText("TỔNG QUAN HỆ THỐNG"); break;
 			case "ql-nhanvien":  headerTitle.setText("QUẢN LÝ NHÂN VIÊN"); break;
 			case "ql-calam":     headerTitle.setText("QUẢN LÝ CA LÀM VIỆC"); break;
+			case "ql-tau":       headerTitle.setText("QUẢN LÝ THÔNG TIN TÀU"); break;
 			case "ql-chuyentau": headerTitle.setText("QUẢN LÝ CHUYẾN TÀU"); break;
 			case "ql-khuyenmai": headerTitle.setText("QUẢN LÝ KHUYẾN MÃI"); break;
 			case "thong-ke":     headerTitle.setText("THỐNG KÊ DOANH THU"); break;
@@ -248,6 +252,7 @@ public class AppFrameManager extends JFrame {
 		contentCards.add(new ThongKeManagerGUI(), "dashboard"); 
 		contentCards.add(new QLyNhanVienGUI(), "ql-nhanvien");
 		contentCards.add(createBlankPage("Giao diện Quản lý Ca làm đang xây dựng..."), "ql-calam");
+		contentCards.add(new QuanLyTauGUI(), "ql-tau");
 		contentCards.add(new QuanLyChuyenTauGUI(), "ql-chuyentau");
 		contentCards.add(new KhuyenMaiGUI(), "ql-khuyenmai");
 		contentCards.add(createBlankPage("Giao diện Thống kê đang xây dựng..."), "thong-ke");
