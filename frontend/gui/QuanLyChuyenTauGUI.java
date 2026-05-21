@@ -180,9 +180,10 @@ final class QuanLyChuyenTauGUI extends JPanel {
 
         JLabel lblTitle = new JLabel("Thông tin tra cứu chuyến tàu");
         lblTitle.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 15));
-        lblTitle.setForeground(GuiTheme.NAVY);
-        lblTitle.setIcon(GuiIcons.loadIcon(QuanLyChuyenTauGUI.class, "/Images/traCuu.png", 16, 16));
-        lblTitle.setIconTextGap(8);
+        lblTitle.setForeground(Color.WHITE);
+        lblTitle.setOpaque(true);
+        lblTitle.setBackground(new Color(44, 82, 150));
+        lblTitle.setBorder(new EmptyBorder(6, 15, 6, 15));
         pnlHeader.add(lblTitle, BorderLayout.WEST);
 
         JPanel line = new JPanel();
@@ -275,11 +276,12 @@ final class QuanLyChuyenTauGUI extends JPanel {
         JPanel pnlHeader = new JPanel(new BorderLayout(0, 8));
         pnlHeader.setOpaque(false);
 
-        JLabel lblTitle = new JLabel("Danh sách tàu rảnh tại ga");
+        JLabel lblTitle = new JLabel("Danh sách tàu tại ga");
         lblTitle.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 15));
-        lblTitle.setForeground(GuiTheme.NAVY);
-        lblTitle.setIcon(GuiIcons.loadIcon(QuanLyChuyenTauGUI.class, "/Images/traCuu.png", 16, 16));
-        lblTitle.setIconTextGap(8);
+        lblTitle.setForeground(Color.WHITE);
+        lblTitle.setOpaque(true);
+        lblTitle.setBackground(new Color(44, 82, 150));
+        lblTitle.setBorder(new EmptyBorder(6, 15, 6, 15));
         pnlHeader.add(lblTitle, BorderLayout.WEST);
 
         JPanel line = new JPanel();
@@ -600,9 +602,10 @@ final class QuanLyChuyenTauGUI extends JPanel {
 
         JLabel lblTitle = new JLabel("Danh sách chuyến tàu");
         lblTitle.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 15));
-        lblTitle.setForeground(GuiTheme.NAVY);
-        lblTitle.setIcon(GuiIcons.loadIcon(QuanLyChuyenTauGUI.class, "/Images/DanhSach.png", 16, 16));
-        lblTitle.setIconTextGap(8);
+        lblTitle.setForeground(Color.WHITE);
+        lblTitle.setOpaque(true);
+        lblTitle.setBackground(new Color(44, 82, 150));
+        lblTitle.setBorder(new EmptyBorder(6, 15, 6, 15));
         pnlHeader.add(lblTitle, BorderLayout.WEST);
         
         JPanel pnlTableActions = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));

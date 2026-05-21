@@ -131,9 +131,10 @@ final class DanhSachChuyenDiGUI extends JPanel {
 
         JLabel lblTitle = new JLabel("Thông tin tra cứu");
         lblTitle.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 15));
-        lblTitle.setForeground(GuiTheme.NAVY);
-        lblTitle.setIcon(GuiIcons.loadIcon(DanhSachChuyenDiGUI.class, "/Images/traCuu.png", 16, 16));
-        lblTitle.setIconTextGap(8);
+        lblTitle.setForeground(Color.WHITE);
+        lblTitle.setOpaque(true);
+        lblTitle.setBackground(new Color(44, 82, 150));
+        lblTitle.setBorder(new EmptyBorder(6, 15, 6, 15));
         pnlHeader.add(lblTitle, BorderLayout.WEST);
 
         JPanel line = new JPanel();
@@ -292,9 +293,10 @@ final class DanhSachChuyenDiGUI extends JPanel {
 
         JLabel lblTitle = new JLabel("Danh sách chuyến đi");
         lblTitle.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 15));
-        lblTitle.setForeground(GuiTheme.NAVY);
-        lblTitle.setIcon(GuiIcons.loadIcon(DanhSachChuyenDiGUI.class, "/Images/DanhSach.png", 16, 16));
-        lblTitle.setIconTextGap(8);
+        lblTitle.setForeground(Color.WHITE);
+        lblTitle.setOpaque(true);
+        lblTitle.setBackground(new Color(44, 82, 150));
+        lblTitle.setBorder(new EmptyBorder(6, 15, 6, 15));
         pnlTitleRow.add(lblTitle, BorderLayout.WEST);
 
         lblResults = new JLabel("");
