@@ -3,6 +3,7 @@ package dao;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import connect_DB.Connect_DB;
@@ -97,5 +98,40 @@ public class NhanVienDAO implements DAO<NhanVien, String> {
             e.printStackTrace();
         }
         return false;
+    }
+
+    // =========================================================================
+    // ─── THÀNH PHẦN NÂNG CẤP DÀNH CHO NHÀ QUẢN LÝ (THỐNG KÊ VĨ MÔ) ───
+    // =========================================================================
+    
+    /**
+     * Bảng xếp hạng Leaderboard hiệu suất bán hàng của từng nhân viên dựa trên doanh thu hóa đơn thực tế
+     */
+    public static List<Object[]> getThongKeHieuSuatNhanVien(java.time.LocalDate tuNgay, java.time.LocalDate denNgay) throws SQLException {
+        List<Object[]> list = new ArrayList<>();
+        String sql = "SELECT nv.maNV, nv.hoTenNV, " +
+                     "       COUNT(DISTINCT hd.maHoaDon) AS soHD, " +
+                     "       ISNULL(SUM(hd.tongTien), 0) AS doanhSo " +
+                     "FROM NhanVien nv " +
+                     "LEFT JOIN HoaDon hd ON nv.maNV = hd.maNV AND CAST(hd.ngayLapHD AS DATE) BETWEEN ? AND ? " +
+                     "GROUP BY nv.maNV, nv.hoTenNV " +
+                     "ORDER BY doanhSo DESC";
+
+        try (Connection con = Connect_DB.getInstance().getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setDate(1, java.sql.Date.valueOf(tuNgay));
+            ps.setDate(2, java.sql.Date.valueOf(denNgay));
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(new Object[]{
+                        rs.getString("maNV"),
+                        rs.getString("hoTenNV"),
+                        rs.getInt("soHD"),
+                        rs.getDouble("doanhSo")
+                    });
+                }
+            }
+        }
+        return list;
     }
 }
