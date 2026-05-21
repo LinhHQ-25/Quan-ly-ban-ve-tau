@@ -85,6 +85,45 @@ public class VeDAO {
         return result;
     }
 
+    // ── MỚI: đếm vé hủy hôm nay theo nhân viên, không lọc ca ──
+    public static int getSoVeHuyHomNay(String maNV) throws SQLException {
+        String sql = "SELECT COUNT(*) FROM Ve v " +
+                "JOIN HoaDon hd ON v.maHoaDon = hd.maHoaDon " +
+                "WHERE CAST(v.ngayMua AS DATE) = CAST(GETDATE() AS DATE) AND hd.maNV = ? " +
+                "AND v.trangThaiVe IN (N'Đã hủy', 'DA_HUY')";
+        try (Connection con = Connect_DB.getInstance().getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setString(1, maNV);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? rs.getInt(1) : 0;
+            }
+        }
+    }
+
+    // ── MỚI: đếm vé theo loại ghế hôm nay, không lọc ca ──
+    public static int[] getSoGheTheoLoaiHomNay(String maNV) throws SQLException {
+        int[] result = {0, 0, 0};
+        String sql = "SELECT g.loaiGhe, COUNT(*) as sl FROM Ve v " +
+                "JOIN HoaDon hd ON v.maHoaDon = hd.maHoaDon " +
+                "JOIN Ghe g ON v.maGhe = g.maGhe " +
+                "WHERE CAST(v.ngayMua AS DATE) = CAST(GETDATE() AS DATE) AND hd.maNV = ? " +
+                "AND v.trangThaiVe = N'Đã thanh toán'" +
+                " GROUP BY g.loaiGhe";
+        try (Connection con = Connect_DB.getInstance().getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setString(1, maNV);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    String loai = rs.getString("loaiGhe");
+                    if (loai.equalsIgnoreCase("Ghế cứng")) result[0] = rs.getInt("sl");
+                    else if (loai.equalsIgnoreCase("Giường nằm")) result[1] = rs.getInt("sl");
+                    else if (loai.equalsIgnoreCase("Ghế mềm")) result[2] = rs.getInt("sl");
+                }
+            }
+        }
+        return result;
+    }
+
     public static void capNhatTrangThaiVeHetHan() {
         String sqlRename = "UPDATE Ve SET trangThaiVe = N'Chờ thanh toán' WHERE trangThaiVe = N'Chưa thanh toán'";
         String sql = "UPDATE Ve SET trangThaiVe = N'Đã hủy' WHERE trangThaiVe = N'Chờ thanh toán' AND DATEDIFF(minute, ngayMua, GETDATE()) >= 30";

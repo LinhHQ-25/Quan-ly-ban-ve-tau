@@ -142,6 +142,76 @@ public class HoaDonDAO implements DAO<HoaDon, String> {
         }
         return rows;
     }
+    // ── MỚI: load HĐ bán (thường + đổi) của nhân viên trong ngày hôm nay, không lọc ca ──
+    public static List<Object[]> getDanhSachHoaDonHomNay(String maNV) throws SQLException {
+        java.time.LocalDate ngay = java.time.LocalDate.now();
+        String sql = "SELECT h.maHoaDon, " +
+                "       CONVERT(varchar, h.ngayLapHD, 108) AS gioBan, " +
+                "       k.hoTenKH, " +
+                "       (SELECT TOP 1 g.loaiGhe FROM Ve v JOIN Ghe g ON v.maGhe = g.maGhe WHERE v.maHoaDon = h.maHoaDon AND v.trangThaiVe = N'Đã thanh toán') AS loaiGhe, " +
+                "       (SELECT COUNT(*) FROM Ve v WHERE v.maHoaDon = h.maHoaDon AND v.trangThaiVe = N'Đã thanh toán') AS soGhe, " +
+                "       (SELECT ISNULL(SUM(v.giaVe), 0) FROM Ve v WHERE v.maHoaDon = h.maHoaDon AND v.trangThaiVe = N'Đã thanh toán') AS tongTien " +
+                "FROM HoaDon h " +
+                "JOIN KhachHang k ON h.maKH = k.maKH " +
+                "WHERE CAST(h.ngayLapHD AS DATE) = ? AND h.maNV = ? " +
+                " AND EXISTS (SELECT 1 FROM Ve v WHERE v.maHoaDon = h.maHoaDon AND v.trangThaiVe = N'Đã thanh toán')" +
+                " ORDER BY h.ngayLapHD DESC";
+        List<Object[]> rows = new ArrayList<>();
+        try (Connection con = Connect_DB.getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setDate(1, java.sql.Date.valueOf(ngay));
+            ps.setString(2, maNV);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    rows.add(new Object[]{
+                            rs.getString("maHoaDon"),
+                            rs.getString("gioBan"),
+                            rs.getString("hoTenKH"),
+                            rs.getString("loaiGhe"),
+                            rs.getInt("soGhe"),
+                            rs.getDouble("tongTien")
+                    });
+                }
+            }
+        }
+        return rows;
+    }
+
+    // ── MỚI: load HĐ hủy (vé trả) của nhân viên trong ngày hôm nay, không lọc ca ──
+    public static List<Object[]> getDanhSachHoaDonHuyHomNay(String maNV) throws SQLException {
+        java.time.LocalDate ngay = java.time.LocalDate.now();
+        String sql = "SELECT h.maHoaDon, " +
+                "       CONVERT(varchar, h.ngayLapHD, 108) AS gioBan, " +
+                "       k.hoTenKH, " +
+                "       (SELECT TOP 1 g.loaiGhe FROM Ve v JOIN Ghe g ON v.maGhe = g.maGhe WHERE v.maHoaDon = h.maHoaDon AND v.trangThaiVe IN (N'Đã hủy', 'DA_HUY')) AS loaiGhe, " +
+                "       (SELECT COUNT(*) FROM Ve v WHERE v.maHoaDon = h.maHoaDon AND v.trangThaiVe IN (N'Đã hủy', 'DA_HUY')) AS soGhe, " +
+                "       (SELECT ISNULL(SUM(v.giaVe), 0) FROM Ve v WHERE v.maHoaDon = h.maHoaDon AND v.trangThaiVe IN (N'Đã hủy', 'DA_HUY')) AS tongTien " +
+                "FROM HoaDon h " +
+                "JOIN KhachHang k ON h.maKH = k.maKH " +
+                "WHERE CAST(h.ngayLapHD AS DATE) = ? AND h.maNV = ? " +
+                " AND EXISTS (SELECT 1 FROM Ve v WHERE v.maHoaDon = h.maHoaDon AND v.trangThaiVe IN (N'Đã hủy', 'DA_HUY'))" +
+                " ORDER BY h.ngayLapHD DESC";
+        List<Object[]> rows = new ArrayList<>();
+        try (Connection con = Connect_DB.getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setDate(1, java.sql.Date.valueOf(ngay));
+            ps.setString(2, maNV);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    rows.add(new Object[]{
+                            rs.getString("maHoaDon"),
+                            rs.getString("gioBan"),
+                            rs.getString("hoTenKH"),
+                            rs.getString("loaiGhe"),
+                            rs.getInt("soGhe"),
+                            rs.getDouble("tongTien")
+                    });
+                }
+            }
+        }
+        return rows;
+    }
+
 //load hoa don huy
     public static List<Object[]> getDanhSachHoaDonHuyTheoCa(java.time.LocalDate ngay, String ca, String maNV) throws SQLException {
         String timeCondition = ca.equalsIgnoreCase("Sáng")

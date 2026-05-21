@@ -2,13 +2,14 @@ package gui;
 
 import dao.HoaDonDAO;
 import dao.VeDAO;
-import com.toedter.calendar.JDateChooser;
+import service.AuthService;
 
 import java.awt.*;
 import java.awt.event.*;
+import java.awt.Desktop;
+import java.io.File;
 import java.sql.SQLException;
 import java.time.LocalDate;
-import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -24,9 +25,6 @@ public final class ThongKeGUI extends JPanel {
 
     private static final Color BORDER  = new Color(210, 215, 224);
     private static final Color PRIMARY = new Color(71, 71, 156);
-
-    private String currentMaNV  = "NV001";
-    private String currentTenNV = "Nguyễn Văn A";
 
     private long doanhThu = 0;
     private long loiNhuan = 0;
@@ -46,8 +44,6 @@ public final class ThongKeGUI extends JPanel {
     private final JLabel[] lblStatValues = new JLabel[4];
     private DefaultTableModel tblModel;
 
-    private JDateChooser      dcNgay;
-    private JComboBox<String> cboCa;
     private TableRowSorter<DefaultTableModel> sorter;
     private JTable tblData;
 
@@ -65,8 +61,6 @@ public final class ThongKeGUI extends JPanel {
         pnlPage.setBorder(new EmptyBorder(0, GuiTheme.PAGE_PAD_LEFT, GuiTheme.PAGE_PAD_BOTTOM, GuiTheme.PAGE_PAD_LEFT));
 
         pnlPage.add(Box.createVerticalStrut(12));
-        pnlPage.add(buildFilterPanel());
-        pnlPage.add(Box.createVerticalStrut(12));
         pnlPage.add(buildSummaryBar());
         pnlPage.add(Box.createVerticalStrut(12));
         pnlPage.add(buildTableWithChart());
@@ -79,57 +73,20 @@ public final class ThongKeGUI extends JPanel {
         add(pnlPage, BorderLayout.NORTH);
         add(buildBottomBar(), BorderLayout.SOUTH);
 
-        dcNgay.setDate(new java.util.Date());
-        loadData(LocalDate.now(), "Sáng");
+        // Tự động load dữ liệu hôm nay theo nhân viên đang đăng nhập
+        loadData();
     }
 
-    private JPanel buildFilterPanel() {
-        JPanel pnl = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 10));
-        pnl.setOpaque(false);
+    public void loadData() {
+        String maNV = AuthService.getCurrentMaNV();
+        if (maNV == null || maNV.isEmpty()) return; // chưa đăng nhập
 
-        JLabel lbNgay = new JLabel("Ngày kết ca:");
-        lbNgay.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 14));
-
-        dcNgay = new JDateChooser();
-        dcNgay.setDateFormatString("dd/MM/yyyy");
-        dcNgay.setPreferredSize(new Dimension(165, 34));
-        dcNgay.setBackground(Color.WHITE);
-        dcNgay.setBorder(new LineBorder(BORDER, 1, true));
-
-        JTextField dateEditor = (JTextField) dcNgay.getDateEditor().getUiComponent();
-        dateEditor.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
-        dateEditor.setBorder(BorderFactory.createEmptyBorder(0, 5, 0, 0));
-        dateEditor.setBackground(Color.WHITE);
-
-        JLabel lbCa = new JLabel("Ca làm việc:");
-        lbCa.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 14));
-
-        cboCa = new JComboBox<>(new String[]{"Sáng", "Chiều"});
-        cboCa.setPreferredSize(new Dimension(110, 34));
-        cboCa.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
-
-        JButton btnFilter = buildNavyButton("Kiểm tra doanh thu", "/Images/traCuu.png");
-        btnFilter.addActionListener(e -> {
-            if (dcNgay.getDate() != null) {
-                LocalDate date = dcNgay.getDate().toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
-                String shift = (String) cboCa.getSelectedItem();
-                loadData(date, shift);
-            }
-        });
-
-        pnl.add(lbNgay); pnl.add(dcNgay);
-        pnl.add(lbCa);   pnl.add(cboCa);
-        pnl.add(btnFilter);
-        return pnl;
-    }
-
-    public void loadData(LocalDate ngay, String ca) {
         new Thread(() -> {
             try {
-                int   vh  = VeDAO.getSoVeHuyTheoCa(ngay, ca, currentMaNV);
-                int[] ghe = VeDAO.getSoGheTheoLoaiTheoCa(ngay, ca, currentMaNV);
-                List<Object[]> hdList    = HoaDonDAO.getDanhSachHoaDonTheoCa(ngay, ca, currentMaNV);
-                List<Object[]> hdHuyTemp = HoaDonDAO.getDanhSachHoaDonHuyTheoCa(ngay, ca, currentMaNV);
+                int   vh  = VeDAO.getSoVeHuyHomNay(maNV);
+                int[] ghe = VeDAO.getSoGheTheoLoaiHomNay(maNV);
+                List<Object[]> hdList    = HoaDonDAO.getDanhSachHoaDonHomNay(maNV);
+                List<Object[]> hdHuyTemp = HoaDonDAO.getDanhSachHoaDonHuyHomNay(maNV);
 
                 long ln = 0;
                 int  vb = 0;
@@ -305,10 +262,39 @@ public final class ThongKeGUI extends JPanel {
         spnScroll.getViewport().setBackground(Color.WHITE);
         spnScroll.setPreferredSize(new Dimension(10000, 300));
 
+        // Click vào hàng → mở PDF hóa đơn
+        tblData.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                int row = tblData.getSelectedRow();
+                if (row < 0) return;
+                int modelRow = tblData.convertRowIndexToModel(row);
+                String maHoaDon = (String) tblModel.getValueAt(modelRow, 0);
+                if (maHoaDon != null) openPDF(maHoaDon);
+            }
+        });
+
         JPanel pnlWrap = new JPanel(new BorderLayout());
         pnlWrap.setOpaque(false);
         pnlWrap.add(spnScroll, BorderLayout.CENTER);
         return pnlWrap;
+    }
+
+    private void openPDF(String maHoaDon) {
+        File pdfFile = new File("HoaDon", maHoaDon + ".pdf");
+        if (!pdfFile.exists()) {
+            JOptionPane.showMessageDialog(this,
+                "Không tìm thấy file hóa đơn:\n" + pdfFile.getAbsolutePath(),
+                "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+        try {
+            Desktop.getDesktop().open(pdfFile);
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this,
+                "Không thể mở file PDF: " + ex.getMessage(),
+                "Lỗi", JOptionPane.ERROR_MESSAGE);
+        }
     }
 
     private JPanel buildBottomBar() {
@@ -323,7 +309,8 @@ public final class ThongKeGUI extends JPanel {
         JButton btn = buildNavyButton("Xuất báo cáo kết ca", null);
         btn.addActionListener(e -> {
             int[] d = chartPanel.getData();
-            BaoCaoPDF.export(currentTenNV, doanhThu, loiNhuan, veBan, veHuy, d[1], d[2], d[0]);
+            String tenNV = AuthService.getCurrentHoTen() != null ? AuthService.getCurrentHoTen() : "";
+            BaoCaoPDF.export(tenNV, doanhThu, loiNhuan, veBan, veHuy, d[1], d[2], d[0]);
         });
         return btn;
     }
