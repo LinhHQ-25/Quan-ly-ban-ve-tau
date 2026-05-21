@@ -84,4 +84,5 @@ public class Ve implements TinhGiaVe {
     public String toString() {
         return maVe;
     }
+    
 }

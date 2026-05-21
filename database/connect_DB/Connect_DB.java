@@ -13,7 +13,7 @@ public class Connect_DB {
     // Thông tin kết nối
     private static final String URL = "jdbc:sqlserver://localhost:1433;databaseName=QuanLyBanVeTau;encrypt=false;trustServerCertificate=true;";
     private static final String USER = "sa";
-    private static final String PASSWORD = "123456789";
+    private static final String PASSWORD = "sapassword";
 
     // Constructor private để implement Singleton
     private Connect_DB() {
@@ -51,7 +51,7 @@ public class Connect_DB {
                 System.out.println("Kết nối SQL Server thành công!");
             }
         } catch (SQLException e) {
-            System.err.println("❌ Không thể kết nối SQL Server:");
+            System.err.println("Không thể kết nối SQL Server:");
             e.printStackTrace();
         }
     }

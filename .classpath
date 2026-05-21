@@ -16,5 +16,7 @@
 	<classpathentry kind="lib" path="libs/jcalendar-1.4 (1).jar"/>
 	<classpathentry kind="lib" path="libs/mssql-jdbc-13.4.0.jre11.jar"/>
 	<classpathentry kind="lib" path="libs/itextpdf-5.5.13.jar"/>
+	<classpathentry kind="lib" path="libs/jakarta.mail-2.0.1.jar"/>
+	<classpathentry kind="lib" path="libs/jakarta.activation-2.0.1.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

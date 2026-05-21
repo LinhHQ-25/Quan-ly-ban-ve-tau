@@ -1,7 +1,9 @@
 package gui;
-
+import service.AuthService;
+import connect_DB.Connect_DB;
 import java.awt.*;
 import java.awt.event.*;
+import java.sql.*;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
@@ -10,35 +12,51 @@ import javax.swing.table.JTableHeader;
 
 public class HomeGUI extends JPanel {
 
+    private JTextField tfMaNV, tfVaiTro, tfHoTen, tfNgaySinh, tfGioiTinh, tfSdt, tfEmail, tfDiaChi;
+    private RoundedPanel btnUpdatePanel;
+    private JLabel lblUpdateBtn;
+    private boolean isEditMode = false;
+
+    private static final Color COLOR_DISABLED = new Color(245, 245, 245);
+    private static final Color COLOR_ENABLED  = Color.WHITE;
+    private static final Color COLOR_BTN_NORMAL = new Color(240, 240, 240);
+    private static final Color COLOR_BTN_SAVE   = new Color(52, 152, 219);
+
+    private String currentMaNV = AuthService.getCurrentMaNV();
+    private DefaultTableModel scheduleModel;
+
     public HomeGUI() {
         setBackground(new Color(235, 238, 243));
-        setLayout(new BorderLayout(10, 15)); 
-        setBorder(new EmptyBorder(5, 10, 10, 10)); 
+        setLayout(new BorderLayout(10, 10));
+        setBorder(new EmptyBorder(5, 10, 10, 10));
 
-        // 1. TIÊU ĐỀ
         JPanel pnlTitle = new JPanel(new FlowLayout(FlowLayout.CENTER));
         pnlTitle.setOpaque(false);
         JLabel lblTitle = new JLabel("HỒ SƠ NHÂN VIÊN");
         lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 24));
-        lblTitle.setForeground(new Color(26, 46, 68)); 
+        lblTitle.setForeground(new Color(26, 46, 68));
         pnlTitle.add(lblTitle);
         add(pnlTitle, BorderLayout.NORTH);
 
-        // 2. MAIN CONTENT (2 Card)
-        JPanel pnlMain = new JPanel(new GridLayout(1, 2, 15, 0)); 
+        JPanel pnlMain = new JPanel(new GridLayout(1, 2, 15, 0));
         pnlMain.setOpaque(false);
         pnlMain.add(buildPersonalInfoCard());
         pnlMain.add(buildScheduleCard());
         add(pnlMain, BorderLayout.CENTER);
 
-        // 3. FOOTER
         add(buildFooterCard(), BorderLayout.SOUTH);
+
+        loadEmployeeData();
+        loadScheduleData();
     }
 
+    // =========================================================================
+    // CARD 1: THÔNG TIN CÁ NHÂN
+    // =========================================================================
     private JPanel buildPersonalInfoCard() {
         RoundedPanel card = new RoundedPanel(15, Color.WHITE);
         card.setLayout(new BorderLayout());
-        card.setBorder(new EmptyBorder(10, 15, 10, 15));
+        card.setBorder(new EmptyBorder(12, 15, 12, 15));
 
         JLabel title = new JLabel("THÔNG TIN CHI TIẾT CÁ NHÂN");
         title.setFont(new Font("Segoe UI", Font.BOLD, 16));
@@ -52,75 +70,179 @@ public class HomeGUI extends JPanel {
         gbc.insets = new Insets(5, 5, 5, 5);
         gbc.weightx = 0.5;
 
-        // Xóa các text placeholder rác, chuẩn hóa nhãn Tiếng Việt
-        addFormDisplay(form, gbc, 0, 0, "Mã nhân viên", "NV001", 1);
-        addFormDisplay(form, gbc, 1, 0, "Vai trò", "Bán vé", 1);
-        
-        addFormDisplay(form, gbc, 0, 1, "Họ và tên", "Trần Văn A", 2); 
-        
-        addFormDisplay(form, gbc, 0, 2, "Ngày sinh", "01/01/1990", 1);
-        addFormDisplay(form, gbc, 1, 2, "Giới tính", "Nam", 1);
-        
-        addFormDisplay(form, gbc, 0, 3, "Số điện thoại", "0123456789", 1);
-        addFormDisplay(form, gbc, 1, 3, "Email", "tranvana@train.com", 1);
-        
-        addFormDisplay(form, gbc, 0, 4, "Địa chỉ", "123 Đường ray, TP. HCM", 2); 
+        tfMaNV   = makeTextField(true);
+        tfVaiTro = makeTextField(true);
+        addFieldRow(form, gbc, 0, 0, "Mã nhân viên", tfMaNV, 1);
+        addFieldRow(form, gbc, 1, 0, "Vai trò",      tfVaiTro, 1);
+
+        tfHoTen = makeTextField(true);
+        addFieldRow(form, gbc, 0, 1, "Họ và tên", tfHoTen, 2);
+
+        tfNgaySinh = makeTextField(true);
+        tfGioiTinh = makeTextField(true);
+        addFieldRow(form, gbc, 0, 2, "Ngày sinh", tfNgaySinh, 1);
+        addFieldRow(form, gbc, 1, 2, "Giới tính",  tfGioiTinh, 1);
+
+        tfSdt   = makeTextField(true);
+        tfEmail = makeTextField(true);
+        addFieldRow(form, gbc, 0, 3, "Số điện thoại", tfSdt,   1);
+        addFieldRow(form, gbc, 1, 3, "Email",          tfEmail, 1);
+
+        tfDiaChi = makeTextField(true);
+        addFieldRow(form, gbc, 0, 4, "Địa chỉ", tfDiaChi, 2);
 
         card.add(form, BorderLayout.CENTER);
 
-        JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
+        JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 5));
         btnPanel.setOpaque(false);
-        RoundedPanel btnUpdate = new RoundedPanel(8, new Color(240, 240, 240));
-        btnUpdate.setBorder(new EmptyBorder(8, 15, 8, 15));
-        btnUpdate.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        
-        // Nút cập nhật Font 14
-        JLabel lblUpdate = new JLabel("Cập nhật thông tin");
-        lblUpdate.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        btnUpdate.add(lblUpdate);
-        
-        btnPanel.add(btnUpdate);
-        card.add(btnPanel, BorderLayout.SOUTH);
 
+        btnUpdatePanel = new RoundedPanel(8, COLOR_BTN_NORMAL);
+        btnUpdatePanel.setBorder(new EmptyBorder(8, 18, 8, 18));
+        btnUpdatePanel.setCursor(new Cursor(Cursor.HAND_CURSOR));
+
+        lblUpdateBtn = new JLabel("Cập nhật thông tin");
+        lblUpdateBtn.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        lblUpdateBtn.setForeground(new Color(26, 46, 68));
+        btnUpdatePanel.add(lblUpdateBtn);
+
+        btnUpdatePanel.addMouseListener(new MouseAdapter() {
+            public void mouseClicked(MouseEvent e) { handleUpdateBtn(); }
+            public void mouseEntered(MouseEvent e) {
+                btnUpdatePanel.setBgColor(isEditMode ? new Color(41, 128, 185) : new Color(220, 220, 220));
+                btnUpdatePanel.repaint();
+            }
+            public void mouseExited(MouseEvent e) {
+                btnUpdatePanel.setBgColor(isEditMode ? COLOR_BTN_SAVE : COLOR_BTN_NORMAL);
+                btnUpdatePanel.repaint();
+            }
+        });
+
+        btnPanel.add(btnUpdatePanel);
+        card.add(btnPanel, BorderLayout.SOUTH);
         return card;
     }
 
-    // Cỡ chữ Tiêu đề (Label) và Nội dung (Value) đều được ép cứng mức 14
-    private void addFormDisplay(JPanel parent, GridBagConstraints gbc, int x, int y, String label, String value, int width) {
-        gbc.gridx = x; gbc.gridy = y; gbc.gridwidth = width;
-        
-        JPanel wrapper = new JPanel(new BorderLayout(0, 5));
+    private JTextField makeTextField(boolean disabled) {
+        JTextField tf = new JTextField();
+        tf.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        tf.setEditable(!disabled);
+        tf.setEnabled(!disabled);
+        tf.setBackground(disabled ? COLOR_DISABLED : COLOR_ENABLED);
+        tf.setBorder(BorderFactory.createCompoundBorder(
+                new LineBorder(new Color(210, 215, 224), 1, true),
+                new EmptyBorder(6, 10, 6, 10)));
+        tf.setDisabledTextColor(Color.BLACK);
+        return tf;
+    }
+
+    private void addFieldRow(JPanel parent, GridBagConstraints gbc,
+                              int col, int row, String label, JTextField tf, int width) {
+        gbc.gridx = col; gbc.gridy = row; gbc.gridwidth = width;
+
+        JPanel wrapper = new JPanel(new BorderLayout(0, 4));
         wrapper.setOpaque(false);
-        
+
         JLabel lbl = new JLabel(label);
-        lbl.setFont(new Font("Segoe UI", Font.BOLD, 14)); // FONT CHUẨN 14
+        lbl.setFont(new Font("Segoe UI", Font.BOLD, 13));
         lbl.setForeground(Color.DARK_GRAY);
         wrapper.add(lbl, BorderLayout.NORTH);
+        wrapper.add(tf, BorderLayout.CENTER);
 
-        RoundedPanel inputBg = new RoundedPanel(8, new Color(250, 250, 250)); 
-        inputBg.setLayout(new BorderLayout(10, 0));
-        inputBg.setBorder(new EmptyBorder(8, 10, 8, 10)); // Canh lề chuẩn
-        
-        // Nhãn ẩn để dành chèn Icon sau, không có text rác
-        JLabel iconLbl = new JLabel(); 
-        inputBg.add(iconLbl, BorderLayout.WEST);
-
-        JLabel valLbl = new JLabel(value);
-        valLbl.setFont(new Font("Segoe UI", Font.PLAIN, 14)); // FONT CHUẨN 14
-        valLbl.setForeground(Color.BLACK);
-        inputBg.add(valLbl, BorderLayout.CENTER);
-        
-        wrapper.add(inputBg, BorderLayout.CENTER);
         parent.add(wrapper, gbc);
     }
 
+    private void handleUpdateBtn() {
+        if (!isEditMode) {
+            isEditMode = true;
+            setFieldsEditable(true);
+            lblUpdateBtn.setText("Yêu cầu cập nhật");
+            lblUpdateBtn.setForeground(Color.WHITE);
+            btnUpdatePanel.setBgColor(COLOR_BTN_SAVE);
+            btnUpdatePanel.repaint();
+        } else {
+            if (saveEmployeeData()) {
+                isEditMode = false;
+                setFieldsEditable(false);
+                lblUpdateBtn.setText("Cập nhật thông tin");
+                lblUpdateBtn.setForeground(new Color(26, 46, 68));
+                btnUpdatePanel.setBgColor(COLOR_BTN_NORMAL);
+                btnUpdatePanel.repaint();
+                JOptionPane.showMessageDialog(this, "Cập nhật thông tin thành công!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+            }
+        }
+    }
+
+    private void setFieldsEditable(boolean editable) {
+        for (JTextField tf : new JTextField[]{tfVaiTro, tfHoTen, tfNgaySinh, tfGioiTinh, tfSdt, tfEmail, tfDiaChi}) {
+            tf.setEditable(editable);
+            tf.setEnabled(editable);
+            tf.setBackground(editable ? COLOR_ENABLED : COLOR_DISABLED);
+        }
+    }
+
     // =========================================================================
-    // CARD 2: LỊCH LÀM VIỆC (CHỈNH FONT BẢNG LÊN 14)
+    // DB: Load thông tin nhân viên
+    // =========================================================================
+    private void loadEmployeeData() {
+        try (Connection con = Connect_DB.getConnection()) {
+            if (con == null) return;
+            String sql = "SELECT maNV, hoTenNV, loaiNV, ngaySinh, gioiTinh, soDT, email, diaChi " +
+                         "FROM NhanVien WHERE maNV = ?";
+            PreparedStatement ps = con.prepareStatement(sql);
+            ps.setString(1, currentMaNV);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) {
+                tfMaNV.setText(rs.getString("maNV"));
+                tfHoTen.setText(rs.getString("hoTenNV"));
+
+                String loai = rs.getString("loaiNV");
+                tfVaiTro.setText("NHAN_VIEN_QUAN_LY".equals(loai) ? "Quản lý" : "Bán vé");
+
+                java.sql.Date ngaySinh = rs.getDate("ngaySinh");
+                tfNgaySinh.setText(ngaySinh != null
+                        ? new java.text.SimpleDateFormat("dd/MM/yyyy").format(ngaySinh) : "");
+
+                Object gt = rs.getObject("gioiTinh");
+                tfGioiTinh.setText(gt == null ? "" : (rs.getBoolean("gioiTinh") ? "Nam" : "Nữ"));
+
+                tfSdt.setText(rs.getString("soDT")    != null ? rs.getString("soDT")    : "");
+                tfEmail.setText(rs.getString("email") != null ? rs.getString("email")   : "");
+                tfDiaChi.setText(rs.getString("diaChi") != null ? rs.getString("diaChi") : "");
+            }
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+        }
+    }
+
+    // =========================================================================
+    // DB: Lưu thông tin nhân viên
+    // =========================================================================
+    private boolean saveEmployeeData() {
+        try (Connection con = Connect_DB.getConnection()) {
+            if (con == null) return false;
+            String sql = "UPDATE NhanVien SET hoTenNV=?, soDT=?, email=?, diaChi=? WHERE maNV=?";
+            PreparedStatement ps = con.prepareStatement(sql);
+            ps.setString(1, tfHoTen.getText().trim());
+            ps.setString(2, tfSdt.getText().trim());
+            ps.setString(3, tfEmail.getText().trim());
+            ps.setString(4, tfDiaChi.getText().trim());
+            ps.setString(5, currentMaNV);
+            ps.executeUpdate();
+            return true;
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Lỗi cập nhật: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+            return false;
+        }
+    }
+
+    // =========================================================================
+    // CARD 2: LỊCH LÀM VIỆC
     // =========================================================================
     private JPanel buildScheduleCard() {
         RoundedPanel card = new RoundedPanel(15, Color.WHITE);
         card.setLayout(new BorderLayout());
-        card.setBorder(new EmptyBorder(10, 15, 10, 15));
+        card.setBorder(new EmptyBorder(12, 15, 12, 15));
 
         JLabel title = new JLabel("LỊCH LÀM VIỆC TUẦN NÀY");
         title.setFont(new Font("Segoe UI", Font.BOLD, 16));
@@ -128,94 +250,111 @@ public class HomeGUI extends JPanel {
         card.add(title, BorderLayout.NORTH);
 
         String[] cols = {"STT", "Mã ca", "Tên ca", "Bắt đầu", "Kết thúc", "Ngày"};
-        DefaultTableModel model = new DefaultTableModel(cols, 0);
-        JTable table = new JTable(model);
-        
-        model.addRow(new Object[]{"1", "C01", "Ca sáng", "08:00", "16:00", "2026-05-18"});
-        model.addRow(new Object[]{"2", "C02", "Ca chiều", "16:00", "00:00", "2026-05-19"});
-        model.addRow(new Object[]{"3", "C01", "Ca sáng", "08:00", "16:00", "2026-05-20"});
-        model.addRow(new Object[]{"4", "C01", "Ca sáng", "08:00", "16:00", "2026-05-21"});
-        model.addRow(new Object[]{"5", "C02", "Ca chiều", "16:00", "00:00", "2026-05-22"});
-
-        // Ép Font trong bảng lên 14
+        scheduleModel = new DefaultTableModel(cols, 0) {
+            public boolean isCellEditable(int r, int c) { return false; }
+        };
+        JTable table = new JTable(scheduleModel);
         table.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        table.setRowHeight(28); 
+        table.setRowHeight(28);
         table.setShowGrid(true);
         table.setGridColor(new Color(230, 230, 230));
-        
-        // Ép Font Header bảng lên 14
+
         JTableHeader header = table.getTableHeader();
-        header.setFont(new Font("Segoe UI", Font.BOLD, 14)); 
+        header.setFont(new Font("Segoe UI", Font.BOLD, 14));
         header.setBackground(new Color(245, 245, 245));
 
         JScrollPane scroll = new JScrollPane(table);
         scroll.setBorder(new LineBorder(new Color(220, 220, 220), 1));
         card.add(scroll, BorderLayout.CENTER);
 
-        JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
-        btnPanel.setOpaque(false);
-        RoundedPanel btnExport = new RoundedPanel(8, new Color(240, 240, 240));
-        btnExport.setBorder(new EmptyBorder(8, 15, 8, 15));
-        btnExport.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        
-        // Font xuất lịch cũng 14
-        JLabel lblExport = new JLabel("Xuất lịch làm việc");
-        lblExport.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        btnExport.add(lblExport);
-        
-        btnPanel.add(btnExport);
-        card.add(btnPanel, BorderLayout.SOUTH);
-
         return card;
+    }
+ // Thêm method này vào HomeGUI
+    public void refresh() {
+        currentMaNV = AuthService.getCurrentMaNV();
+        loadEmployeeData();
+        loadScheduleData();
+    }
+    private void loadScheduleData() {
+        if (scheduleModel == null) return;
+        scheduleModel.setRowCount(0);
+        try (Connection con = Connect_DB.getConnection()) {
+            if (con == null) return;
+            String sql =
+                "SELECT ROW_NUMBER() OVER (ORDER BY l.ngayLam) AS stt, " +
+                "c.maCa, c.tenCa, " +
+                "CONVERT(varchar(5), c.gioBatDau, 108) AS batDau, " +
+                "CONVERT(varchar(5), c.gioKetThuc, 108) AS ketThuc, " +
+                "CONVERT(varchar(10), l.ngayLam, 23) AS ngayLam " +
+                "FROM LichLamViec l " +
+                "JOIN CaLamViec c ON l.maCa = c.maCa " +
+                "WHERE l.maNV = ? " +
+                "AND l.ngayLam >= DATEADD(DAY, 2 - DATEPART(WEEKDAY, GETDATE()), CAST(GETDATE() AS DATE)) " +
+                "AND l.ngayLam <  DATEADD(DAY, 9 - DATEPART(WEEKDAY, GETDATE()), CAST(GETDATE() AS DATE)) " +
+                "ORDER BY l.ngayLam";
+            PreparedStatement ps = con.prepareStatement(sql);
+            ps.setString(1, currentMaNV);
+            ResultSet rs = ps.executeQuery();
+            int stt = 1;
+            while (rs.next()) {
+                scheduleModel.addRow(new Object[]{
+                    stt++,
+                    rs.getString("maCa"),
+                    rs.getString("tenCa"),
+                    rs.getString("batDau"),
+                    rs.getString("ketThuc"),
+                    rs.getString("ngayLam")
+                });
+            }
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+        }
     }
 
     // =========================================================================
-    // CARD 3: FOOTER THAO TÁC CA LÀM
+    // CARD 3: FOOTER — 2 nút
     // =========================================================================
     private JPanel buildFooterCard() {
         RoundedPanel card = new RoundedPanel(15, Color.WHITE);
         card.setLayout(new BorderLayout());
-        card.setBorder(new EmptyBorder(10, 15, 15, 15));
-        
-        JLabel title = new JLabel("THAO TÁC CA LÀM LÕI & BÁO CÁO");
-        title.setFont(new Font("Segoe UI", Font.BOLD, 16));
-        title.setBorder(new EmptyBorder(0, 0, 15, 0));
+        card.setBorder(new EmptyBorder(8, 15, 10, 15));
+
+        JLabel title = new JLabel("THAO TÁC CA LÀM");
+        title.setFont(new Font("Segoe UI", Font.BOLD, 15));
+        title.setBorder(new EmptyBorder(0, 0, 8, 0));
         card.add(title, BorderLayout.NORTH);
 
-        JPanel btnGrid = new JPanel(new GridLayout(1, 3, 15, 0));
+        JPanel btnGrid = new JPanel(new GridLayout(1, 2, 15, 0));
         btnGrid.setOpaque(false);
-
-        btnGrid.add(createFooterActionBtn("Đổi mật khẩu", ""));
-        btnGrid.add(createFooterActionBtn("Chốt ca / Bàn giao ca", ""));
-        btnGrid.add(createFooterActionBtn("Báo cáo sự cố hệ thống", "Sự cố mạng, Báo lỗi máy in"));
-
+     // Thay createFooterActionBtn thành có tham số action
+        btnGrid.add(createFooterActionBtn("Đổi mật khẩu", "", () -> {
+            Window owner = SwingUtilities.getWindowAncestor(this);
+            new DoiMatKhauDialog(owner);
+        }));
+        btnGrid.add(createFooterActionBtn("Chốt ca / Bàn giao ca", "", null));
         card.add(btnGrid, BorderLayout.CENTER);
         return card;
     }
 
-    private JPanel createFooterActionBtn(String title, String subTxt) {
-        RoundedPanel btn = new RoundedPanel(12, new Color(238, 246, 255)); 
-        btn.setLayout(new BorderLayout(15, 0)); 
-        btn.setBorder(new EmptyBorder(12, 15, 12, 15));
+    private JPanel createFooterActionBtn(String title, String subTxt, Runnable onClick) {
+        RoundedPanel btn = new RoundedPanel(12, new Color(238, 246, 255));
+        btn.setLayout(new BorderLayout(15, 0));
+        btn.setBorder(new EmptyBorder(10, 15, 10, 15));
         btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-
-        // Nhãn Icon để rỗng, chèn sau
-        JLabel lblIcon = new JLabel();
-        btn.add(lblIcon, BorderLayout.WEST);
 
         JPanel textPanel = new JPanel();
         textPanel.setLayout(new BoxLayout(textPanel, BoxLayout.Y_AXIS));
         textPanel.setOpaque(false);
 
         JLabel lblTitle = new JLabel(title);
-        lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 15)); // Chữ nút chính bự lên xíu
+        lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 15));
         lblTitle.setForeground(new Color(26, 46, 68));
         textPanel.add(lblTitle);
 
         if (!subTxt.isEmpty()) {
-            textPanel.add(Box.createVerticalStrut(4));
+            textPanel.add(Box.createVerticalStrut(3));
             JLabel lblSub = new JLabel(subTxt);
-            lblSub.setFont(new Font("Segoe UI", Font.PLAIN, 13)); 
+            lblSub.setFont(new Font("Segoe UI", Font.PLAIN, 12));
             lblSub.setForeground(Color.GRAY);
             textPanel.add(lblSub);
         }
@@ -223,47 +362,32 @@ public class HomeGUI extends JPanel {
         btn.add(textPanel, BorderLayout.CENTER);
 
         btn.addMouseListener(new MouseAdapter() {
-            public void mouseEntered(MouseEvent e) { 
-                btn.setBgColor(new Color(220, 235, 250)); 
-                btn.repaint(); 
-            }
-            public void mouseExited(MouseEvent e) { 
-                btn.setBgColor(new Color(238, 246, 255)); 
-                btn.repaint(); 
-            }
+            public void mouseClicked(MouseEvent e) { if (onClick != null) onClick.run(); }
+            public void mouseEntered(MouseEvent e) { btn.setBgColor(new Color(220, 235, 250)); btn.repaint(); }
+            public void mouseExited(MouseEvent e)  { btn.setBgColor(new Color(238, 246, 255)); btn.repaint(); }
         });
 
         return btn;
     }
 
     // =========================================================================
-    // VẼ KHUNG BO GÓC
+    // ROUNDED PANEL
     // =========================================================================
     class RoundedPanel extends JPanel {
         private int radius;
         private Color bgColor;
-
         public RoundedPanel(int radius, Color bgColor) {
-            this.radius = radius;
-            this.bgColor = bgColor;
-            setOpaque(false);
+            this.radius = radius; this.bgColor = bgColor; setOpaque(false);
         }
-
-        public void setBgColor(Color color) {
-            this.bgColor = color;
-        }
-
+        public void setBgColor(Color color) { this.bgColor = color; }
         @Override
         protected void paintComponent(Graphics g) {
             Graphics2D g2 = (Graphics2D) g.create();
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-            
             g2.setColor(bgColor);
-            g2.fillRoundRect(0, 0, getWidth() - 1, getHeight() - 1, radius, radius);
-            
+            g2.fillRoundRect(0, 0, getWidth()-1, getHeight()-1, radius, radius);
             g2.setColor(new Color(210, 215, 224));
-            g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, radius, radius);
-            
+            g2.drawRoundRect(0, 0, getWidth()-1, getHeight()-1, radius, radius);
             g2.dispose();
             super.paintComponent(g);
         }

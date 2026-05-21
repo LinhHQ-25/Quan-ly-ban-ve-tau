@@ -1,5 +1,5 @@
 package gui;
-
+import service.AuthService;
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
 import java.awt.Color;
@@ -12,17 +12,24 @@ import java.awt.Graphics;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import javax.swing.AbstractAction;
+import javax.swing.Action;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
+import javax.swing.JComponent;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JSeparator;
+import javax.swing.JToolTip;
+import javax.swing.KeyStroke;
 import javax.swing.SwingConstants;
 import javax.swing.UIManager;
 import javax.swing.border.EmptyBorder;
+import java.awt.event.ActionEvent;
+import java.awt.event.KeyEvent;
 
 public class AppFrame extends JFrame {
     private final CardLayout cardLayout = new CardLayout();
@@ -31,7 +38,7 @@ public class AppFrame extends JFrame {
     private final Map<String, SidebarButton> searchSubButtons = new LinkedHashMap<>();
     private final JLabel headerTitle = new JLabel("THÔNG TIN CÁ NHÂN");
     private LoadingPanel loadingPanel;
-
+    private JLabel lblName;
     // References để gọi refresh() khi navigate
     private DoiVeGUI  doiVeGUI;
     private TraVeGUI  traVeGUI;
@@ -39,7 +46,7 @@ public class AppFrame extends JFrame {
     private TraVeGUI1 traVeGUI1;
     private DoiVeGUI0 doiVeGUI0;
     private ThongKeGUI thongKeGUI; // THÊM MỚI
-
+    private HomeGUI homeGUI;
     private JPanel searchSubmenuPanel;
     private SidebarButton searchMainButton;
     private boolean searchExpanded;
@@ -65,6 +72,7 @@ public class AppFrame extends JFrame {
 
         registerCards();
         showCard("login");
+        registerGlobalShortcuts();
     }
 
     private JPanel buildSidebar() {
@@ -94,6 +102,7 @@ public class AppFrame extends JFrame {
         sb.add(sep);
 
         searchMainButton = mkBtn("tra-cuu", "Tra cứu", "/Images/traCuu.png", true);
+        searchMainButton.setToolTipText("Ctrl + F  —  Tra cứu");
         searchMainButton.addActionListener(e -> toggleSearch());
         sb.add(searchMainButton);
 
@@ -122,13 +131,8 @@ public class AppFrame extends JFrame {
         sb.add(Box.createVerticalStrut(16));
 
         SidebarButton logout = new SidebarButton("Đăng xuất", false, "/Images/DangXuat.png");
-        logout.addActionListener(e -> {
-            int choice = JOptionPane.showConfirmDialog(this,
-                    "Bạn có chắc chắn muốn đăng xuất?", "Xác nhận", JOptionPane.YES_NO_OPTION);
-            if (choice == JOptionPane.YES_OPTION) {
-                showCard("login");
-            }
-        });
+        logout.setToolTipText("Ctrl + L");
+        logout.addActionListener(e -> doLogout());
         sb.add(logout);
 
         return sb;
@@ -139,6 +143,9 @@ public class AppFrame extends JFrame {
         if (!isSearchMain) {
             btn.addActionListener(e -> showCard(route));
         }
+        // Tooltip phím tắt
+        String shortcut = getShortcutLabel(route);
+        if (shortcut != null) btn.setToolTipText(shortcut);
         routeButtons.put(route, btn);
         return btn;
     }
@@ -146,8 +153,99 @@ public class AppFrame extends JFrame {
     private void mkSub(String route, String label, String iconPath) {
         SidebarButton btn = new SidebarButton(label, true, iconPath);
         btn.addActionListener(e -> showCard(route));
+        // Tooltip phím tắt
+        String shortcut = getShortcutLabel(route);
+        if (shortcut != null) btn.setToolTipText(shortcut);
         searchSubButtons.put(route, btn);
         searchSubmenuPanel.add(btn);
+    }
+
+    /** Trả về chuỗi gợi ý phím tắt cho từng route */
+    private String getShortcutLabel(String route) {
+        switch (route) {
+            case "tra-cuu":        return "Ctrl + F";
+            case "tra-cuu-chuyen": return "Ctrl + D";
+            case "tra-cuu-tau":    return "Ctrl + T";
+            case "tra-cuu-ve":     return "Ctrl + V";
+            case "tra-cuu-khach":  return "Ctrl + K";
+            case "dat-ve":         return "Ctrl + B";
+            case "doi-tra":        return "Ctrl + R";
+            case "thong-ke":       return "Ctrl + G";
+            case "ho-tro":         return "F1";
+            
+            default:               return null;
+        }
+    }
+
+    /** Xác nhận và thực hiện đăng xuất */
+    private void doLogout() {
+        int choice = JOptionPane.showConfirmDialog(this,
+                "Bạn có chắc chắn muốn đăng xuất?", "Xác nhận", JOptionPane.YES_NO_OPTION);
+        if (choice == JOptionPane.YES_OPTION) {
+            showCard("login");
+        }
+    }
+
+    /** Đăng ký tất cả phím tắt toàn cục */
+    private void registerGlobalShortcuts() {
+        JPanel root = (JPanel) getContentPane();
+        javax.swing.InputMap im = root.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW);
+        javax.swing.ActionMap am = root.getActionMap();
+
+        // Helper để bind
+        java.util.function.BiConsumer<KeyStroke, Runnable> bind = (ks, action) -> {
+            String key = ks.toString();
+            im.put(ks, key);
+            am.put(key, new AbstractAction() {
+                public void actionPerformed(ActionEvent e) { action.run(); }
+            });
+        };
+
+        int CTRL = KeyEvent.CTRL_DOWN_MASK;
+
+        bind.accept(KeyStroke.getKeyStroke(KeyEvent.VK_F, CTRL), () -> {
+            if (!"login".equals(activeCard)) toggleSearch();
+        });
+        bind.accept(KeyStroke.getKeyStroke(KeyEvent.VK_D, CTRL), () -> {
+            if (!"login".equals(activeCard)) showCard("tra-cuu-chuyen");
+        });
+        bind.accept(KeyStroke.getKeyStroke(KeyEvent.VK_T, CTRL), () -> {
+            if (!"login".equals(activeCard)) showCard("tra-cuu-tau");
+        });
+        bind.accept(KeyStroke.getKeyStroke(KeyEvent.VK_V, CTRL), () -> {
+            if (!"login".equals(activeCard)) showCard("tra-cuu-ve");
+        });
+        bind.accept(KeyStroke.getKeyStroke(KeyEvent.VK_K, CTRL), () -> {
+            if (!"login".equals(activeCard)) showCard("tra-cuu-khach");
+        });
+        bind.accept(KeyStroke.getKeyStroke(KeyEvent.VK_B, CTRL), () -> {
+            if (!"login".equals(activeCard)) showCard("dat-ve");
+        });
+        bind.accept(KeyStroke.getKeyStroke(KeyEvent.VK_R, CTRL), () -> {
+            if (!"login".equals(activeCard)) showCard("doi-tra");
+        });
+        bind.accept(KeyStroke.getKeyStroke(KeyEvent.VK_H, CTRL), () -> {
+            if (!"login".equals(activeCard)) showCard("home");
+        });
+        bind.accept(KeyStroke.getKeyStroke(KeyEvent.VK_G, CTRL), () -> {
+            if (!"login".equals(activeCard)) showCard("thong-ke");
+        });
+        bind.accept(KeyStroke.getKeyStroke(KeyEvent.VK_L, CTRL), () -> {
+            if (!"login".equals(activeCard)) doLogout();
+        });
+        bind.accept(KeyStroke.getKeyStroke(KeyEvent.VK_F1, 0), () -> {
+            if (!"login".equals(activeCard)) showCard("ho-tro");
+        });
+        bind.accept(KeyStroke.getKeyStroke(KeyEvent.VK_F5, 0), () -> {
+            if (!"login".equals(activeCard)) showCard(activeCard); // refresh
+        });
+        bind.accept(KeyStroke.getKeyStroke(KeyEvent.VK_L, CTRL), () -> {
+            if (!"login".equals(activeCard)) {
+                int choice = JOptionPane.showConfirmDialog(AppFrame.this,
+                        "Bạn có chắc chắn muốn đăng xuất?", "Xác nhận", JOptionPane.YES_NO_OPTION);
+                if (choice == JOptionPane.YES_OPTION) showCard("login");
+            }
+        });
     }
 
     private void toggleSearch() {
@@ -286,11 +384,12 @@ public class AppFrame extends JFrame {
         JLabel role = new JLabel("Nhân viên");
         role.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 16));
         role.setForeground(GuiTheme.TEXT);
-        JLabel name = new JLabel("Tên nhân viên");
-        name.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 13));
-        name.setForeground(GuiTheme.SUB_TEXT);
+        lblName = new JLabel(AuthService.getCurrentHoTen());
+		lblName.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 14));
+		lblName.setForeground(GuiTheme.NAVY);
+		lblName.setBorder(new EmptyBorder(4, 0, 0, 0)); 
         pt.add(role);
-        pt.add(name);
+        pt.add(lblName);
         profile.add(pt, BorderLayout.CENTER);
 
         profile.addMouseListener(new java.awt.event.MouseAdapter() {
@@ -299,6 +398,7 @@ public class AppFrame extends JFrame {
                 showCard("home");
             }
         });
+        profile.setToolTipText("Ctrl + H");
 
         JPanel rightContent = new JPanel(new FlowLayout(FlowLayout.RIGHT, 25, 0));
         rightContent.setOpaque(false);
@@ -323,7 +423,8 @@ public class AppFrame extends JFrame {
 
         contentCards.setBackground(GuiTheme.LIGHT_BG);
         contentCards.add(new LoginPanel(this), "login");
-        contentCards.add(new HomeGUI(),              "home");
+        homeGUI = new HomeGUI();
+        contentCards.add(homeGUI, "home");
         contentCards.add(new DanhSachChuyenDiGUI(),  "tra-cuu-chuyen");
         contentCards.add(new TauGUI(),               "tra-cuu-tau");
         contentCards.add(new VeGUI(),                "tra-cuu-ve");
@@ -349,6 +450,7 @@ public class AppFrame extends JFrame {
     }
 
     public void onLoginSuccess(boolean isAdmin) {
+    	lblName.setText(AuthService.getCurrentHoTen());
         if (isAdmin) {
             AppFrameManager managerFrame = new AppFrameManager();
             managerFrame.setVisible(true);
@@ -375,6 +477,7 @@ public class AppFrame extends JFrame {
 
             // 4. Xử lý kết quả
             if (dialog.isConfirmed()) {
+            	homeGUI.refresh();
                 // THÊM MỚI: Parse tiền mở ca và truyền vào ThongKeGUI
                 long tienMoCa = Long.parseLong(dialog.getTienMoCa().replaceAll("[^\\d]", ""));
                 thongKeGUI.setTienMoCa(tienMoCa);

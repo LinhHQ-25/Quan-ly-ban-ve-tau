@@ -5,6 +5,9 @@ import java.awt.*;
 import java.awt.event.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
+import java.text.DecimalFormat;
 
 public class MoCaDialog extends JDialog {
     private boolean confirmed = false;
@@ -25,7 +28,7 @@ public class MoCaDialog extends JDialog {
 
         // --- HEADER ---
         JPanel header = new JPanel();
-        header.setBackground(GuiTheme.NAVY);
+        header.setBackground(GuiTheme.NAVY); // Chú ý: Đảm bảo class GuiTheme đã được định nghĩa ở code của bạn
         header.setPreferredSize(new Dimension(420, 55));
         header.setLayout(new GridBagLayout());
         JLabel lblTitle = new JLabel("MỞ CA LÀM VIỆC");
@@ -56,7 +59,7 @@ public class MoCaDialog extends JDialog {
                 new EmptyBorder(5, 10, 5, 10)
         ));
 
-        // Logic giữ màu xanh
+        // Logic giữ màu xanh và xử lý PLACEHOLDER
         txtTien.addFocusListener(new FocusAdapter() {
             @Override
             public void focusGained(FocusEvent e) {
@@ -72,10 +75,46 @@ public class MoCaDialog extends JDialog {
             }
         });
 
-        // Hộp chứa dòng Gợi ý (Đẩy sang phải, đủ cao để không bị cắt xén)
+        // THÊM MỚI: Tự động format tiền tệ có dấu phẩy khi gõ
+        txtTien.getDocument().addDocumentListener(new DocumentListener() {
+            private boolean isFormatting = false;
+            private final DecimalFormat formatter = new DecimalFormat("#,###");
+
+            private void formatText() {
+                if (isFormatting) return;
+                SwingUtilities.invokeLater(() -> {
+                    isFormatting = true;
+                    String currentText = txtTien.getText();
+                    if (!currentText.isEmpty() && !currentText.equals(PLACEHOLDER)) {
+                        // Xóa các ký tự không phải là số (như dấu phẩy hiện tại)
+                        String cleanString = currentText.replaceAll("[^\\d]", "");
+                        if (!cleanString.isEmpty()) {
+                            try {
+                                long parsed = Long.parseLong(cleanString);
+                                txtTien.setText(formatter.format(parsed));
+                            } catch (NumberFormatException ex) {
+                                // Bỏ qua nếu lỗi (vượt quá giới hạn số)
+                            }
+                        } else {
+                            txtTien.setText("");
+                        }
+                    }
+                    isFormatting = false;
+                });
+            }
+
+            @Override
+            public void insertUpdate(DocumentEvent e) { formatText(); }
+            @Override
+            public void removeUpdate(DocumentEvent e) { formatText(); }
+            @Override
+            public void changedUpdate(DocumentEvent e) { formatText(); }
+        });
+
+        // Hộp chứa dòng Gợi ý
         JPanel hintPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
         hintPanel.setBackground(Color.WHITE);
-        hintPanel.setMaximumSize(new Dimension(320, 45)); // Rộng 320, cao 45 để chứa thoải mái 2 dòng
+        hintPanel.setMaximumSize(new Dimension(320, 45)); 
         JLabel lblHint = new JLabel("<html><div style='text-align: right; color: gray;'>Tiền mặt đầu ca (VNĐ)<br>Nhấn Enter để xác nhận</div></html>");
         lblHint.setFont(new Font("Segoe UI", Font.ITALIC, 13));
         hintPanel.add(lblHint);
@@ -120,7 +159,7 @@ public class MoCaDialog extends JDialog {
         });
     }
 
-    // Nút bo góc: Đã giảm chiều cao xuống 40px cho gọn gàng
+    // Nút bo góc
     private JButton createRoundedButton(String text, Color bg, Color fg) {
         JButton btn = new JButton(text) {
             @Override
@@ -143,7 +182,7 @@ public class MoCaDialog extends JDialog {
         btn.setFocusPainted(false);
         btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
         btn.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        btn.setPreferredSize(new Dimension(340, 40)); // Chiều cao 40
+        btn.setPreferredSize(new Dimension(340, 40)); 
         btn.setMaximumSize(new Dimension(340, 40));
         btn.setAlignmentX(Component.CENTER_ALIGNMENT);
         return btn;
@@ -152,7 +191,7 @@ public class MoCaDialog extends JDialog {
     private void xacNhan(String tien) {
         this.tienMoCa = tien;
         this.confirmed = true;
-        dispose(); // Nhường việc gọi LoadingPanel lại cho AppFrame lo
+        dispose(); 
     }
 
     public boolean isConfirmed() {

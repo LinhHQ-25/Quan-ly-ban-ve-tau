@@ -1,5 +1,5 @@
 package gui;
-
+import service.AuthService;
 import java.awt.*;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -11,7 +11,7 @@ public class AppFrameManager extends JFrame {
 	private final JPanel contentCards = new JPanel(cardLayout);
 	private final Map<String, SidebarButton> routeButtons = new LinkedHashMap<>();
 	private final JLabel headerTitle = new JLabel("TỔNG QUAN HỆ THỐNG");
-
+	private JLabel lblName;
 	public AppFrameManager() {
 		setTitle("Hệ thống quản lý bán vé tàu - Dành cho Quản lý");
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -35,6 +35,7 @@ public class AppFrameManager extends JFrame {
 
 		// Mặc định hiển thị Dashboard đầu tiên.
 		showCard("dashboard");
+		registerGlobalShortcuts();
 	}
 
 	private JPanel buildSidebar() {
@@ -83,18 +84,63 @@ public class AppFrameManager extends JFrame {
 				new AppFrame().setVisible(true);
 				this.dispose();
 			}
-		});
+		});logout.setToolTipText("Ctrl + L");
 		sb.add(logout);
 		return sb;
+		
 	}
 
 	private SidebarButton mkBtn(String route, String label, String iconPath) {
-		SidebarButton btn = new SidebarButton(label, false, iconPath);
-		btn.addActionListener(e -> showCard(route));
-		routeButtons.put(route, btn);
-		return btn;
+	    SidebarButton btn = new SidebarButton(label, false, iconPath);
+	    btn.addActionListener(e -> showCard(route));
+	    String shortcut = getShortcutLabel(route);
+	    if (shortcut != null) btn.setToolTipText(shortcut);
+	    routeButtons.put(route, btn);
+	    return btn;
+	}
+	private String getShortcutLabel(String route) {
+	    switch (route) {
+	        case "ql-nhanvien":  return "Ctrl + N";
+	        case "ql-calam":     return "Ctrl + C";
+	        case "ql-chuyentau": return "Ctrl + T";
+	        case "ql-khuyenmai": return "Ctrl + M";
+	        case "thong-ke":     return "Ctrl + G";
+	        case "ho-tro":       return "F1";
+	        default:             return null;
+	    }
 	}
 
+	private void registerGlobalShortcuts() {
+	    JPanel root = (JPanel) getContentPane();
+	    javax.swing.InputMap im = root.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW);
+	    javax.swing.ActionMap am = root.getActionMap();
+
+	    java.util.function.BiConsumer<KeyStroke, Runnable> bind = (ks, action) -> {
+	        String key = ks.toString();
+	        im.put(ks, key);
+	        am.put(key, new AbstractAction() {
+	            public void actionPerformed(java.awt.event.ActionEvent e) { action.run(); }
+	        });
+	    };
+
+	    int CTRL = java.awt.event.KeyEvent.CTRL_DOWN_MASK;
+
+	    bind.accept(KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_N, CTRL), () -> showCard("ql-nhanvien"));
+	    bind.accept(KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_C, CTRL), () -> showCard("ql-calam"));
+	    bind.accept(KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_T, CTRL), () -> showCard("ql-chuyentau"));
+	    bind.accept(KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_M, CTRL), () -> showCard("ql-khuyenmai"));
+	    bind.accept(KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_G, CTRL), () -> showCard("thong-ke"));
+	    bind.accept(KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_H, CTRL), () -> showCard("ho-so"));
+	    bind.accept(KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_F1, 0),   () -> showCard("ho-tro"));
+	    bind.accept(KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_L, CTRL), () -> {
+	        int choice = JOptionPane.showConfirmDialog(AppFrameManager.this,
+	                "Bạn có chắc chắn muốn đăng xuất?", "Xác nhận", JOptionPane.YES_NO_OPTION);
+	        if (choice == JOptionPane.YES_OPTION) {
+	            new AppFrame().setVisible(true);
+	            dispose();
+	        }
+	    });
+	}
 	public void showCard(String card) {
 		cardLayout.show(contentCards, card);
 		updateTitle(card);
@@ -162,12 +208,13 @@ public class AppFrameManager extends JFrame {
 		role.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 16));
 		role.setForeground(GuiTheme.TEXT);
 
-		JLabel name = new JLabel("Tên quản lý");
-		name.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 13));
-		name.setForeground(GuiTheme.SUB_TEXT);
+		lblName = new JLabel(AuthService.getCurrentHoTen());
+		lblName.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 14));
+		lblName.setForeground(GuiTheme.NAVY);
+		lblName.setBorder(new EmptyBorder(4, 0, 0, 0)); 
 
 		pt.add(role);
-		pt.add(name);
+		pt.add(lblName);
 		profile.add(pt, BorderLayout.CENTER);
 
 		// Click vào profile để xem Hồ sơ quản lý
@@ -175,7 +222,8 @@ public class AppFrameManager extends JFrame {
 			@Override public void mouseClicked(java.awt.event.MouseEvent e) {
 				showCard("ho-so");
 			}
-		});
+		
+		});profile.setToolTipText("Ctrl + H");
 
 		// Thêm Đồng hồ kế bên Profile
 		JPanel rightContent = new JPanel(new FlowLayout(FlowLayout.RIGHT, 25, 0));
