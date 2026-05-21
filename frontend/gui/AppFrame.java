@@ -45,8 +45,14 @@ public class AppFrame extends JFrame {
     private DoiVeGUI1 doiVeGUI1;
     private TraVeGUI1 traVeGUI1;
     private DoiVeGUI0 doiVeGUI0;
+    private DoiTraGUI doiTraGUI;
     private ThongKeGUI thongKeGUI; // THÊM MỚI
     private HomeGUI homeGUI;
+
+    private DoiVeGUI2 doiVeGUI2;;
+
+// Trong hàm khởi tạo / registerCards
+
     private JPanel searchSubmenuPanel;
     private SidebarButton searchMainButton;
     private boolean searchExpanded;
@@ -286,8 +292,10 @@ public class AppFrame extends JFrame {
         if ("doi-ve".equals(card)        && doiVeGUI  != null) doiVeGUI .refresh();
         if ("doi-ve-step-1".equals(card) && doiVeGUI0 != null) doiVeGUI0.refresh();
         if ("doi-ve-step-2".equals(card) && doiVeGUI1 != null) doiVeGUI1.refresh();
+        if ("doi-ve-step-3".equals(card) && doiVeGUI2 != null) doiVeGUI2.refresh();
         if ("tra-ve".equals(card)        && traVeGUI  != null) traVeGUI .refresh();
         if ("tra-ve-step-2".equals(card) && traVeGUI1 != null) traVeGUI1.refresh();
+        if ("doi-tra".equals(card)       && doiTraGUI != null) doiTraGUI.refresh();
     }
 
     private void updateTitle(String card) {
@@ -431,7 +439,8 @@ public class AppFrame extends JFrame {
         contentCards.add(new KhachHangGUI(),         "tra-cuu-khach");
         contentCards.add(new DatVeGUI(),             "dat-ve");
         contentCards.add(new HoTroGUI(),             "ho-tro");
-        contentCards.add(new DoiTraGUI(this),        "doi-tra");
+        doiTraGUI = new DoiTraGUI(this);
+        contentCards.add(doiTraGUI,        "doi-tra");
 
         // THAY ĐỔI: Lưu reference ThongKeGUI để truyền tiền mở ca
         thongKeGUI = new ThongKeGUI();
@@ -447,6 +456,8 @@ public class AppFrame extends JFrame {
         contentCards.add(doiVeGUI1,              "doi-ve-step-2");
         doiVeGUI0 = new DoiVeGUI0(this);
         contentCards.add(doiVeGUI0,              "doi-ve-step-1");
+        doiVeGUI2 = new DoiVeGUI2(this);
+        contentCards.add(doiVeGUI2, "doi-ve-step-3");
     }
 
     public void onLoginSuccess(boolean isAdmin) {

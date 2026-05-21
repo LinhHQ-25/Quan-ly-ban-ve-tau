@@ -117,6 +117,9 @@ public class HoaDonDAO implements DAO<HoaDon, String> {
                 "JOIN KhachHang k ON h.maKH = k.maKH " +
                 "WHERE CAST(h.ngayLapHD AS DATE) = ? AND h.maNV = ? " +
                 "AND CAST(h.ngayLapHD AS TIME)" + timeCondition +
+                // Chỉ lấy hóa đơn có ít nhất 1 vé đã thanh toán
+                // → loại hóa đơn lưu tạm (Chờ thanh toán) và hóa đơn đã trả hết vé
+                " AND EXISTS (SELECT 1 FROM Ve v WHERE v.maHoaDon = h.maHoaDon AND v.trangThaiVe = N'Đã thanh toán')" +
                 " ORDER BY h.ngayLapHD DESC";
 
         List<Object[]> rows = new ArrayList<>();
@@ -139,8 +142,7 @@ public class HoaDonDAO implements DAO<HoaDon, String> {
         }
         return rows;
     }
-
-    // THÊM MỚI - lấy danh sách hóa đơn vé hủy
+//load hoa don huy
     public static List<Object[]> getDanhSachHoaDonHuyTheoCa(java.time.LocalDate ngay, String ca, String maNV) throws SQLException {
         String timeCondition = ca.equalsIgnoreCase("Sáng")
                 ? " BETWEEN '00:00:00' AND '11:59:59'"
@@ -149,14 +151,18 @@ public class HoaDonDAO implements DAO<HoaDon, String> {
         String sql = "SELECT h.maHoaDon, " +
                 "       CONVERT(varchar, h.ngayLapHD, 108) AS gioBan, " +
                 "       k.hoTenKH, " +
-                "       (SELECT TOP 1 g.loaiGhe FROM Ve v JOIN Ghe g ON v.maGhe = g.maGhe WHERE v.maHoaDon = h.maHoaDon AND v.trangThaiVe = N'Đã hủy') AS loaiGhe, " +
-                "       (SELECT COUNT(*) FROM Ve v WHERE v.maHoaDon = h.maHoaDon AND v.trangThaiVe = N'Đã hủy') AS soGhe, " +
-                "       (SELECT ISNULL(SUM(v.giaVe), 0) FROM Ve v WHERE v.maHoaDon = h.maHoaDon AND v.trangThaiVe = N'Đã hủy') AS tongTien " +
+                // THAY: thêm cả 'DA_HUY' vào điều kiện loaiGhe
+                "       (SELECT TOP 1 g.loaiGhe FROM Ve v JOIN Ghe g ON v.maGhe = g.maGhe WHERE v.maHoaDon = h.maHoaDon AND v.trangThaiVe IN (N'Đã hủy', 'DA_HUY')) AS loaiGhe, " +
+                // THAY: thêm cả 'DA_HUY' vào điều kiện soGhe
+                "       (SELECT COUNT(*) FROM Ve v WHERE v.maHoaDon = h.maHoaDon AND v.trangThaiVe IN (N'Đã hủy', 'DA_HUY')) AS soGhe, " +
+                // THAY: thêm cả 'DA_HUY' vào điều kiện tongTien
+                "       (SELECT ISNULL(SUM(v.giaVe), 0) FROM Ve v WHERE v.maHoaDon = h.maHoaDon AND v.trangThaiVe IN (N'Đã hủy', 'DA_HUY')) AS tongTien " +
                 "FROM HoaDon h " +
                 "JOIN KhachHang k ON h.maKH = k.maKH " +
                 "WHERE CAST(h.ngayLapHD AS DATE) = ? AND h.maNV = ? " +
                 "AND CAST(h.ngayLapHD AS TIME)" + timeCondition +
-                " AND EXISTS (SELECT 1 FROM Ve v WHERE v.maHoaDon = h.maHoaDon AND v.trangThaiVe = N'Đã hủy')" +
+                // THAY: thêm cả 'DA_HUY' vào EXISTS
+                " AND EXISTS (SELECT 1 FROM Ve v WHERE v.maHoaDon = h.maHoaDon AND v.trangThaiVe IN (N'Đã hủy', 'DA_HUY'))" +
                 " ORDER BY h.ngayLapHD DESC";
 
         List<Object[]> rows = new ArrayList<>();

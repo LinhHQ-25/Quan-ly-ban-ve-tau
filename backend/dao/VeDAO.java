@@ -44,6 +44,22 @@ public class VeDAO {
             }
         }
     }
+ // Thêm method mới này vào VeDAO, đặt ngay sau getSoLuongVeTheoCa
+    public static int getSoVeHuyTheoCa(java.time.LocalDate ngay, String ca, String maNV) throws SQLException {
+        // Đếm cả 2 trạng thái: 'Đã hủy' (hết hạn tự động) và 'DA_HUY' (trả vé thủ công)
+        String sql = "SELECT COUNT(*) FROM Ve v " +
+                "JOIN HoaDon hd ON v.maHoaDon = hd.maHoaDon " +
+                "WHERE CAST(v.ngayMua AS DATE) = ? AND hd.maNV = ? " +
+                "AND v.trangThaiVe IN (N'Đã hủy', 'DA_HUY')" + getHourCondition(ca);
+        try (Connection con = Connect_DB.getInstance().getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setDate(1, java.sql.Date.valueOf(ngay));
+            ps.setString(2, maNV);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? rs.getInt(1) : 0;
+            }
+        }
+    }
 
     public static int[] getSoGheTheoLoaiTheoCa(java.time.LocalDate ngay, String ca, String maNV) throws SQLException {
         int[] result = {0, 0, 0};

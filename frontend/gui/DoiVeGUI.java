@@ -231,25 +231,35 @@ public class DoiVeGUI extends JPanel {
     }
 
     private void fillCurrentInfo() {
-        if (s_data.length < 8) { clearFields(); return; }
+        if (s_data.length < 9) { clearFields(); return; }
 
         lbMaVeCu.setText("Mã vé: " + (s_maVe.isEmpty() ? "—" : s_maVe));
         tfGaDi   .setText(s_data[1]);
         tfGaDen  .setText(s_data[2]);
         tfLoai   .setText(s_data[3]);
-        tfNgayGio.setText(s_data[4]);
+        tfNgayGio.setText(s_data[5]);
         tfNgayVe .setText("—");
-        tfSoLuong.setText(s_data[5]);
+        tfSoLuong.setText(s_data[6]);
 
         // Auto select the new fields
         cbGaDi.setSelectedItem(s_data[1]);
         cbGaDen.setSelectedItem(s_data[2]);
         cbLoaiVe.setSelectedItem(s_data[3]);
-        cbSoLuong.setSelectedItem(s_data[5]);
+        cbSoLuong.setSelectedItem(s_data[6]);
 
         boolean isKhuHoi = s_data[3].equalsIgnoreCase("Khứ hồi");
-        dcNgayVe.setEnabled(isKhuHoi);
-        dcNgayVe.setBackground(isKhuHoi ? Color.WHITE : new Color(245, 247, 250));
+        boolean isChieuVe = "Chiều về".equals(s_data[4]);
+
+        // Một chiều: chỉ ngày đi, ngày về disabled
+        // Khứ hồi chiều đi: chọn ngày đi, ngày về disabled
+        // Khứ hồi chiều về: ngày đi disabled, chỉ chọn ngày về
+        boolean ngayDiEnabled = !isChieuVe;
+        boolean ngayVeEnabled = isKhuHoi && isChieuVe;
+
+        dcNgayDi.setEnabled(ngayDiEnabled);
+        dcNgayDi.setBackground(ngayDiEnabled ? Color.WHITE : new Color(245, 247, 250));
+        dcNgayVe.setEnabled(ngayVeEnabled);
+        dcNgayVe.setBackground(ngayVeEnabled ? Color.WHITE : new Color(245, 247, 250));
 
         // --- BẠN THAY THẾ KHÚC NÀY TỚI HẾT HÀM ---
         // Logic: Ngày đi và ngày về vé mới phải từ hôm nay trở đi
@@ -269,14 +279,14 @@ public class DoiVeGUI extends JPanel {
 
     private void validateDoiVe() {
         if (lbTrangThai == null) return;
-        if (s_data.length < 8 || s_maVe.isEmpty()) {
+        if (s_data.length < 9 || s_maVe.isEmpty()) {
             lbTrangThai.setText("Chưa có vé được chọn");
             lbTrangThai.setForeground(GuiTheme.SUB_TEXT); return;
         }
 
         // Nếu số lượng > 1 thì là vé nhóm
-        boolean nhom = Integer.parseInt(s_data[5].replaceAll("[^0-9]", "")) > 1;
-        long gioTong = tinhGio(s_data[4]);
+        boolean nhom = Integer.parseInt(s_data[6].replaceAll("[^0-9]", "")) > 1;
+        long gioTong = tinhGio(s_data[5]);
         long gioThuc = Math.max(gioTong, 0);
         long d = gioThuc / 24; long h = gioThuc % 24;
         String timeStr = (d > 0) ? (d + " ngày" + (h > 0 ? " " + h + " giờ" : "")) : (h + " giờ");
@@ -298,31 +308,24 @@ public class DoiVeGUI extends JPanel {
         String gaDenMoi = cbGaDen.getSelectedItem().toString();
         String loaiVeMoi = cbLoaiVe.getSelectedItem().toString();
         int soLuongMoi = Integer.parseInt(cbSoLuong.getSelectedItem().toString());
+        boolean isChieuVe = "Chiều về".equals(s_data.length > 4 ? s_data[4] : "");
 
         java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("dd/MM/yyyy");
-        String ngayDiMoi = dcNgayDi.getDate() != null ? sdf.format(dcNgayDi.getDate()) : "";
-        String ngayVeMoi = "";
+        String ngayDiMoi  = (!isChieuVe && dcNgayDi.getDate() != null) ? sdf.format(dcNgayDi.getDate()) : "";
+        String ngayVeMoi  = (isChieuVe  && dcNgayVe.getDate() != null) ? sdf.format(dcNgayVe.getDate()) : "";
 
         if (gaDiMoi.equals(gaDenMoi)) {
             JOptionPane.showMessageDialog(this, "Ga đi và Ga đến không được trùng nhau!", "Lỗi", JOptionPane.ERROR_MESSAGE);
             return;
         }
 
-        if (ngayDiMoi.isEmpty()) {
+        if (!isChieuVe && ngayDiMoi.isEmpty()) {
             JOptionPane.showMessageDialog(this, "Vui lòng chọn ngày đi!", "Cảnh báo", JOptionPane.WARNING_MESSAGE);
             return;
         }
-
-        if (loaiVeMoi.equalsIgnoreCase("Khứ hồi")) {
-            if (dcNgayVe.getDate() == null) {
-                JOptionPane.showMessageDialog(this, "Vui lòng chọn ngày về!", "Cảnh báo", JOptionPane.WARNING_MESSAGE);
-                return;
-            }
-            if (dcNgayVe.getDate().before(dcNgayDi.getDate())) {
-                JOptionPane.showMessageDialog(this, "Ngày về phải diễn ra sau hoặc bằng Ngày đi!", "Lỗi ngày tháng", JOptionPane.ERROR_MESSAGE);
-                return;
-            }
-            ngayVeMoi = sdf.format(dcNgayVe.getDate());
+        if (isChieuVe && ngayVeMoi.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Vui lòng chọn ngày về!", "Cảnh báo", JOptionPane.WARNING_MESSAGE);
+            return;
         }
 
         // Cập nhật Database Model và chuyển trang
