@@ -49,7 +49,7 @@ public final class ThongKeGUI extends JPanel {
 
     public void setTienMoCa(long tien) {
         this.tienMoCa = tien;
-        loadData(); // load lại để tính doanhThu = loiNhuan + tienMoCa
+        loadData(); // load lại để tính doanhThu = loiNhuan + tienMoCa.
     }
 
     public ThongKeGUI() {
