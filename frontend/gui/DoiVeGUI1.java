@@ -37,14 +37,13 @@ public class DoiVeGUI1 extends JPanel {
     private CardLayout cardLayout;
     private final boolean[] activeDi = {true}, activeVe = {false};
 
-    // Labels cập nhật động - cột MỚI
     private JLabel valMaVeDi, valChuyenDi, valToaDi, valGheDi, valNgayDi, valGaDi_Di, valGaDenDi;
     private JLabel valMaVeVe, valChuyenVe, valToaVe, valGheVe, valNgayVe, valGaDi_Ve, valGaDenVe;
-    // Labels cập nhật động - cột CŨ
     private JLabel oldMaVeDi, oldChuyenDi, oldToaDi, oldGheDi, oldNgayDi, oldGaDi_Di_old, oldGaDenDi_old;
     private JLabel oldMaVeVe, oldChuyenVe, oldToaVe, oldGheVe, oldNgayVe, oldGaDi_Ve_old, oldGaDenVe_old;
     private JLabel lbChenhLech, lbTongThu;
-    private long tongLePhi = 30000;
+    private long tongLePhi = 0;
+    private long giaVeMoi  = 0;
 
     public DoiVeGUI1(AppFrame appFrame) {
         this.appFrame = appFrame;
@@ -76,12 +75,10 @@ public class DoiVeGUI1 extends JPanel {
         String oldGaDi  = safe(s_dataCu, 1);
         String oldGaDen = safe(s_dataCu, 2);
 
-        // Query Ga đi / Ga đến mới từ DB theo maChuyenMoi
         String[] gasMoi = queryGaFromChuyen(s_maChuyenMoi);
         String newGaDi  = gasMoi[0];
         String newGaDen = gasMoi[1];
 
-        // --- CỘT CŨ - CHIỀU ĐI ---
         oldMaVeDi.setText(s_maVe);
         oldChuyenDi.setText(safe(s_dataCu, 0));
         oldToaDi.setText(extractToaFromDB(safe(s_dataCu, 7)));
@@ -90,25 +87,14 @@ public class DoiVeGUI1 extends JPanel {
         oldGaDi_Di_old.setText(oldGaDi);
         oldGaDenDi_old.setText(oldGaDen);
 
-        // --- CỘT CŨ - CHIỀU VỀ ---
-        oldMaVeVe.setText(s_maVe);
-        oldChuyenVe.setText(safe(s_dataCu, 0));
-        oldToaVe.setText(extractToaFromDB(safe(s_dataCu, 7)));
-        oldGheVe.setText(extractGheFromDB(safe(s_dataCu, 7)));
-        oldNgayVe.setText("—");
-        oldGaDi_Ve_old.setText(oldGaDen);
-        oldGaDenVe_old.setText(oldGaDi);
-
-        // --- CỘT MỚI - CHIỀU ĐI ---
         valMaVeDi.setText(s_maVe);
-        valChuyenDi.setText(s_maChuyenMoi);          // maChuyenTau, e.g. CT05701
-        valToaDi.setText(s_maToaMoi);                 // mã toa, e.g. T01SEVN082
-        valGheDi.setText(extractGheFromGheStr(s_gheDiMoi)); // e.g. G05
+        valChuyenDi.setText(s_maChuyenMoi);
+        valToaDi.setText(s_maToaMoi);
+        valGheDi.setText(extractGheFromGheStr(s_gheDiMoi));
         valNgayDi.setText(s_ngayDiMoi);
         valGaDi_Di.setText(newGaDi);
         valGaDenDi.setText(newGaDen);
 
-        // --- CỘT MỚI - CHIỀU VỀ (không dùng vì luôn "—") ---
         if (isKhuHoi) {
             valMaVeVe.setText(s_maVe + "-VE");
             valChuyenVe.setText(s_chuyenVeMoi);
@@ -126,42 +112,79 @@ public class DoiVeGUI1 extends JPanel {
         revalidate(); repaint();
     }
 
-    // Query Ga đi và Ga đến từ maChuyenTau
     private String[] queryGaFromChuyen(String maChuyenTau) {
-        String sql = "SELECT gDi.tenGa AS gaDi, gDen.tenGa AS gaDen " +
-                "FROM ChiTietChuyenTau dt " +
-                "JOIN Ga gDi  ON dt.maGaDi  = gDi.maGa " +
-                "JOIN Ga gDen ON dt.maGaDen = gDen.maGa " +
-                "WHERE dt.maChuyenTau = ?";
-        try (Connection conn = Connect_DB.getInstance().getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        String sql = "SELECT gDi.tenGa AS gaDi, gDen.tenGa AS gaDen FROM ChiTietChuyenTau dt " +
+                "JOIN Ga gDi ON dt.maGaDi = gDi.maGa JOIN Ga gDen ON dt.maGaDen = gDen.maGa WHERE dt.maChuyenTau = ?";
+        try (Connection conn = Connect_DB.getInstance().getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, maChuyenTau);
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) return new String[]{ rs.getString("gaDi"), rs.getString("gaDen") };
-            }
-        } catch (Exception e) { e.printStackTrace(); }
-        return new String[]{"—", "—"};
+            try (ResultSet rs = ps.executeQuery()) { if (rs.next()) return new String[]{ rs.getString("gaDi"), rs.getString("gaDen") }; }
+        } catch (Exception e) {} return new String[]{"—", "—"};
     }
 
     private void calcPriceAndRefresh() {
-        long oldPrice = 0;
-        try { oldPrice = Long.parseLong(safe(s_dataCu, 8).replaceAll("[^0-9]", "")); } catch(Exception e) {}
+        // ── ĐẦU VÀO ──────────────────────────────────────────────────────────
+        long   giaVeCu     = 0;
+        try { giaVeCu = (long) Double.parseDouble(safe(s_dataCu, 8).replaceAll("[^0-9.]", "")); } catch (Exception ignored) {}
 
-        double oldFactor = (extractToaNumFromDB(safe(s_dataCu, 7)) >= 9) ? 1.2 : 1.0;
-        double newFactorDi = (extractToaNum(s_gheDiMoi) >= 9) ? 1.2 : 1.0;
+        final long   giaVeCoBan  = 500_000L;          // cố định
+        final double cuLy        = 1.0;                // tạm thời = 1, bổ sung sau khi có DB
+        final long   phiDoiVe    = 30_000L;            // lệ phí cố định
 
-        double basePrice = oldPrice / oldFactor;
-        long diff = Math.round((basePrice * newFactorDi) - oldPrice);
+        // hệ số loại chỗ: query từ DB (TOA_THUONG=1.0, TOA_VIP=1.5)
+        String maToaCu  = extractMaToaFromMaGheDB(safe(s_dataCu, 7));
+        double heSoCu   = queryHeSoToa(maToaCu);
+        double heSoMoi  = queryHeSoToa(s_maToaMoi);
 
-        if (!s_chuyenVeMoi.equals("—")) {
-            double newFactorVe = (extractToaNum(s_gheVeMoi) >= 9) ? 1.2 : 1.0;
-            diff += Math.round((basePrice * newFactorVe) - oldPrice);
+        // ── BƯỚC 1 — giá trị thực của vé mới (chưa tính phí) ────────────────
+        long giaTriVeMoi = Math.round(giaVeCoBan * cuLy * heSoMoi);
+        // Ví dụ: 500.000 * 1 * 1.5 = 750.000 đ
+
+        // ── BƯỚC 2 — 2 kịch bản ─────────────────────────────────────────────
+        long giaVeDoi;   // số tiền khách phải bù (tongLePhi)
+
+        if (giaTriVeMoi >= giaVeCu) {
+            // Kịch bản A — ngang giá hoặc nâng hạng
+            // giaVeMoi (lưu DB) = giaTriVeMoi + phiDoiVe
+            giaVeMoi = giaTriVeMoi + phiDoiVe;
+            // giaVeDoi (khách bù) = giaVeMoi - giaVeCu
+            giaVeDoi = giaVeMoi - giaVeCu;
+            // VD: 750k + 30k = 780k → 780k - 500k = 280k
+        } else {
+            // Kịch bản B — xuống hạng
+            // Chỉ thu phí cố định, không hoàn tiền thừa
+            giaVeDoi = phiDoiVe;
+            // giaVeMoi (lưu DB) = giaVeCu + phiDoiVe (giữ nguyên giá trị kinh tế)
+            giaVeMoi = giaVeCu + phiDoiVe;
         }
 
-        tongLePhi = 30000 + diff;
-        lbChenhLech.setText("Chênh lệch hạng ghế: " + (diff > 0 ? "+" : "") + fmtTien(diff));
-        lbTongThu.setText("Tổng thu: " + fmtTien(tongLePhi));
-        lbTongThu.setForeground(tongLePhi >= 0 ? new Color(180, 60, 0) : new Color(30, 120, 60));
+        // ── BƯỚC 3 — ràng buộc an toàn ──────────────────────────────────────
+        // giaVeDoi KHÔNG BAO GIỜ âm, tối thiểu = phiDoiVe
+        tongLePhi = Math.max(giaVeDoi, phiDoiVe);
+
+        // ── HIỂN THỊ ─────────────────────────────────────────────────────────
+        long chenhLech = giaTriVeMoi - giaVeCu;
+        String dauChenhlech = chenhLech > 0 ? "+" : "";
+        lbChenhLech.setText("Chênh lệch hạng ghế: " + dauChenhlech + fmtTien(chenhLech));
+        lbChenhLech.setForeground(chenhLech > 0 ? new Color(180, 60, 0)
+                : chenhLech < 0 ? new Color(30, 120, 60)
+                  : GuiTheme.SUB_TEXT);
+
+        lbTongThu.setText("Tổng tiền cần thanh toán: " + fmtTien(tongLePhi));
+        lbTongThu.setForeground(tongLePhi > phiDoiVe ? new Color(180, 60, 0) : GuiTheme.TEXT);
+    }
+
+    private String extractMaToaFromMaGheDB(String maGhe) {
+        if (maGhe == null || maGhe.length() < 4) return "";
+        int tIdx = maGhe.indexOf('T'); return (tIdx > 0) ? maGhe.substring(tIdx) : "";
+    }
+
+    private double queryHeSoToa(String maToaTau) {
+        if (maToaTau == null || maToaTau.isEmpty()) return 1.0;
+        String sql = "SELECT heSoLoaiToa FROM ToaTau WHERE maToaTau = ?";
+        try (Connection conn = Connect_DB.getInstance().getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, maToaTau);
+            try (ResultSet rs = ps.executeQuery()) { if (rs.next()) return rs.getDouble("heSoLoaiToa"); }
+        } catch (Exception e) {} return 1.0;
     }
 
     private JPanel buildCompareCard() {
@@ -169,25 +192,15 @@ public class DoiVeGUI1 extends JPanel {
         cardLayout = new CardLayout();
         pnlCardContainer = new JPanel(cardLayout); pnlCardContainer.setOpaque(false);
 
-        // Khởi tạo Label chiều đi - cột MỚI
         valMaVeDi=fieldLabel(GuiTheme.TEXT); valChuyenDi=fieldLabel(NEW_FG); valToaDi=fieldLabel(NEW_FG); valGheDi=fieldLabel(NEW_FG); valNgayDi=fieldLabel(NEW_FG); valGaDi_Di=fieldLabel(GuiTheme.TEXT); valGaDenDi=fieldLabel(GuiTheme.TEXT);
-        // Khởi tạo Label chiều về - cột MỚI
         valMaVeVe=fieldLabel(GuiTheme.TEXT); valChuyenVe=fieldLabel(NEW_FG); valToaVe=fieldLabel(NEW_FG); valGheVe=fieldLabel(NEW_FG); valNgayVe=fieldLabel(NEW_FG); valGaDi_Ve=fieldLabel(GuiTheme.TEXT); valGaDenVe=fieldLabel(GuiTheme.TEXT);
-        // Khởi tạo Label chiều đi - cột CŨ
         oldMaVeDi=fieldLabel(GuiTheme.SUB_TEXT); oldChuyenDi=fieldLabel(GuiTheme.SUB_TEXT); oldToaDi=fieldLabel(GuiTheme.SUB_TEXT); oldGheDi=fieldLabel(GuiTheme.SUB_TEXT); oldNgayDi=fieldLabel(GuiTheme.SUB_TEXT); oldGaDi_Di_old=fieldLabel(GuiTheme.SUB_TEXT); oldGaDenDi_old=fieldLabel(GuiTheme.SUB_TEXT);
-        // Khởi tạo Label chiều về - cột CŨ
         oldMaVeVe=fieldLabel(GuiTheme.SUB_TEXT); oldChuyenVe=fieldLabel(GuiTheme.SUB_TEXT); oldToaVe=fieldLabel(GuiTheme.SUB_TEXT); oldGheVe=fieldLabel(GuiTheme.SUB_TEXT); oldNgayVe=fieldLabel(GuiTheme.SUB_TEXT); oldGaDi_Ve_old=fieldLabel(GuiTheme.SUB_TEXT); oldGaDenVe_old=fieldLabel(GuiTheme.SUB_TEXT);
 
-        // Xây dựng 2 Grid
-        JPanel gridDi = createCompareGrid(true,
-                oldMaVeDi, oldChuyenDi, oldToaDi, oldGheDi, oldNgayDi, oldGaDi_Di_old, oldGaDenDi_old,
-                valMaVeDi, valChuyenDi, valToaDi, valGheDi, valNgayDi, valGaDi_Di, valGaDenDi);
-        JPanel gridVe = createCompareGrid(false,
-                oldMaVeVe, oldChuyenVe, oldToaVe, oldGheVe, oldNgayVe, oldGaDi_Ve_old, oldGaDenVe_old,
-                valMaVeVe, valChuyenVe, valToaVe, valGheVe, valNgayVe, valGaDi_Ve, valGaDenVe);
+        JPanel gridDi = createCompareGrid(true, oldMaVeDi, oldChuyenDi, oldToaDi, oldGheDi, oldNgayDi, oldGaDi_Di_old, oldGaDenDi_old, valMaVeDi, valChuyenDi, valToaDi, valGheDi, valNgayDi, valGaDi_Di, valGaDenDi);
+        JPanel gridVe = createCompareGrid(false, oldMaVeVe, oldChuyenVe, oldToaVe, oldGheVe, oldNgayVe, oldGaDi_Ve_old, oldGaDenVe_old, valMaVeVe, valChuyenVe, valToaVe, valGheVe, valNgayVe, valGaDi_Ve, valGaDenVe);
 
-        pnlCardContainer.add(gridDi, "DI");
-        pnlCardContainer.add(gridVe, "VE");
+        pnlCardContainer.add(gridDi, "DI"); pnlCardContainer.add(gridVe, "VE");
 
         JPanel pnlFooter = new JPanel(new GridLayout(2, 1, 0, 5)); pnlFooter.setOpaque(false);
         lbChenhLech = new JLabel("Chênh lệch: 0 đ"); lbChenhLech.setFont(FONT_B14); lbChenhLech.setForeground(GuiTheme.SUB_TEXT);
@@ -199,32 +212,16 @@ public class DoiVeGUI1 extends JPanel {
         return card;
     }
 
-    // Biến boolean isDi quyết định nhãn hiển thị là "Ngày đi" hay "Ngày về"
-    private JPanel createCompareGrid(boolean isDi,
-                                     JLabel oldMaVe, JLabel oldChuyen, JLabel oldToa, JLabel oldGhe, JLabel oldNgay, JLabel oldGa1, JLabel oldGa2,
-                                     JLabel vMa, JLabel vCh, JLabel vTo, JLabel vGh, JLabel vNgay, JLabel vGaDi, JLabel vGaDen) {
+    private JPanel createCompareGrid(boolean isDi, JLabel oldMaVe, JLabel oldChuyen, JLabel oldToa, JLabel oldGhe, JLabel oldNgay, JLabel oldGa1, JLabel oldGa2, JLabel vMa, JLabel vCh, JLabel vTo, JLabel vGh, JLabel vNgay, JLabel vGaDi, JLabel vGaDen) {
         JPanel grid = new JPanel(new GridBagLayout()); grid.setOpaque(false);
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.fill = GridBagConstraints.HORIZONTAL; gbc.insets = new Insets(5, 10, 5, 10);
-
-        gbc.gridy = 0; gbc.gridx = 1; grid.add(headerLabel("HIỆN TẠI (CŨ)", GuiTheme.SUB_TEXT), gbc);
-        gbc.gridx = 3; grid.add(headerLabel("ĐỔI SANG (MỚI)", NEW_FG), gbc);
-
-        String textNgay = isDi ? "Ngày đi" : "Ngày về";
-
-        addGridRow(grid, 1, "Mã vé", oldMaVe, vMa);
-        addGridRow(grid, 2, "Chuyến", oldChuyen, vCh);
-        addGridRow(grid, 3, "Toa", oldToa, vTo);
-        addGridRow(grid, 4, "Ghế", oldGhe, vGh);
-        addGridRow(grid, 5, textNgay, oldNgay, vNgay);
-        addGridRow(grid, 6, "Ga đi", oldGa1, vGaDi);
-        addGridRow(grid, 7, "Ga đến", oldGa2, vGaDen);
+        GridBagConstraints gbc = new GridBagConstraints(); gbc.fill = GridBagConstraints.HORIZONTAL; gbc.insets = new Insets(5, 10, 5, 10);
+        gbc.gridy = 0; gbc.gridx = 1; grid.add(headerLabel("HIỆN TẠI (CŨ)", GuiTheme.SUB_TEXT), gbc); gbc.gridx = 3; grid.add(headerLabel("ĐỔI SANG (MỚI)", NEW_FG), gbc);
+        addGridRow(grid, 1, "Mã vé", oldMaVe, vMa); addGridRow(grid, 2, "Chuyến", oldChuyen, vCh); addGridRow(grid, 3, "Toa", oldToa, vTo); addGridRow(grid, 4, "Ghế", oldGhe, vGh); addGridRow(grid, 5, isDi ? "Ngày đi" : "Ngày về", oldNgay, vNgay); addGridRow(grid, 6, "Ga đi", oldGa1, vGaDi); addGridRow(grid, 7, "Ga đến", oldGa2, vGaDen);
         return grid;
     }
 
     private void addGridRow(JPanel grid, int y, String title, JLabel oldV, JLabel newV) {
-        GridBagConstraints gbc = new GridBagConstraints(); gbc.gridy = y; gbc.insets = new Insets(5, 5, 5, 5);
-        gbc.fill = GridBagConstraints.HORIZONTAL;
+        GridBagConstraints gbc = new GridBagConstraints(); gbc.gridy = y; gbc.insets = new Insets(5, 5, 5, 5); gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.gridx = 0; gbc.weightx = 0.15; grid.add(new JLabel(title) {{ setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 13)); setForeground(GuiTheme.SUB_TEXT); }}, gbc);
         gbc.gridx = 1; gbc.weightx = 0.4; grid.add(oldV, gbc);
         gbc.gridx = 2; gbc.weightx = 0.05; grid.add(new JLabel("→", SwingConstants.CENTER) {{ setFont(new Font("Segoe UI", Font.BOLD, 16)); setForeground(BORDER); }}, gbc);
@@ -246,37 +243,20 @@ public class DoiVeGUI1 extends JPanel {
     }
 
     private void handleConfirm() {
-        // maGheDbDi: lấy ghế đầu tiên dạng "G05T01SEVN082" từ gheStr "T01SEVN082 - G05, ..."
         String maGheDbDi = getMaGheMoiDB(s_gheDiMoi.split(",")[0].trim());
         String hienThiDi = s_maToaMoi + " - " + extractGheFromGheStr(s_gheDiMoi);
-        DoiVeGUI2.setDuLieuThanhToan(s_maVe, s_dataCu, s_maChuyenMoi, s_ngayDiMoi, maGheDbDi, hienThiDi, tongLePhi);
+        DoiVeGUI2.setDuLieuThanhToan(s_maVe, s_dataCu, s_maChuyenMoi, s_ngayDiMoi, maGheDbDi, hienThiDi, tongLePhi, giaVeMoi);
         appFrame.showCard("doi-ve-step-3");
     }
 
-    // --- CÁC HÀM HELPERS ---
     private String extractToa(String full) { try { return "Toa " + Integer.parseInt(full.split("-")[0].trim().substring(1, 3)); } catch(Exception e) { return "—"; } }
     private String extractGhe(String full) { try { return full.split("-")[1].trim(); } catch(Exception e) { return "—"; } }
     private int extractToaNum(String full) { try { return Integer.parseInt(full.split("-")[0].trim().substring(1, 3)); } catch(Exception e) { return 1; } }
     private String getMaGheMoiDB(String fullStr) { if (fullStr == null || !fullStr.contains("-")) return fullStr; String[] parts = fullStr.split("-"); return parts[1].trim() + parts[0].trim(); }
-
-    // Lấy phần ghế đầu tiên từ gheStr "T01SEVN082 - G05, ..." → "G05"
-    private String extractGheFromGheStr(String gheStr) {
-        if (gheStr == null || gheStr.isEmpty() || !gheStr.contains("-")) return "—";
-        try { return gheStr.split(",")[0].split("-")[1].trim(); } catch (Exception e) { return "—"; }
-    }
-
-    // Parse maGhe thẳng từ DB: "G05T03SEVN001" → toa = "T03SEVN001", ghe = "G05"
-    private String extractToaFromDB(String maGhe) {
-        if (maGhe == null || maGhe.length() < 4) return "—";
-        try { return maGhe.substring(3); } catch (Exception e) { return "—"; } // bỏ "G05" → "T03SEVN001"
-    }
-    private String extractGheFromDB(String maGhe) {
-        if (maGhe == null || maGhe.length() < 3) return "—";
-        try { return maGhe.substring(0, 3); } catch (Exception e) { return "—"; } // lấy "G05"
-    }
-    private int extractToaNumFromDB(String maGhe) {
-        try { return Integer.parseInt(maGhe.substring(3, 5)); } catch (Exception e) { return 1; } // lấy "03" → 3
-    }
+    private String extractGheFromGheStr(String gheStr) { if (gheStr == null || gheStr.isEmpty() || !gheStr.contains("-")) return "—"; try { return gheStr.split(",")[0].split("-")[1].trim(); } catch (Exception e) { return "—"; } }
+    private String extractToaFromDB(String maGhe) { if (maGhe == null || maGhe.length() < 4) return "—"; try { return maGhe.substring(3); } catch (Exception e) { return "—"; } }
+    private String extractGheFromDB(String maGhe) { if (maGhe == null || maGhe.length() < 3) return "—"; try { return maGhe.substring(0, 3); } catch (Exception e) { return "—"; } }
+    private int extractToaNumFromDB(String maGhe) { try { return Integer.parseInt(maGhe.substring(3, 5)); } catch (Exception e) { return 1; } }
     private String fmtTien(long a) { return String.format("%,d đ", a).replace(",", "."); }
     private String safe(String[] a, int i) { return (a!=null && i<a.length && a[i]!=null) ? a[i] : "—"; }
 

@@ -29,8 +29,13 @@ public final class DoiTraGUI extends JPanel {
 		setBackground(GuiTheme.LIGHT_BG);
 		JPanel pnlPage = new JPanel();
 		pnlPage.setOpaque(false);
-		pnlPage.setLayout(new BorderLayout(0, 12));
-		pnlPage.setBorder(new EmptyBorder(0, GuiTheme.PAGE_PAD_LEFT, GuiTheme.PAGE_PAD_BOTTOM, GuiTheme.PAGE_PAD_LEFT));
+
+		// SỬA: Giảm khoảng cách dọc từ 12 xuống 4 để nút sát phần bảng hơn
+		pnlPage.setLayout(new BorderLayout(0, 4));
+
+		// SỬA: Đổi tham số thứ 3 (khoảng cách đáy) từ GuiTheme.PAGE_PAD_BOTTOM thành 0
+		pnlPage.setBorder(new EmptyBorder(0, GuiTheme.PAGE_PAD_LEFT, 0, GuiTheme.PAGE_PAD_LEFT));
+
 		pnlPage.add(buildNoteBox(),    BorderLayout.NORTH);
 		pnlPage.add(buildCenter(),     BorderLayout.CENTER);
 		pnlPage.add(buildButtonRow(),  BorderLayout.SOUTH);
@@ -99,6 +104,8 @@ public final class DoiTraGUI extends JPanel {
 		txtSearch = new JTextField();
 		txtSearch.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
 		JButton btnSearch = buildNavyButton("Tìm kiếm", 130, 38);
+		btnSearch.setIcon(GuiIcons.loadIcon(DoiTraGUI.class, "/Images/traCuu.png", 16, 16));
+		btnSearch.setPreferredSize(new Dimension(120, 32));
 		btnSearch.addActionListener(e -> loadDataFromDB(txtSearch.getText().trim()));
 		txtSearch.addActionListener(e -> loadDataFromDB(txtSearch.getText().trim()));
 
@@ -156,7 +163,8 @@ public final class DoiTraGUI extends JPanel {
 	}
 
 	private JPanel buildButtonRow() {
-		JPanel p = new JPanel(new FlowLayout(FlowLayout.RIGHT, 15, 10));
+		// SỬA: Giảm vgap từ 10 xuống còn 4 (tham số thứ 3) giúp panel mỏng lại và sát đáy hơn
+		JPanel p = new JPanel(new FlowLayout(FlowLayout.RIGHT, 15, 4));
 		p.setOpaque(false);
 		p.setBorder(new MatteBorder(1, 0, 0, 0, BORDER));
 
@@ -199,7 +207,7 @@ public final class DoiTraGUI extends JPanel {
 		// --- LẤY CẢ CHIỀU ĐI VÀ CHIỀU VỀ ---
 		String sql =
 				"SELECT v.maVe, ct.maChuyenTau AS maChuyenTau, gDi.tenGa AS gaDi, gDen.tenGa AS gaDen, " +
-						"v.loaiVe, dt.thoiGianKhoiHanh, v.giaVe, v.maGhe, " +
+						"v.loaiVe, dt.thoiGianKhoiHanh, v.giaVe, v.maGhe, g.soGhe, kh.hoTenKH, " +
 						"dt.maGaDi, dt.maGaDen, " +
 						"(SELECT COUNT(*) FROM Ve v2 WHERE v2.maHoaDon = v.maHoaDon) AS soLuongVe " +
 						"FROM Ve v " +
@@ -208,6 +216,9 @@ public final class DoiTraGUI extends JPanel {
 						"JOIN Tau t ON ct.maTau = t.maTau " +
 						"JOIN Ga gDi ON dt.maGaDi = gDi.maGa " +
 						"JOIN Ga gDen ON dt.maGaDen = gDen.maGa " +
+						"JOIN Ghe g ON v.maGhe = g.maGhe " +  // JOIN bảng Ghế
+						"LEFT JOIN HoaDon hd ON v.maHoaDon = hd.maHoaDon " + // JOIN Hóa Đơn
+						"LEFT JOIN KhachHang kh ON hd.maKH = kh.maKH " + // JOIN Khách Hàng
 						"WHERE v.maVe LIKE ? AND v.trangThaiVe = N'Đã thanh toán' " +
 						"AND (dt.maGaDi = 'DIEUTRI' OR dt.maGaDen = 'DIEUTRI') " +
 						"ORDER BY dt.thoiGianKhoiHanh DESC";
@@ -222,43 +233,38 @@ public final class DoiTraGUI extends JPanel {
 				boolean found = false;
 
 				while (rs.next()) {
+					String maVe = rs.getString("maVe");
+					if (veCache.containsKey(maVe)) continue;
+
 					found = true;
-					String maVe        = rs.getString("maVe");
 					String maChuyenTau = rs.getString("maChuyenTau");
 					String gaDi        = rs.getString("gaDi");
 					String gaDen       = rs.getString("gaDen");
+					String rawLoaiVe   = rs.getString("loaiVe");
 
-					String rawLoaiVe = rs.getString("loaiVe");
-					String loaiVe = rawLoaiVe;
-					if (rawLoaiVe != null) {
-						if (rawLoaiVe.equalsIgnoreCase("MOT_CHIEU")) {
-							loaiVe = "Một chiều";
-						} else if (rawLoaiVe.equalsIgnoreCase("KHU_HOI")) {
-							loaiVe = "Khứ hồi";
-						}
-					}
-
-					// Xác định chiều vé:
-					// Vé 1 chiều luôn là chiều đi (xuất phát từ Diêu Trì)
-					// Vé khứ hồi: maGaDi=DIEUTRI → chiều đi, ngược lại → chiều về
 					String maGaDiRaw = rs.getString("maGaDi");
 					String chieuVe;
 					if ("MOT_CHIEU".equalsIgnoreCase(rawLoaiVe)) {
-						chieuVe = "Chiều đi";
+						chieuVe = "Chiều đi"; // vé 1 chiều luôn là chiều đi
 					} else {
 						chieuVe = "DIEUTRI".equals(maGaDiRaw) ? "Chiều đi" : "Chiều về";
 					}
 
-					String maGhe  = rs.getString("maGhe");
-					String giaVe  = rs.getString("giaVe");
+					String maGhe   = rs.getString("maGhe");
+					String soGhe   = rs.getString("soGhe"); // Lấy thêm số ghế (Vị trí)
+					String tenKH   = rs.getString("hoTenKH"); // Lấy thêm tên khách hàng
+					if (tenKH == null) tenKH = "Khách vãng lai"; // Fallback nếu rỗng
 
+					String giaVe  = String.valueOf(rs.getLong("giaVe"));
 					Timestamp ts = rs.getTimestamp("thoiGianKhoiHanh");
 					String ngayGio = ts != null ? sdf.format(ts) : "";
-
 					String soLuong = String.valueOf(rs.getInt("soLuongVe"));
 
-					veCache.put(maVe, new String[]{maChuyenTau, gaDi, gaDen, loaiVe, chieuVe, ngayGio, soLuong, maGhe, giaVe});
-					tableModel.addRow(new Object[]{maVe, maChuyenTau, gaDi, gaDen, loaiVe, chieuVe, ngayGio, soLuong, maGhe});
+					// SỬA: Truyền thêm soGhe và tenKH vào cuối mảng veCache (index 9 và 10)
+					veCache.put(maVe, new String[]{maChuyenTau, gaDi, gaDen, rawLoaiVe, chieuVe, ngayGio, soLuong, maGhe, giaVe, soGhe, tenKH});
+
+					// Hiển thị lên bảng (Vẫn giữ nguyên số lượng cột trên UI, 2 cột mới chỉ lưu ẩn dưới cache)
+					tableModel.addRow(new Object[]{maVe, maChuyenTau, gaDi, gaDen, (rawLoaiVe.equals("KHU_HOI") ? "Khứ hồi" : "Một chiều"), chieuVe, ngayGio, soLuong, maGhe});
 				}
 
 				if (!found && !searchKw.isEmpty()) {
@@ -294,8 +300,25 @@ public final class DoiTraGUI extends JPanel {
 	}
 
 	private void handleGoiTraVe() {
-		String[] d = getSelectedData(); if (d == null) return;
-		TraVeGUI.setVeDuocChon(getSelectedMaVe(), d);
+		String[] d = getSelectedData();
+		if (d == null) return;
+		String maVe = getSelectedMaVe();
+
+		// ĐIỀU KIỆN TRẢ VÉ: Cá nhân >= 12h, Nhóm >= 24h
+		long gio = tinhGio(d);
+		if (laNhom(d)) {
+			if (gio < 24) {
+				warn("Không đủ điều kiện trả vé!");
+				return;
+			}
+		} else {
+			if (gio < 12) {
+				warn("Không đủ điều kiện trả vé!");
+				return;
+			}
+		}
+
+		TraVeGUI.setVeDuocChon(maVe, d);
 		appFrame.showCard("tra-ve");
 	}
 
@@ -366,29 +389,117 @@ public final class DoiTraGUI extends JPanel {
 	}
 
 	private JButton buildNavyButton(String text, int w, int h) {
-		JButton btn = new JButton(text) {
-			@Override protected void paintComponent(Graphics g) {
-				Graphics2D g2 = (Graphics2D) g.create();
-				g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-				g2.setColor(getModel().isPressed() ? GuiTheme.NAVY_DARK
-						: getModel().isRollover() ? GuiTheme.NAVY_HOVER : GuiTheme.NAVY);
-				g2.fillRoundRect(0, 0, getWidth(), getHeight(), 12, 12);
-				g2.setColor(Color.WHITE);
 
-				g2.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
+		JButton btn = new JButton(text) {
+
+			@Override
+			protected void paintComponent(Graphics g) {
+
+				Graphics2D g2 = (Graphics2D) g.create();
+
+				g2.setRenderingHint(
+						RenderingHints.KEY_ANTIALIASING,
+						RenderingHints.VALUE_ANTIALIAS_ON
+				);
+
+				// Background
+				g2.setColor(
+						getModel().isPressed()
+								? GuiTheme.NAVY_DARK
+								: getModel().isRollover()
+								  ? GuiTheme.NAVY_HOVER
+								  : GuiTheme.NAVY
+				);
+
+				g2.fillRoundRect(
+						0,
+						0,
+						getWidth(),
+						getHeight(),
+						12,
+						12
+				);
+
+				// =========================
+				// DRAW ICON + TEXT
+				// =========================
+
+				Icon icon = getIcon();
+
+				Font font = GuiTheme.font(
+						"Segoe UI",
+						Font.PLAIN,
+						14
+				);
+
+				g2.setFont(font);
 
 				FontMetrics fm = g2.getFontMetrics();
-				String txt = getText();
-				g2.drawString(txt, (getWidth() - fm.stringWidth(txt)) / 2,
-						(getHeight() + fm.getAscent() - fm.getDescent()) / 2);
+
+				int iconTextGap = 8;
+
+				int textWidth =
+						fm.stringWidth(getText());
+
+				int iconWidth =
+						(icon != null)
+								? icon.getIconWidth()
+								: 0;
+
+				int totalWidth =
+						iconWidth +
+								(icon != null ? iconTextGap : 0) +
+								textWidth;
+
+				int startX =
+						(getWidth() - totalWidth) / 2;
+
+				// ===== DRAW ICON =====
+
+				if (icon != null) {
+
+					int iconY =
+							(getHeight() - icon.getIconHeight()) / 2;
+
+					icon.paintIcon(
+							this,
+							g2,
+							startX,
+							iconY
+					);
+
+					startX += iconWidth + iconTextGap;
+				}
+
+				// ===== DRAW TEXT =====
+
+				g2.setColor(Color.WHITE);
+
+				int textY =
+						(getHeight()
+								+ fm.getAscent()
+								- fm.getDescent()) / 2;
+
+				g2.drawString(
+						getText(),
+						startX,
+						textY
+				);
+
 				g2.dispose();
 			}
 		};
+
 		btn.setPreferredSize(new Dimension(w, h));
+
 		btn.setContentAreaFilled(false);
 		btn.setBorderPainted(false);
 		btn.setFocusPainted(false);
-		btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+
+		btn.setCursor(
+				new Cursor(Cursor.HAND_CURSOR)
+		);
+
 		return btn;
 	}
 }

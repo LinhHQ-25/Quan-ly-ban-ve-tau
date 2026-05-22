@@ -780,8 +780,8 @@ public class DoiVeGUI0 extends JPanel {
         validToas.sort((toa1, toa2) -> {
             String loai1 = getLoaiToa(toa1);
             String loai2 = getLoaiToa(toa2);
-            int max1 = loai1.equals("VIP") ? 18 : 28;
-            int max2 = loai2.equals("VIP") ? 18 : 28;
+            int max1 = 20; // DB: 20 ghế/toa
+            int max2 = 20;
             Set<Integer> booked1 = gheDaDat(maChuyen, toa1);
             Set<Integer> booked2 = gheDaDat(maChuyen, toa2);
             boolean adj1 = hasAdjacent(booked1, s_soLuong, max1);
@@ -849,7 +849,7 @@ public class DoiVeGUI0 extends JPanel {
         activePanel.setOpaque(false); activePanel.add(lblLogo); activePanel.add(lblTitle);
         hdr.add(activePanel); wrapper.add(hdr, BorderLayout.NORTH);
 
-        int maxSeats = isVip ? 18 : 28;
+        int maxSeats = 20; // DB tạo đúng 20 ghế/toa
         int cols = maxSeats / 2;
 
         JPanel grid = new JPanel(new GridLayout(2, cols, 6, 6)) {
@@ -1031,7 +1031,7 @@ public class DoiVeGUI0 extends JPanel {
                     if (gheChon.size() >= s_soLuong) break;
                     String maToa   = toaMaToas.get(i);
                     String loaiToa = toaLoaiToas.get(i);
-                    int maxSeats   = loaiToa.equals("VIP") ? 18 : 28;
+                    int maxSeats   = 20; // DB tạo đúng 20 ghế/toa (xem QLtau.sql)
                     Set<Integer> dadat = gheDaDat(maChuyen, maToa);
                     for (int g = 1; g <= maxSeats; g++) {
                         if (gheChon.size() >= s_soLuong) break;

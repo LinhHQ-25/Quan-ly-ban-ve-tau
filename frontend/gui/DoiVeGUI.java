@@ -47,9 +47,11 @@ public class DoiVeGUI extends JPanel {
         setLayout(new BorderLayout());
         setBackground(GuiTheme.LIGHT_BG);
 
-        JPanel pnlPage = new JPanel(new BorderLayout(0, 10));
+        // SỬA: Giảm khoảng cách dọc từ 10 xuống còn 4
+        JPanel pnlPage = new JPanel(new BorderLayout(0, 4));
         pnlPage.setOpaque(false);
-        pnlPage.setBorder(new EmptyBorder(0, GuiTheme.PAGE_PAD_LEFT, GuiTheme.PAGE_PAD_BOTTOM, GuiTheme.PAGE_PAD_LEFT));
+        // SỬA: Thay GuiTheme.PAGE_PAD_BOTTOM bằng 0 để bỏ khoảng đệm dưới đáy
+        pnlPage.setBorder(new EmptyBorder(0, GuiTheme.PAGE_PAD_LEFT, 0, GuiTheme.PAGE_PAD_LEFT));
 
         JPanel stack = new JPanel();
         stack.setLayout(new BoxLayout(stack, BoxLayout.Y_AXIS));
@@ -190,14 +192,14 @@ public class DoiVeGUI extends JPanel {
     private JPanel buildBottomBar() {
         JPanel bar = new JPanel(new BorderLayout());
         bar.setBackground(Color.WHITE);
+
         bar.setBorder(BorderFactory.createCompoundBorder(
-                new MatteBorder(1, 0, 0, 0, BORDER), new EmptyBorder(10, 15, 10, 15)));
+                new MatteBorder(1, 0, 0, 0, BORDER), new EmptyBorder(4, 15, 4, 15)));
 
         lbWarning = new JLabel(" ");
         lbWarning.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
         lbWarning.setForeground(WARN_FG);
-
-        JPanel left = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 10));
+        JPanel left = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 4));
         left.setBackground(Color.WHITE);
         left.add(lbWarning);
 
@@ -205,14 +207,22 @@ public class DoiVeGUI extends JPanel {
         btnBack.addActionListener(e -> appFrame.showCard("doi-tra"));
 
         btnTiepTuc = makeNavyBtn("Tiếp tục", 130, 38);
+        btnTiepTuc.setIcon(
+                GuiIcons.loadIcon(
+                        DoiTraGUI.class,
+                        "/Images/logoGoOn.png",
+                        16,
+                        16));
         btnTiepTuc.setEnabled(false);
         btnTiepTuc.addActionListener(e -> handleTiepTuc());
 
-        JPanel right = new JPanel(new FlowLayout(FlowLayout.RIGHT, 15, 0));
+        JPanel right = new JPanel(new FlowLayout(FlowLayout.RIGHT, 15, 4));
         right.setBackground(Color.WHITE);
-        right.add(btnBack); right.add(btnTiepTuc);
+        right.add(btnBack);
+        right.add(btnTiepTuc);
 
-        bar.add(left, BorderLayout.WEST); bar.add(right, BorderLayout.EAST);
+        bar.add(left, BorderLayout.WEST);
+        bar.add(right, BorderLayout.EAST);
         return bar;
     }
 
@@ -247,12 +257,9 @@ public class DoiVeGUI extends JPanel {
         cbLoaiVe.setSelectedItem(s_data[3]);
         cbSoLuong.setSelectedItem(s_data[6]);
 
-        boolean isKhuHoi = s_data[3].equalsIgnoreCase("Khứ hồi");
+        boolean isKhuHoi = "KHU_HOI".equalsIgnoreCase(s_data[3]) || "Khứ hồi".equalsIgnoreCase(s_data[3]);
         boolean isChieuVe = "Chiều về".equals(s_data[4]);
 
-        // Một chiều: chỉ ngày đi, ngày về disabled
-        // Khứ hồi chiều đi: chọn ngày đi, ngày về disabled
-        // Khứ hồi chiều về: ngày đi disabled, chỉ chọn ngày về
         boolean ngayDiEnabled = !isChieuVe;
         boolean ngayVeEnabled = isKhuHoi && isChieuVe;
 
@@ -261,20 +268,15 @@ public class DoiVeGUI extends JPanel {
         dcNgayVe.setEnabled(ngayVeEnabled);
         dcNgayVe.setBackground(ngayVeEnabled ? Color.WHITE : new Color(245, 247, 250));
 
-        // --- BẠN THAY THẾ KHÚC NÀY TỚI HẾT HÀM ---
-        // Logic: Ngày đi và ngày về vé mới phải từ hôm nay trở đi
         java.util.Date today = new java.util.Date(); // Lấy ngày hiện tại của hệ thống
 
-        // Cài đặt ngày nhỏ nhất cho phép chọn là ngày hôm nay
         dcNgayDi.setMinSelectableDate(today);
         if (isKhuHoi) {
             dcNgayVe.setMinSelectableDate(today);
         }
 
-        // Mặc định để trống ô chọn ngày
         dcNgayDi.setDate(null);
         dcNgayVe.setDate(null);
-        // ------------------------------------------
     }
 
     private void validateDoiVe() {
@@ -328,7 +330,6 @@ public class DoiVeGUI extends JPanel {
             return;
         }
 
-        // Cập nhật Database Model và chuyển trang
         DoiVeGUI0.setTieuChiMoi(s_maVe, s_data, gaDiMoi, gaDenMoi, loaiVeMoi, ngayDiMoi, ngayVeMoi, soLuongMoi);
         appFrame.showCard("doi-ve-step-1");
     }
@@ -360,7 +361,6 @@ public class DoiVeGUI extends JPanel {
 
     // --- UI HELPERS ---
 
-    // Giao diện Lịch (JDateChooser)
     private JDateChooser buildDateChooser(boolean enabled) {
         JDateChooser dc = new JDateChooser();
         dc.setDateFormatString("dd/MM/yyyy");
@@ -408,7 +408,6 @@ public class DoiVeGUI extends JPanel {
         p.add(lb); p.add(Box.createVerticalStrut(6)); p.add(tf); return p;
     }
 
-    // Box chung dùng được cho cả JComboBox và JDateChooser
     private JPanel newFieldBox(String label, JComponent comp) {
         JPanel p = new JPanel(); p.setLayout(new BoxLayout(p, BoxLayout.Y_AXIS)); p.setOpaque(false);
         JLabel lb = new JLabel(label); lb.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 13));
@@ -438,18 +437,77 @@ public class DoiVeGUI extends JPanel {
 
     private JButton makeNavyBtn(String text, int w, int h) {
         JButton btn = new JButton(text) {
-            @Override protected void paintComponent(Graphics g) {
+
+            @Override
+            protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(getModel().isPressed() ? GuiTheme.NAVY_DARK : getModel().isRollover() ? GuiTheme.NAVY_HOVER : GuiTheme.NAVY);
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 12, 12); g2.setColor(Color.WHITE);
-                g2.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14)); FontMetrics fm = g2.getFontMetrics(); String txt = getText();
-                g2.drawString(txt, (getWidth() - fm.stringWidth(txt)) / 2, (getHeight() + fm.getAscent() - fm.getDescent()) / 2);
+
+                g2.setRenderingHint(
+                        RenderingHints.KEY_ANTIALIASING,
+                        RenderingHints.VALUE_ANTIALIAS_ON);
+
+                // Background
+                g2.setColor(
+                        getModel().isPressed()
+                                ? GuiTheme.NAVY_DARK
+                                : getModel().isRollover()
+                                  ? GuiTheme.NAVY_HOVER
+                                  : GuiTheme.NAVY);
+
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 12, 12);
+
+                // ===== DRAW ICON + TEXT =====
+                Font font = GuiTheme.font("Segoe UI", Font.BOLD, 14);
+                g2.setFont(font);
+                g2.setColor(Color.WHITE);
+
+                FontMetrics fm = g2.getFontMetrics();
+
+                Icon icon = getIcon();
+
+                int iconTextGap = 8;
+
+                int textWidth = fm.stringWidth(getText());
+                int iconWidth = (icon != null) ? icon.getIconWidth() : 0;
+
+                int totalWidth = textWidth +
+                        (icon != null ? iconWidth + iconTextGap : 0);
+
+                int startX = (getWidth() - totalWidth) / 2;
+
+                // Draw icon
+                if (icon != null) {
+                    int iconY = (getHeight() - icon.getIconHeight()) / 2;
+
+                    icon.paintIcon(
+                            this,
+                            g2,
+                            startX,
+                            iconY
+                    );
+
+                    startX += iconWidth + iconTextGap;
+                }
+
+                // Draw text
+                int textY = (getHeight()
+                        + fm.getAscent()
+                        - fm.getDescent()) / 2;
+
+                g2.drawString(getText(), startX, textY);
+
                 g2.dispose();
             }
         };
-        btn.setPreferredSize(new Dimension(w, h)); btn.setContentAreaFilled(false);
-        btn.setBorderPainted(false); btn.setFocusPainted(false); btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+
+        btn.setPreferredSize(new Dimension(w, h));
+
+        btn.setContentAreaFilled(false);
+        btn.setBorderPainted(false);
+        btn.setFocusPainted(false);
+
+        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+
         return btn;
     }
 }
