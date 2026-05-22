@@ -44,7 +44,7 @@ public class VeDAO {
             }
         }
     }
- // Thêm method mới này vào VeDAO, đặt ngay sau getSoLuongVeTheoCa
+    // Thêm method mới này vào VeDAO, đặt ngay sau getSoLuongVeTheoCa
     public static int getSoVeHuyTheoCa(java.time.LocalDate ngay, String ca, String maNV) throws SQLException {
         // Đếm cả 2 trạng thái: 'Đã hủy' (hết hạn tự động) và 'DA_HUY' (trả vé thủ công)
         String sql = "SELECT COUNT(*) FROM Ve v " +
@@ -76,9 +76,9 @@ public class VeDAO {
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     String loai = rs.getString("loaiGhe");
-                    if (loai.equalsIgnoreCase("Ghế cứng")) result[0] = rs.getInt("sl");
-                    else if (loai.equalsIgnoreCase("Giường nằm")) result[1] = rs.getInt("sl");
-                    else if (loai.equalsIgnoreCase("Ghế mềm")) result[2] = rs.getInt("sl");
+                    if ("GHE_CUNG".equalsIgnoreCase(loai) || "Ghế cứng".equalsIgnoreCase(loai)) result[0] = rs.getInt("sl");
+                    else if ("GIUONG_NAM".equalsIgnoreCase(loai) || "Giường nằm".equalsIgnoreCase(loai)) result[1] = rs.getInt("sl");
+                    else if ("GHE_MEM".equalsIgnoreCase(loai) || "Ghế mềm".equalsIgnoreCase(loai)) result[2] = rs.getInt("sl");
                 }
             }
         }
@@ -106,7 +106,7 @@ public class VeDAO {
         String sql = "SELECT g.loaiGhe, COUNT(*) as sl FROM Ve v " +
                 "JOIN HoaDon hd ON v.maHoaDon = hd.maHoaDon " +
                 "JOIN Ghe g ON v.maGhe = g.maGhe " +
-                "WHERE CAST(v.ngayMua AS DATE) = CAST(GETDATE() AS DATE) AND hd.maNV = ? " +
+                "WHERE CAST(hd.ngayLapHD AS DATE) = CAST(GETDATE() AS DATE) AND hd.maNV = ? " +
                 "AND v.trangThaiVe = N'Đã thanh toán'" +
                 " GROUP BY g.loaiGhe";
         try (Connection con = Connect_DB.getInstance().getConnection();
@@ -115,9 +115,9 @@ public class VeDAO {
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     String loai = rs.getString("loaiGhe");
-                    if (loai.equalsIgnoreCase("Ghế cứng")) result[0] = rs.getInt("sl");
-                    else if (loai.equalsIgnoreCase("Giường nằm")) result[1] = rs.getInt("sl");
-                    else if (loai.equalsIgnoreCase("Ghế mềm")) result[2] = rs.getInt("sl");
+                    if ("GHE_CUNG".equalsIgnoreCase(loai) || "Ghế cứng".equalsIgnoreCase(loai)) result[0] = rs.getInt("sl");
+                    else if ("GIUONG_NAM".equalsIgnoreCase(loai) || "Giường nằm".equalsIgnoreCase(loai)) result[1] = rs.getInt("sl");
+                    else if ("GHE_MEM".equalsIgnoreCase(loai) || "Ghế mềm".equalsIgnoreCase(loai)) result[2] = rs.getInt("sl");
                 }
             }
         }
@@ -149,8 +149,8 @@ public class VeDAO {
                     listGheDaDat.add(rs.getString("maGhe"));
                 }
             }
-        } catch (Exception e) { 
-            e.printStackTrace(); 
+        } catch (Exception e) {
+            e.printStackTrace();
         }
         return listGheDaDat;
     }

@@ -51,7 +51,6 @@ public class AppFrame extends JFrame {
     private DatVeGUI datVeGUI;
     private LoginPanel loginPanel;
     private DoiVeGUI2 doiVeGUI2;;
-    private HoTroGUI hoTroGUI;
 
 // Trong hàm khởi tạo / registerCards
 
@@ -180,7 +179,7 @@ public class AppFrame extends JFrame {
             case "doi-tra":        return "Ctrl + R";
             case "thong-ke":       return "Ctrl + G";
             case "ho-tro":         return "F1";
-            
+
             default:               return null;
         }
     }
@@ -247,18 +246,11 @@ public class AppFrame extends JFrame {
         bind.accept(KeyStroke.getKeyStroke(KeyEvent.VK_F5, 0), () -> {
             if (!"login".equals(activeCard)) showCard(activeCard); // refresh
         });
-        // Đăng ký phím ESC để tự động đóng các pop-up (JDialog) đang mở
-        java.awt.KeyboardFocusManager.getCurrentKeyboardFocusManager().addKeyEventDispatcher(new java.awt.KeyEventDispatcher() {
-            @Override
-            public boolean dispatchKeyEvent(java.awt.event.KeyEvent e) {
-                if (e.getID() == java.awt.event.KeyEvent.KEY_PRESSED && e.getKeyCode() == java.awt.event.KeyEvent.VK_ESCAPE) {
-                    java.awt.Window activeWindow = java.awt.KeyboardFocusManager.getCurrentKeyboardFocusManager().getActiveWindow();
-                    if (activeWindow instanceof javax.swing.JDialog) {
-                        activeWindow.dispose();
-                        return true; // Đã xử lý sự kiện
-                    }
-                }
-                return false;
+        bind.accept(KeyStroke.getKeyStroke(KeyEvent.VK_L, CTRL), () -> {
+            if (!"login".equals(activeCard)) {
+                int choice = JOptionPane.showConfirmDialog(AppFrame.this,
+                        "Bạn có chắc chắn muốn đăng xuất?", "Xác nhận", JOptionPane.YES_NO_OPTION);
+                if (choice == JOptionPane.YES_OPTION) showCard("login");
             }
         });
     }
@@ -273,11 +265,6 @@ public class AppFrame extends JFrame {
     }
 
     public void showCard(String card) {
-        if ("ho-tro".equals(card) && hoTroGUI != null) {
-            if (!"ho-tro".equals(activeCard)) {
-                hoTroGUI.selectTabForScreen(activeCard);
-            }
-        }
         activeCard = card;
         cardLayout.show(contentCards, card);
 
@@ -313,6 +300,7 @@ public class AppFrame extends JFrame {
         if ("dat-ve".equals(card)  && datVeGUI   != null) datVeGUI.refresh();
         if ("login".equals(card)   && loginPanel != null) loginPanel.refresh();
         if ("home".equals(card)    && homeGUI    != null) homeGUI.refresh();
+        if ("thong-ke".equals(card)  && thongKeGUI != null) thongKeGUI.loadData();
     }
 
     private void updateTitle(String card) {
@@ -410,9 +398,9 @@ public class AppFrame extends JFrame {
         role.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 16));
         role.setForeground(GuiTheme.TEXT);
         lblName = new JLabel(AuthService.getCurrentHoTen());
-		lblName.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 14));
-		lblName.setForeground(GuiTheme.NAVY);
-		lblName.setBorder(new EmptyBorder(4, 0, 0, 0)); 
+        lblName.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 14));
+        lblName.setForeground(GuiTheme.NAVY);
+        lblName.setBorder(new EmptyBorder(4, 0, 0, 0));
         pt.add(role);
         pt.add(lblName);
         profile.add(pt, BorderLayout.CENTER);
@@ -456,8 +444,7 @@ public class AppFrame extends JFrame {
         contentCards.add(new TauGUI(),               "tra-cuu-tau");
         contentCards.add(new VeGUI(),                "tra-cuu-ve");
         contentCards.add(new KhachHangGUI(),         "tra-cuu-khach");
-        hoTroGUI = new HoTroGUI();
-        contentCards.add(hoTroGUI,             "ho-tro");
+        contentCards.add(new HoTroGUI(),             "ho-tro");
         doiTraGUI = new DoiTraGUI(this);
         contentCards.add(doiTraGUI,        "doi-tra");
 
@@ -478,9 +465,24 @@ public class AppFrame extends JFrame {
         doiVeGUI2 = new DoiVeGUI2(this);
         contentCards.add(doiVeGUI2, "doi-ve-step-3");
     }
-
+ // Thêm vào trong AppFrame.java
+    public void setGlassPaneVisible(boolean visible) {
+        if (this.getGlassPane() == null || !(this.getGlassPane() instanceof JPanel)) {
+            JPanel glass = new JPanel() {
+                @Override
+                protected void paintComponent(Graphics g) {
+                    // Vẽ một lớp màu đen có độ trong suốt (100 = độ mờ từ 0-255)
+                    g.setColor(new Color(0, 0, 0, 100));
+                    g.fillRect(0, 0, getWidth(), getHeight());
+                }
+            };
+            glass.setOpaque(false);
+            this.setGlassPane(glass);
+        }
+        this.getGlassPane().setVisible(visible);
+    }
     public void onLoginSuccess(boolean isAdmin) {
-    	lblName.setText(AuthService.getCurrentHoTen());
+        lblName.setText(AuthService.getCurrentHoTen());
         if (isAdmin) {
             AppFrameManager managerFrame = new AppFrameManager();
             managerFrame.setVisible(true);
@@ -507,7 +509,7 @@ public class AppFrame extends JFrame {
 
             // 4. Xử lý kết quả
             if (dialog.isConfirmed()) {
-            	homeGUI.refresh();
+                homeGUI.refresh();
                 // THÊM MỚI: Parse tiền mở ca và truyền vào ThongKeGUI
                 long tienMoCa = Long.parseLong(dialog.getTienMoCa().replaceAll("[^\\d]", ""));
                 thongKeGUI.setTienMoCa(tienMoCa);

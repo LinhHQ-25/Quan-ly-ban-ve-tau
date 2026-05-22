@@ -21,7 +21,7 @@ public class DoiMatKhauDialog extends JDialog {
 
     private JPasswordField pfCu, pfMoi, pfMoiLai;
     private JLabel lblError;
-
+    private JPanel glass;
     public DoiMatKhauDialog(Window owner) {
         super(owner, ModalityType.APPLICATION_MODAL);
         setUndecorated(true);
@@ -29,7 +29,7 @@ public class DoiMatKhauDialog extends JDialog {
 
         // Glass pane làm mờ nền
         if (owner instanceof JFrame) {
-            JPanel glass = new JPanel() {
+        	glass = new JPanel() {
                 @Override protected void paintComponent(Graphics g) {
                     g.setColor(new Color(0, 0, 0, 180));
                     g.fillRect(0, 0, getWidth(), getHeight());
@@ -132,7 +132,10 @@ public class DoiMatKhauDialog extends JDialog {
         JButton btnHuy = makeBtn("Hủy", false);
         JButton btnXN  = makeBtn("Xác nhận", true);
 
-        btnHuy.addActionListener(e -> dispose());
+        btnHuy.addActionListener(e -> {
+            if (glass != null) glass.setVisible(false);
+            dispose();
+        });
         btnXN.addActionListener(e -> handleConfirm());
 
         // Enter để xác nhận
@@ -288,6 +291,7 @@ public class DoiMatKhauDialog extends JDialog {
             JOptionPane.showMessageDialog(this,
                     "Đổi mật khẩu thành công!",
                     "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+            if (glass != null) glass.setVisible(false);
             dispose();
 
         } catch (SQLException ex) {

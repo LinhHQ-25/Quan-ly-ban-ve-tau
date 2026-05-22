@@ -250,8 +250,8 @@ public class DoiVeGUI2 extends JPanel {
             try {
                 try (PreparedStatement ps = conn.prepareStatement(sqlInsertHD)) {
                     ps.setString(1, maDon);
-                    ps.setLong  (2, s_tongThu); // Lưu tổng số tiền thu vào hóa đơn
-                    ps.setLong  (3, s_tongThu); // Tiền nhận
+                    ps.setLong  (2, s_giaVeMoi); // Lưu tổng tiền cuối (vé cũ + tiền bù)
+                    ps.setLong  (3, s_tongThu);  // Tiền nhận = tiền khách bù thêm
                     ps.setString(4, hinhThuc);
                     ps.setString(5, s_maVe);
                     ps.executeUpdate();
@@ -288,6 +288,7 @@ public class DoiVeGUI2 extends JPanel {
                 }
 
                 conn.commit();
+                HoaDonPDFExporter.xuatPDF(maDon);
                 JOptionPane.showMessageDialog(this, "Đổi vé thành công!\nMã hóa đơn mới: " + maDon, "Thành công", JOptionPane.INFORMATION_MESSAGE);
                 appFrame.showCard("doi-tra");
 

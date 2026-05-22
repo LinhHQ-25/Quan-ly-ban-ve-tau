@@ -80,7 +80,7 @@ public class TraVeGUI1 extends JPanel {
         long tongTien = 0;
         try {
             long soLuong = Long.parseLong(s_data[6].replaceAll("[^0-9]", ""));
-            long donGia  = Long.parseLong(s_data[8].split("\\.")[0].replaceAll("[^0-9]", ""));
+            long donGia  = (long) Double.parseDouble(s_data[8]);
             tongTien = soLuong * donGia;
         } catch (Exception ignored) {}
 
@@ -169,46 +169,57 @@ public class TraVeGUI1 extends JPanel {
             maDon = MaTuDong.taoMaDon(conn, LocalDate.now());
         } catch (Exception e) { return; }
 
-        long tienHoanKhach = 0; // 80% (số dương)
+        long tienHoanKhach = 0;
         try { tienHoanKhach = Long.parseLong(s_hoanLai.replaceAll("[^0-9]", "")); } catch (Exception ignored) {}
 
-        long phiHuyVe = 0; // 20% (Tiền lơi)
+        long phiHuyVe = 0; // Tiền lời giữ lại (VD: 10% = 40.000đ) — lưu vào HoaDon
         try { phiHuyVe = Long.parseLong(s_phi.replaceAll("[^0-9]", "")); } catch (Exception ignored) {}
 
-        // SQL: INSERT Hóa đơn mới với tongTien ÂM (trừ vào doanh thu bán)
+        // tongTien trong HoaDon = phiHuyVe (tiền mình giữ lại)
+        // ThongKeGUI sẽ hiện số này là doanh thu từ đơn trả
         String sqlInsertHD = "INSERT INTO HoaDon (maHoaDon, ngayLapHD, maNV, maKH, tongTien, tienNhan, phuongThucThanhToan) " +
                 "SELECT ?, GETDATE(), hd.maNV, hd.maKH, ?, 0, N'Hoàn tiền' " +
                 "FROM HoaDon hd JOIN Ve v ON v.maHoaDon = hd.maHoaDon WHERE v.maVe = ?";
 
-        String sqlUpdateVe = "UPDATE Ve SET trangThaiVe = N'Đã hủy', maHoaDon = ? WHERE maVe = ?";
+        String sqlUpdateVe  = "UPDATE Ve SET trangThaiVe = N'Đã hủy', maHoaDon = ? WHERE maVe = ?";
         String sqlInsertDon = "INSERT INTO DonDoiTraVe (maDon, tienBu, ngayLap, tienHoanTra, loaiDon, maVe) VALUES (?, ?, GETDATE(), ?, 'DON_TRA', ?)";
 
         try (Connection conn = Connect_DB.getInstance().getConnection()) {
             conn.setAutoCommit(false);
-            try (PreparedStatement psHD = conn.prepareStatement(sqlInsertHD);
-                 PreparedStatement psVe = conn.prepareStatement(sqlUpdateVe);
+            try (PreparedStatement psHD  = conn.prepareStatement(sqlInsertHD);
+                 PreparedStatement psVe  = conn.prepareStatement(sqlUpdateVe);
                  PreparedStatement psDon = conn.prepareStatement(sqlInsertDon)) {
 
                 psHD.setString(1, maDon);
-                psHD.setLong(2, -tienHoanKhach); // <--- LƯU SỐ ÂM ĐỂ TRỪ DOANH THU
+                psHD.setLong  (2, phiHuyVe);  // phí giữ lại = doanh thu từ đơn trả
                 psHD.setString(3, s_maVe);
-                psHD.executeUpdate();
+                int hdRows = psHD.executeUpdate();
+                if (hdRows == 0) throw new Exception("Không tìm được hóa đơn gốc của vé " + s_maVe);
 
                 psVe.setString(1, maDon);
                 psVe.setString(2, s_maVe);
-                psVe.executeUpdate();
+                if (psVe.executeUpdate() == 0) throw new Exception("Không tìm thấy vé " + s_maVe);
 
                 psDon.setString(1, maDon);
-                psDon.setLong(2, phiHuyVe); // Ghi nhận tiền lơi (phí phạt)
-                psDon.setLong(3, tienHoanKhach);
+                psDon.setLong  (2, phiHuyVe);      // tienBu = phí phạt giữ lại
+                psDon.setLong  (3, tienHoanKhach); // tienHoanTra = tiền trả lại khách
                 psDon.setString(4, s_maVe);
                 psDon.executeUpdate();
 
                 conn.commit();
-                JOptionPane.showMessageDialog(this, "Trả vé thành công!");
+                HoaDonPDFExporter.xuatPDF(maDon);
+                JOptionPane.showMessageDialog(this,
+                        "<html><div style='padding:6px'><b>Trả vé thành công!</b><br><br>" +
+                                "Mã đơn: <b>" + maDon + "</b><br>" +
+                                "Phí giữ lại: <b>" + fmtTien(phiHuyVe) + "</b><br>" +
+                                "Hoàn trả khách: <b>" + fmtTien(tienHoanKhach) + "</b></div></html>",
+                        "Hoàn tất", JOptionPane.PLAIN_MESSAGE);
                 appFrame.showCard("doi-tra");
             } catch (Exception ex) { conn.rollback(); throw ex; }
-        } catch (Exception e) { e.printStackTrace(); }
+        } catch (Exception e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Lỗi: " + e.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+        }
     }
 
     private JLabel infoLabel(Color color) { JLabel lb = new JLabel("—"); lb.setFont(FONT_B14); lb.setForeground(color); lb.setOpaque(true); lb.setBackground(GuiTheme.SEARCH_FIELD_BG); lb.setBorder(BorderFactory.createCompoundBorder(new LineBorder(BORDER,1), new EmptyBorder(6,10,6,10))); lb.setPreferredSize(new Dimension(0, FIELD_H)); lb.setMaximumSize(new Dimension(Integer.MAX_VALUE, FIELD_H)); return lb; }
@@ -247,4 +258,6 @@ public class TraVeGUI1 extends JPanel {
     private static String safe(String[] a, int i) { return (a!=null&&i<a.length&&a[i]!=null)?a[i]:"—"; }
     private JButton makeNavyBtn(String text, int w, int h) { JButton b = new JButton(text) { @Override protected void paintComponent(Graphics g) { Graphics2D g2=(Graphics2D)g.create(); g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,RenderingHints.VALUE_ANTIALIAS_ON); g2.setColor(getModel().isPressed()?GuiTheme.NAVY_DARK:getModel().isRollover()?GuiTheme.NAVY_HOVER:NAVY); g2.fillRoundRect(0,0,getWidth(),getHeight(),8,8); g2.setColor(Color.WHITE); g2.setFont(FONT_14); FontMetrics fm=g2.getFontMetrics(); String t=getText(); g2.drawString(t,(getWidth()-fm.stringWidth(t))/2,(getHeight()+fm.getAscent()-fm.getDescent())/2); g2.dispose(); } }; b.setPreferredSize(new Dimension(w,h)); b.setContentAreaFilled(false); b.setBorderPainted(false); b.setFocusPainted(false); b.setCursor(new Cursor(Cursor.HAND_CURSOR)); return b; }
     private JButton makeOutlineBtn(String text, int w, int h) { JButton b = new JButton(text) { @Override protected void paintComponent(Graphics g) { Graphics2D g2=(Graphics2D)g.create(); g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,RenderingHints.VALUE_ANTIALIAS_ON); Color bg=getModel().isPressed()?new Color(220,225,235):getModel().isRollover()?new Color(235,239,246):new Color(240,243,248); g2.setColor(bg); g2.fillRoundRect(0,0,getWidth(),getHeight(),8,8); g2.setColor(BORDER); g2.drawRoundRect(0,0,getWidth()-1,getHeight()-1,8,8); g2.setColor(GuiTheme.TEXT); g2.setFont(FONT_14); FontMetrics fm=g2.getFontMetrics(); String t=getText(); g2.drawString(t,(getWidth()-fm.stringWidth(t))/2,(getHeight()+fm.getAscent()-fm.getDescent())/2); g2.dispose(); } }; b.setPreferredSize(new Dimension(w,h)); b.setContentAreaFilled(false); b.setBorderPainted(false); b.setFocusPainted(false); b.setCursor(new Cursor(Cursor.HAND_CURSOR)); return b; }
+
+
 }
