@@ -122,55 +122,60 @@ public class DoiVeGUI1 extends JPanel {
     }
 
     private void calcPriceAndRefresh() {
-        // ── ĐẦU VÀO ──────────────────────────────────────────────────────────
-        long   giaVeCu     = 0;
-        try { giaVeCu = (long) Double.parseDouble(safe(s_dataCu, 8).replaceAll("[^0-9.]", "")); } catch (Exception ignored) {}
+        final long phiDoiVe = 30_000L; // phụ phí đổi vé cố định
 
-        final long   giaVeCoBan  = 500_000L;          // cố định
-        final double cuLy        = 1.0;                // tạm thời = 1, bổ sung sau khi có DB
-        final long   phiDoiVe    = 30_000L;            // lệ phí cố định
+        // ── Giá vé cũ đã áp khuyến mãi (lấy từ DB, index 8) ─────────────────
+        long giaVeCu = 0;
+        try { giaVeCu = Long.parseLong(safe(s_dataCu, 8).replaceAll("[^0-9]", "")); } catch (Exception ignored) {}
 
-        // hệ số loại chỗ: query từ DB (TOA_THUONG=1.0, TOA_VIP=1.5)
-        String maToaCu  = extractMaToaFromMaGheDB(safe(s_dataCu, 7));
-        double heSoCu   = queryHeSoToa(maToaCu);
-        double heSoMoi  = queryHeSoToa(s_maToaMoi);
+        // ── Ga đến cũ vs ga đến mới để xác định trùng/khác ───────────────────
+        String oldGaDen = safe(s_dataCu, 2); // tenGa đến của vé cũ
+        String[] gasMoi = queryGaFromChuyen(s_maChuyenMoi);
+        String newGaDen = gasMoi[1];          // tenGa đến của chuyến mới
+        boolean trungGaDen = oldGaDen.trim().equalsIgnoreCase(newGaDen.trim());
 
-        // ── BƯỚC 1 — giá trị thực của vé mới (chưa tính phí) ────────────────
-        long giaTriVeMoi = Math.round(giaVeCoBan * cuLy * heSoMoi);
-        // Ví dụ: 500.000 * 1 * 1.5 = 750.000 đ
+        // ── Tính giá vé mới KHÔNG áp khuyến mãi (300.000 × heSoCuLy × heSoLoaiToa) ──
+        double heSoLoaiToaMoi = queryHeSoToa(s_maToaMoi);
+        double heSoCuLyMoi    = queryHeSoCuLyTheoChuyen(s_maChuyenMoi);
+        long   giaVeMoiKhongKM = Math.round(300_000.0 * heSoCuLyMoi * heSoLoaiToaMoi);
 
-        // ── BƯỚC 2 — 2 kịch bản ─────────────────────────────────────────────
-        long giaVeDoi;   // số tiền khách phải bù (tongLePhi)
-
-        if (giaTriVeMoi >= giaVeCu) {
-            // Kịch bản A — ngang giá hoặc nâng hạng
-            // giaVeMoi (lưu DB) = giaTriVeMoi + phiDoiVe
-            giaVeMoi = giaTriVeMoi + phiDoiVe;
-            // giaVeDoi (khách bù) = giaVeMoi - giaVeCu
-            giaVeDoi = giaVeMoi - giaVeCu;
-            // VD: 750k + 30k = 780k → 780k - 500k = 280k
+        // ── Tính tổng tiền theo nghiệp vụ ────────────────────────────────────
+        if (trungGaDen) {
+            // Ga đến trùng → chỉ thu đúng 30.000đ phụ phí
+            tongLePhi = phiDoiVe;
+            giaVeMoi  = giaVeCu + phiDoiVe;
         } else {
-            // Kịch bản B — xuống hạng
-            // Chỉ thu phí cố định, không hoàn tiền thừa
-            giaVeDoi = phiDoiVe;
-            // giaVeMoi (lưu DB) = giaVeCu + phiDoiVe (giữ nguyên giá trị kinh tế)
-            giaVeMoi = giaVeCu + phiDoiVe;
+            // Ga đến khác → khách chỉ bù phần chênh lệch + phụ phí
+            // tongLePhi = (vé mới không KM) - (vé cũ đã KM) + 30.000
+            long tinhDuoc = giaVeMoiKhongKM - giaVeCu + phiDoiVe;
+            tongLePhi = Math.max(tinhDuoc, phiDoiVe); // tối thiểu 30.000đ
+            giaVeMoi  = giaVeCu + tongLePhi; // tổng tiền thực khách đã chi
         }
 
-        // ── BƯỚC 3 — ràng buộc an toàn ──────────────────────────────────────
-        // giaVeDoi KHÔNG BAO GIỜ âm, tối thiểu = phiDoiVe
-        tongLePhi = Math.max(giaVeDoi, phiDoiVe);
-
-        // ── HIỂN THỊ ─────────────────────────────────────────────────────────
-        long chenhLech = giaTriVeMoi - giaVeCu;
-        String dauChenhlech = chenhLech > 0 ? "+" : "";
-        lbChenhLech.setText("Chênh lệch hạng ghế: " + dauChenhlech + fmtTien(chenhLech));
-        lbChenhLech.setForeground(chenhLech > 0 ? new Color(180, 60, 0)
-                : chenhLech < 0 ? new Color(30, 120, 60)
-                  : GuiTheme.SUB_TEXT);
+        // ── Hiển thị ─────────────────────────────────────────────────────────
+        String moTa = trungGaDen
+                ? "Cùng ga đến — phụ phí đổi vé"
+                : "Ga đến khác — chênh lệch: " + (giaVeMoiKhongKM >= giaVeCu ? "+" : "") + fmtTien(giaVeMoiKhongKM - giaVeCu);
+        lbChenhLech.setText(moTa);
+        lbChenhLech.setForeground(trungGaDen ? GuiTheme.SUB_TEXT
+                : giaVeMoiKhongKM > giaVeCu ? new Color(180, 60, 0) : new Color(30, 120, 60));
 
         lbTongThu.setText("Tổng tiền cần thanh toán: " + fmtTien(tongLePhi));
         lbTongThu.setForeground(tongLePhi > phiDoiVe ? new Color(180, 60, 0) : GuiTheme.TEXT);
+    }
+
+    // Query heSoCuLy của ga đến từ ChiTietChuyenTau → Ga
+    private double queryHeSoCuLyTheoChuyen(String maChuyenTau) {
+        String sql = "SELECT g.heSoCuLy FROM ChiTietChuyenTau dt " +
+                "JOIN Ga g ON dt.maGaDen = g.maGa WHERE dt.maChuyenTau = ?";
+        try (Connection conn = Connect_DB.getInstance().getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, maChuyenTau);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return rs.getDouble(1);
+            }
+        } catch (Exception e) { e.printStackTrace(); }
+        return 1.0; // fallback
     }
 
     private String extractMaToaFromMaGheDB(String maGhe) {
@@ -257,7 +262,10 @@ public class DoiVeGUI1 extends JPanel {
     private String extractToaFromDB(String maGhe) { if (maGhe == null || maGhe.length() < 4) return "—"; try { return maGhe.substring(3); } catch (Exception e) { return "—"; } }
     private String extractGheFromDB(String maGhe) { if (maGhe == null || maGhe.length() < 3) return "—"; try { return maGhe.substring(0, 3); } catch (Exception e) { return "—"; } }
     private int extractToaNumFromDB(String maGhe) { try { return Integer.parseInt(maGhe.substring(3, 5)); } catch (Exception e) { return 1; } }
-    private String fmtTien(long a) { return String.format("%,d đ", a).replace(",", "."); }
+    private String fmtTien(long a) {
+        // Luôn hiển thị đủ dạng tiền VN: "400.000 đ", "1.500.000 đ"
+        return String.format("%,d đ", a).replace(",", ".");
+    }
     private String safe(String[] a, int i) { return (a!=null && i<a.length && a[i]!=null) ? a[i] : "—"; }
 
     private JPanel buildSuccessBox() { JPanel p = new JPanel(new BorderLayout()) { @Override protected void paintComponent(Graphics g) { Graphics2D g2 = (Graphics2D) g.create(); g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON); g2.setColor(new Color(236, 252, 240)); g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10); g2.dispose(); } }; p.setBorder(new EmptyBorder(16, 20, 16, 20)); p.setMaximumSize(new Dimension(Integer.MAX_VALUE, 55)); JLabel msg = new JLabel("Thông tin hợp lệ. Vui lòng xác nhận lộ trình đổi vé."); msg.setFont(FONT_B14); msg.setForeground(new Color(30, 130, 70)); msg.setHorizontalAlignment(SwingConstants.CENTER); p.add(msg, BorderLayout.CENTER); return p; }

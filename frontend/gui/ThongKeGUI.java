@@ -41,7 +41,9 @@ public final class ThongKeGUI extends JPanel {
     // ──────────────
 
     private ChartPanel chartPanel;
-    private final JLabel[] lblStatValues = new JLabel[4];
+    private final JLabel[] lblStatValues = new JLabel[6];
+    private long doanhThuTienMat = 0;
+    private long doanhThuCK      = 0;
     private DefaultTableModel tblModel;
 
     private TableRowSorter<DefaultTableModel> sorter;
@@ -56,26 +58,38 @@ public final class ThongKeGUI extends JPanel {
         setBackground(GuiTheme.LIGHT_BG);
         setLayout(new BorderLayout());
 
-        JPanel pnlPage = new JPanel();
-        pnlPage.setOpaque(false);
-        pnlPage.setLayout(new BoxLayout(pnlPage, BoxLayout.Y_AXIS));
-        pnlPage.setBorder(new EmptyBorder(0, GuiTheme.PAGE_PAD_LEFT, GuiTheme.PAGE_PAD_BOTTOM, GuiTheme.PAGE_PAD_LEFT));
+        // Panel phía trên: summary bar
+        JPanel pnlTop = new JPanel();
+        pnlTop.setOpaque(false);
+        pnlTop.setLayout(new BoxLayout(pnlTop, BoxLayout.Y_AXIS));
+        pnlTop.setBorder(new EmptyBorder(0, GuiTheme.PAGE_PAD_LEFT, 0, GuiTheme.PAGE_PAD_LEFT));
+        pnlTop.add(Box.createVerticalStrut(12));
+        pnlTop.add(buildSummaryBar());
+        pnlTop.add(Box.createVerticalStrut(12));
 
-        pnlPage.add(Box.createVerticalStrut(12));
-        pnlPage.add(buildSummaryBar());
-        pnlPage.add(Box.createVerticalStrut(12));
-        pnlPage.add(buildTableWithChart());
+        // Panel giữa: bảng + biểu đồ — fill hết phần còn lại
+        JPanel pnlCenter = new JPanel(new BorderLayout());
+        pnlCenter.setOpaque(false);
+        pnlCenter.setBorder(new EmptyBorder(0, GuiTheme.PAGE_PAD_LEFT, GuiTheme.PAGE_PAD_BOTTOM, GuiTheme.PAGE_PAD_LEFT));
+        pnlCenter.add(buildTableWithChart(), BorderLayout.CENTER);
 
         chartPanel.setOnFilterListener(type -> {
             if (type == null) sorter.setRowFilter(null);
             else              sorter.setRowFilter(RowFilter.regexFilter(type, 3));
         });
 
-        add(pnlPage, BorderLayout.NORTH);
-        add(buildBottomBar(), BorderLayout.SOUTH);
+        add(pnlTop,            BorderLayout.NORTH);
+        add(pnlCenter,         BorderLayout.CENTER);
+        add(buildBottomBar(),  BorderLayout.SOUTH);
 
         // Tự động load dữ liệu hôm nay theo nhân viên đang đăng nhập
         loadData();
+    }
+
+    private static boolean isCK(String pttt) {
+        if (pttt == null) return false;
+        String s = pttt.toLowerCase();
+        return s.contains("chuyen_khoan") || s.contains("chuyển khoản") || s.contains("chuyen khoan") || s.contains("vietqr") || s.equals("chuyen_khoan");
     }
 
     public void loadData() {
@@ -89,29 +103,46 @@ public final class ThongKeGUI extends JPanel {
                 List<Object[]> hdList    = HoaDonDAO.getDanhSachHoaDonHomNay(maNV);
                 List<Object[]> hdHuyTemp = HoaDonDAO.getDanhSachHoaDonHuyHomNay(maNV);
 
-                long ln = 0;
+                long ln = 0, tm = 0, ck = 0;
                 int  vb = 0;
                 for (Object[] row : hdList) {
-                    ln += ((Double) row[5]).longValue();
+                    long t = ((Double) row[5]).longValue();
+                    ln += t;
                     vb += (int) row[4];
+                    String pttt = row[6] != null ? row[6].toString() : "";
+                    if (isCK(pttt)) ck += t;
+                    else tm += t;
+                }
+                // Cộng phí phạt trả vé vào doanh thu và lợi nhuận
+                for (Object[] row : hdHuyTemp) {
+                    long t = ((Double) row[5]).longValue();
+                    ln += t;
+                    String pttt = row[6] != null ? row[6].toString() : "";
+                    if (isCK(pttt)) ck += t;
+                    else tm += t;
                 }
                 final long loiNhuanFinal = ln;
                 final long doanhThuFinal = ln + tienMoCa;
+                final long tmFinal = tm, ckFinal = ck;
                 final int  veBanFinal    = vb;
 
                 SwingUtilities.invokeLater(() -> {
-                    this.loiNhuan      = loiNhuanFinal;
-                    this.doanhThu      = doanhThuFinal;
-                    this.veBan         = veBanFinal;
-                    this.veHuy         = vh;
-                    this.hdBanList     = hdList;
-                    this.hdHuyList     = hdHuyTemp;
-                    this.currentFilter = null;
+                    this.loiNhuan         = loiNhuanFinal;
+                    this.doanhThu         = doanhThuFinal;
+                    this.veBan            = veBanFinal;
+                    this.veHuy            = vh;
+                    this.hdBanList        = hdList;
+                    this.hdHuyList        = hdHuyTemp;
+                    this.doanhThuTienMat  = tmFinal;
+                    this.doanhThuCK       = ckFinal;
+                    this.currentFilter    = null;
 
                     lblStatValues[0].setText(String.format("%,.0f đ", (double) doanhThuFinal));
                     lblStatValues[1].setText(String.format("%,.0f đ", (double) loiNhuanFinal));
                     lblStatValues[2].setText(veBanFinal + " vé");
                     lblStatValues[3].setText(vh + " vé");
+                    if (lblStatValues[4] != null) lblStatValues[4].setText(String.format("%,.0f đ", (double) tmFinal).replace(",", "."));
+                    if (lblStatValues[5] != null) lblStatValues[5].setText(String.format("%,.0f đ", (double) ckFinal).replace(",", "."));
 
                     chartPanel.setData(ghe[0], ghe[1], ghe[2]);
                     hienThiBang(hdBanList);
@@ -129,27 +160,43 @@ public final class ThongKeGUI extends JPanel {
         sorter.setRowFilter(null);
         for (Object[] row : list) {
             Object tongTien = row[5] instanceof Double
-                ? String.format("%,.0f đ", (Double) row[5])
-                : row[5];
-            tblModel.addRow(new Object[]{row[0], row[1], row[2], row[3], row[4], tongTien});
+                    ? String.format("%,.0f đ", (Double) row[5]).replace(",", ".")
+                    : row[5];
+            // Chuẩn hóa tên hình thức thanh toán
+            String pttt = row[6] != null ? row[6].toString() : "";
+            if ("TIEN_MAT".equalsIgnoreCase(pttt)) pttt = "Tiền mặt";
+            else if ("CHUYEN_KHOAN".equalsIgnoreCase(pttt) || pttt.toLowerCase().contains("vietqr")) pttt = "Chuyển khoản";
+            else if (pttt.toLowerCase().contains("hoàn tiền")) pttt = "Hoàn tiền";
+            tblModel.addRow(new Object[]{row[0], row[1], row[2], pttt, row[4], tongTien});
         }
     }
     // ──────────────
 
     private JPanel buildSummaryBar() {
+        // Hàng 1: Tổng doanh thu | Vé đã bán | Tiền mặt
+        JPanel row1 = new JPanel(new GridLayout(1, 3, 12, 0));
+        row1.setOpaque(false);
+        row1.setMaximumSize(new Dimension(Integer.MAX_VALUE, 78));
+        row1.add(buildStatCard("Tổng doanh thu", "0 đ",  new Color(71,  71, 156), 0, false));
+        cardVeBan = buildStatCard("Vé đã bán", "0 vé", new Color(34, 139, 87), 2, true);
+        row1.add(cardVeBan);
+        row1.add(buildStatCard("Tiền mặt",      "0 đ", new Color(180, 120, 30), 4, false));
+
+        // Hàng 2: Tổng lợi nhuận | Vé đã hủy | Chuyển khoản
+        JPanel row2 = new JPanel(new GridLayout(1, 3, 12, 0));
+        row2.setOpaque(false);
+        row2.setMaximumSize(new Dimension(Integer.MAX_VALUE, 78));
+        row2.add(buildStatCard("Tổng lợi nhuận", "0 đ",  new Color(34, 120, 180), 1, false));
+        cardVeHuy = buildStatCard("Vé đã hủy", "0 vé", new Color(210, 50, 50), 3, true);
+        row2.add(cardVeHuy);
+        row2.add(buildStatCard("Chuyển khoản",   "0 đ", new Color(30, 140, 160), 5, false));
+
         JPanel pnl = new JPanel();
-        pnl.setLayout(new BoxLayout(pnl, BoxLayout.X_AXIS));
+        pnl.setLayout(new BoxLayout(pnl, BoxLayout.Y_AXIS));
         pnl.setOpaque(false);
-        pnl.add(buildStatCard("Tổng doanh thu", "0 đ",  new Color(71,  71, 156), 0, false));
-        pnl.add(Box.createHorizontalStrut(16));
-        pnl.add(buildStatCard("Tổng lợi nhuận", "0 đ",  new Color(34, 120, 180), 1, false));
-        pnl.add(Box.createHorizontalStrut(16));
-        cardVeBan = buildStatCard("Vé đã bán",   "0 vé", new Color(34, 139,  87), 2, true);
-        pnl.add(cardVeBan);
-        pnl.add(Box.createHorizontalStrut(16));
-        cardVeHuy = buildStatCard("Vé đã hủy",   "0 vé", new Color(210,  50,  50), 3, true);
-        pnl.add(cardVeHuy);
-        pnl.add(Box.createHorizontalGlue());
+        pnl.add(row1);
+        pnl.add(Box.createVerticalStrut(10));
+        pnl.add(row2);
         return pnl;
     }
 
@@ -162,7 +209,7 @@ public final class ThongKeGUI extends JPanel {
                 g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
 
                 boolean selected = (idx == 2 && "ban".equals(currentFilter))
-                                || (idx == 3 && "huy".equals(currentFilter));
+                        || (idx == 3 && "huy".equals(currentFilter));
                 g2.setColor(selected ? accent : new Color(220, 224, 232));
                 g2.setStroke(new BasicStroke(selected ? 2f : 1f));
                 g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 10, 10);
@@ -227,7 +274,7 @@ public final class ThongKeGUI extends JPanel {
 
     private JPanel buildTablePanel() {
         tblModel = new DefaultTableModel(
-                new Object[]{"Mã HĐ", "Giờ bán", "Khách hàng", "Loại ghế", "Số vé", "Tổng tiền"}, 0) {
+                new Object[]{"Mã HĐ", "Giờ bán", "Khách hàng", "Hình thức TT", "Số vé", "Tổng tiền"}, 0) {
             @Override public boolean isCellEditable(int r, int c) { return false; }
         };
         tblData = new JTable(tblModel);
@@ -255,13 +302,21 @@ public final class ThongKeGUI extends JPanel {
         };
         for (int i = 0; i < tblData.getColumnCount(); i++)
             tblData.getColumnModel().getColumn(i).setCellRenderer(zebraRenderer);
+
+        // Bóp cột: Mã HĐ | Giờ bán | Khách hàng | Hình thức TT | Số vé | Tổng tiền
+        tblData.getColumnModel().getColumn(0).setPreferredWidth(130); // Mã HĐ
+        tblData.getColumnModel().getColumn(1).setPreferredWidth(70);  // Giờ bán
+        tblData.getColumnModel().getColumn(2).setPreferredWidth(140); // Khách hàng
+        tblData.getColumnModel().getColumn(3).setPreferredWidth(110); // Hình thức TT
+        tblData.getColumnModel().getColumn(4).setPreferredWidth(55);  // Số vé
+        tblData.getColumnModel().getColumn(5).setPreferredWidth(110); // Tổng tiền
         ((DefaultTableCellRenderer) tblData.getTableHeader().getDefaultRenderer())
                 .setHorizontalAlignment(SwingConstants.CENTER);
 
         JScrollPane spnScroll = new JScrollPane(tblData);
         spnScroll.setBorder(new LineBorder(BORDER, 1, true));
         spnScroll.getViewport().setBackground(Color.WHITE);
-        spnScroll.setPreferredSize(new Dimension(10000, 300));
+        // height tự fill theo CENTER layout
 
         // Click vào hàng → mở PDF hóa đơn
         tblData.addMouseListener(new MouseAdapter() {
@@ -285,16 +340,16 @@ public final class ThongKeGUI extends JPanel {
         File pdfFile = new File("HoaDon", maHoaDon + ".pdf");
         if (!pdfFile.exists()) {
             JOptionPane.showMessageDialog(this,
-                "Không tìm thấy file hóa đơn:\n" + pdfFile.getAbsolutePath(),
-                "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+                    "Không tìm thấy file hóa đơn:\n" + pdfFile.getAbsolutePath(),
+                    "Thông báo", JOptionPane.INFORMATION_MESSAGE);
             return;
         }
         try {
             Desktop.getDesktop().open(pdfFile);
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(this,
-                "Không thể mở file PDF: " + ex.getMessage(),
-                "Lỗi", JOptionPane.ERROR_MESSAGE);
+                    "Không thể mở file PDF: " + ex.getMessage(),
+                    "Lỗi", JOptionPane.ERROR_MESSAGE);
         }
     }
 
@@ -367,14 +422,14 @@ class ChartPanel extends JPanel {
     private static final String[] LABELS = {"Ghế cứng", "Giường nằm", "Ghế mềm"};
     private static final int LEGEND_STEP = 38;
     private int[] data = {0, 0, 0};
-    private static final int OUTER_R = 70, INNER_R = 44;
+    private static final int OUTER_R = 100, INNER_R = 62;
     private int selectedIdx = -1;
 
     public interface FilterListener { void onFilter(String type); }
     private FilterListener listener;
 
     public ChartPanel() {
-        setPreferredSize(new Dimension(245, 380));
+        setPreferredSize(new Dimension(320, 420));
         setBackground(Color.WHITE);
         setBorder(new LineBorder(new Color(210, 215, 224), 1, true));
         setCursor(new Cursor(Cursor.HAND_CURSOR));

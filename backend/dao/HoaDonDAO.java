@@ -112,7 +112,8 @@ public class HoaDonDAO implements DAO<HoaDon, String> {
                 "       k.hoTenKH, " +
                 "       (SELECT TOP 1 g.loaiGhe FROM Ve v JOIN Ghe g ON v.maGhe = g.maGhe WHERE v.maHoaDon = h.maHoaDon AND v.trangThaiVe = N'Đã thanh toán') AS loaiGhe, " +
                 "       (SELECT COUNT(*) FROM Ve v WHERE v.maHoaDon = h.maHoaDon AND v.trangThaiVe = N'Đã thanh toán') AS soGhe, " +
-                "       (SELECT ISNULL(SUM(v.giaVe), 0) FROM Ve v WHERE v.maHoaDon = h.maHoaDon AND v.trangThaiVe = N'Đã thanh toán') AS tongTien " +
+                "       h.tongTien AS tongTien, " +
+                "       ISNULL(h.phuongThucThanhToan, '') AS phuongThuc " +
                 "FROM HoaDon h " +
                 "JOIN KhachHang k ON h.maKH = k.maKH " +
                 "WHERE CAST(h.ngayLapHD AS DATE) = ? AND h.maNV = ? " +
@@ -135,7 +136,8 @@ public class HoaDonDAO implements DAO<HoaDon, String> {
                             rs.getString("hoTenKH"),
                             rs.getString("loaiGhe"),
                             rs.getInt("soGhe"),
-                            rs.getDouble("tongTien")
+                            rs.getDouble("tongTien"),
+                            rs.getString("phuongThuc")
                     });
                 }
             }
@@ -150,7 +152,8 @@ public class HoaDonDAO implements DAO<HoaDon, String> {
                 "       k.hoTenKH, " +
                 "       (SELECT TOP 1 g.loaiGhe FROM Ve v JOIN Ghe g ON v.maGhe = g.maGhe WHERE v.maHoaDon = h.maHoaDon AND v.trangThaiVe = N'Đã thanh toán') AS loaiGhe, " +
                 "       (SELECT COUNT(*) FROM Ve v WHERE v.maHoaDon = h.maHoaDon AND v.trangThaiVe = N'Đã thanh toán') AS soGhe, " +
-                "       (SELECT ISNULL(SUM(v.giaVe), 0) FROM Ve v WHERE v.maHoaDon = h.maHoaDon AND v.trangThaiVe = N'Đã thanh toán') AS tongTien " +
+                "       h.tongTien AS tongTien, " +
+                "       ISNULL(h.phuongThucThanhToan, '') AS phuongThuc " +
                 "FROM HoaDon h " +
                 "JOIN KhachHang k ON h.maKH = k.maKH " +
                 "WHERE CAST(h.ngayLapHD AS DATE) = ? AND h.maNV = ? " +
@@ -169,7 +172,8 @@ public class HoaDonDAO implements DAO<HoaDon, String> {
                             rs.getString("hoTenKH"),
                             rs.getString("loaiGhe"),
                             rs.getInt("soGhe"),
-                            rs.getDouble("tongTien")
+                            rs.getDouble("tongTien"),
+                            rs.getString("phuongThuc")
                     });
                 }
             }
@@ -185,7 +189,8 @@ public class HoaDonDAO implements DAO<HoaDon, String> {
                 "       k.hoTenKH, " +
                 "       (SELECT TOP 1 g.loaiGhe FROM Ve v JOIN Ghe g ON v.maGhe = g.maGhe WHERE v.maHoaDon = h.maHoaDon AND v.trangThaiVe IN (N'Đã hủy', 'DA_HUY')) AS loaiGhe, " +
                 "       (SELECT COUNT(*) FROM Ve v WHERE v.maHoaDon = h.maHoaDon AND v.trangThaiVe IN (N'Đã hủy', 'DA_HUY')) AS soGhe, " +
-                "       (SELECT ISNULL(SUM(v.giaVe), 0) FROM Ve v WHERE v.maHoaDon = h.maHoaDon AND v.trangThaiVe IN (N'Đã hủy', 'DA_HUY')) AS tongTien " +
+                "       h.tongTien AS tongTien, " +
+                "       ISNULL(h.phuongThucThanhToan, '') AS phuongThuc " +
                 "FROM HoaDon h " +
                 "JOIN KhachHang k ON h.maKH = k.maKH " +
                 "WHERE CAST(h.ngayLapHD AS DATE) = ? AND h.maNV = ? " +
@@ -204,7 +209,8 @@ public class HoaDonDAO implements DAO<HoaDon, String> {
                             rs.getString("hoTenKH"),
                             rs.getString("loaiGhe"),
                             rs.getInt("soGhe"),
-                            rs.getDouble("tongTien")
+                            rs.getDouble("tongTien"),
+                            rs.getString("phuongThuc")
                     });
                 }
             }
@@ -212,7 +218,7 @@ public class HoaDonDAO implements DAO<HoaDon, String> {
         return rows;
     }
 
-//load hoa don huy
+    //load hoa don huy
     public static List<Object[]> getDanhSachHoaDonHuyTheoCa(java.time.LocalDate ngay, String ca, String maNV) throws SQLException {
         String timeCondition = ca.equalsIgnoreCase("Sáng")
                 ? " BETWEEN '00:00:00' AND '11:59:59'"
@@ -225,8 +231,9 @@ public class HoaDonDAO implements DAO<HoaDon, String> {
                 "       (SELECT TOP 1 g.loaiGhe FROM Ve v JOIN Ghe g ON v.maGhe = g.maGhe WHERE v.maHoaDon = h.maHoaDon AND v.trangThaiVe IN (N'Đã hủy', 'DA_HUY')) AS loaiGhe, " +
                 // THAY: thêm cả 'DA_HUY' vào điều kiện soGhe
                 "       (SELECT COUNT(*) FROM Ve v WHERE v.maHoaDon = h.maHoaDon AND v.trangThaiVe IN (N'Đã hủy', 'DA_HUY')) AS soGhe, " +
-                // THAY: thêm cả 'DA_HUY' vào điều kiện tongTien
-                "       (SELECT ISNULL(SUM(v.giaVe), 0) FROM Ve v WHERE v.maHoaDon = h.maHoaDon AND v.trangThaiVe IN (N'Đã hủy', 'DA_HUY')) AS tongTien " +
+                // Lấy trực tiếp h.tongTien (phí phạt đã lưu đúng khi trả vé)
+                "       h.tongTien AS tongTien, " +
+                "       ISNULL(h.phuongThucThanhToan, '') AS phuongThuc " +
                 "FROM HoaDon h " +
                 "JOIN KhachHang k ON h.maKH = k.maKH " +
                 "WHERE CAST(h.ngayLapHD AS DATE) = ? AND h.maNV = ? " +
@@ -248,7 +255,8 @@ public class HoaDonDAO implements DAO<HoaDon, String> {
                             rs.getString("hoTenKH"),
                             rs.getString("loaiGhe"),
                             rs.getInt("soGhe"),
-                            rs.getDouble("tongTien")
+                            rs.getDouble("tongTien"),
+                            rs.getString("phuongThuc")
                     });
                 }
             }
