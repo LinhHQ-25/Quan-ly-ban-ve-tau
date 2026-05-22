@@ -51,6 +51,7 @@ public class AppFrame extends JFrame {
     private DatVeGUI datVeGUI;
     private LoginPanel loginPanel;
     private DoiVeGUI2 doiVeGUI2;;
+    private HoTroGUI hoTroGUI;
 
 // Trong hàm khởi tạo / registerCards
 
@@ -246,11 +247,18 @@ public class AppFrame extends JFrame {
         bind.accept(KeyStroke.getKeyStroke(KeyEvent.VK_F5, 0), () -> {
             if (!"login".equals(activeCard)) showCard(activeCard); // refresh
         });
-        bind.accept(KeyStroke.getKeyStroke(KeyEvent.VK_L, CTRL), () -> {
-            if (!"login".equals(activeCard)) {
-                int choice = JOptionPane.showConfirmDialog(AppFrame.this,
-                        "Bạn có chắc chắn muốn đăng xuất?", "Xác nhận", JOptionPane.YES_NO_OPTION);
-                if (choice == JOptionPane.YES_OPTION) showCard("login");
+        // Đăng ký phím ESC để tự động đóng các pop-up (JDialog) đang mở
+        java.awt.KeyboardFocusManager.getCurrentKeyboardFocusManager().addKeyEventDispatcher(new java.awt.KeyEventDispatcher() {
+            @Override
+            public boolean dispatchKeyEvent(java.awt.event.KeyEvent e) {
+                if (e.getID() == java.awt.event.KeyEvent.KEY_PRESSED && e.getKeyCode() == java.awt.event.KeyEvent.VK_ESCAPE) {
+                    java.awt.Window activeWindow = java.awt.KeyboardFocusManager.getCurrentKeyboardFocusManager().getActiveWindow();
+                    if (activeWindow instanceof javax.swing.JDialog) {
+                        activeWindow.dispose();
+                        return true; // Đã xử lý sự kiện
+                    }
+                }
+                return false;
             }
         });
     }
@@ -265,6 +273,11 @@ public class AppFrame extends JFrame {
     }
 
     public void showCard(String card) {
+        if ("ho-tro".equals(card) && hoTroGUI != null) {
+            if (!"ho-tro".equals(activeCard)) {
+                hoTroGUI.selectTabForScreen(activeCard);
+            }
+        }
         activeCard = card;
         cardLayout.show(contentCards, card);
 
@@ -443,7 +456,8 @@ public class AppFrame extends JFrame {
         contentCards.add(new TauGUI(),               "tra-cuu-tau");
         contentCards.add(new VeGUI(),                "tra-cuu-ve");
         contentCards.add(new KhachHangGUI(),         "tra-cuu-khach");
-        contentCards.add(new HoTroGUI(),             "ho-tro");
+        hoTroGUI = new HoTroGUI();
+        contentCards.add(hoTroGUI,             "ho-tro");
         doiTraGUI = new DoiTraGUI(this);
         contentCards.add(doiTraGUI,        "doi-tra");
 
