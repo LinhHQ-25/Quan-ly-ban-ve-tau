@@ -32,37 +32,40 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 
-final class HoTroGUI extends JPanel {
+public final class HoTroManagerGUI extends JPanel {
 
-    // ===== DỮ LIỆU TAB =====
+    // ===== DỮ LIỆU TAB CHO QUẢN LÝ =====
     private static final String[] TAB_TITLES = {
-        "Tổng quan hệ thống",
-        "Quy trình đặt vé tàu",
-        "Quy trình đổi trả vé",
-        "Thống kê ca làm việc",
+        "Tổng quan vai trò Quản lý",
+        "Quản lý Nhân viên & Ca làm",
+        "Quản lý Tàu & Chuyến tàu",
+        "Chính sách Khuyến mãi",
+        "Báo cáo & Thống kê doanh thu",
         "Bảng phím tắt nhanh",
         "Câu hỏi thường gặp",
         "Liên hệ kỹ thuật"
     };
 
     private static final String[] TAB_BADGES = {
-        "Giới thiệu chung",
-        "Nghiệp vụ cơ bản",
-        "Nghiệp vụ nâng cao",
-        "Thống kê kết ca",
-        "Tối ưu thao tác bán vé",
+        "Tổng quan điều hành",
+        "Quản lý nhân sự",
+        "Quản lý vận tải",
+        "Chương trình ưu đãi",
+        "Giám sát tài chính",
+        "Tối ưu thao tác quản lý",
         "Xử lý sự cố nhanh",
         "Hỗ trợ 24/7"
     };
 
     private static final String[] TAB_CARDS = {
-        "OVERVIEW", "DAT_VE", "DOI_TRA", "THONG_KE_CA", "PHIM_TAT", "FAQ", "LIEN_HE"
+        "OVERVIEW", "NHAN_VIEN_CA_LAM", "TAU_CHUYEN", "KHUYEN_MAI", "THONG_KE", "PHIM_TAT", "FAQ", "LIEN_HE"
     };
 
     private static final String[] ICON_PATHS = {
-        "/images/HoTro.png",
-        "/images/trainTicket.png",
-        "/images/change.png",
+        "/images/logoTrain.png",
+        "/images/iconNV.png",
+        "/images/Tau.png",
+        "/images/KhuyenMai.png",
         "/images/ThongKe.png",
         "/images/HoTro.png",
         "/images/traCuu.png",
@@ -82,7 +85,7 @@ final class HoTroGUI extends JPanel {
     private JLabel lblContentBadge;
 
     // ===== CONSTRUCTOR =====
-    HoTroGUI() {
+    public HoTroManagerGUI() {
         setBackground(GuiTheme.LIGHT_BG);
         setLayout(new BorderLayout(20, 20));
         setBorder(new EmptyBorder(0, GuiTheme.PAGE_PAD_LEFT, GuiTheme.PAGE_PAD_BOTTOM, GuiTheme.PAGE_PAD_LEFT));
@@ -112,7 +115,7 @@ final class HoTroGUI extends JPanel {
         lblTitle.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 20));
         lblTitle.setForeground(GuiTheme.NAVY_DARK);
 
-        JLabel lblDesc = new JLabel("Tra cứu nhanh phím tắt và quy trình nghiệp vụ cho nhân viên bán vé.");
+        JLabel lblDesc = new JLabel("Tra cứu nhanh các tổ hợp phím tắt, quy trình vận hành và nghiệp vụ điều hành dành riêng cho Quản lý.");
         lblDesc.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 13));
         lblDesc.setForeground(GuiTheme.SUB_TEXT);
 
@@ -167,15 +170,13 @@ final class HoTroGUI extends JPanel {
         sidebarPanel.setBorder(new EmptyBorder(12, 0, 0, 0));
 
         for (int i = 0; i < TAB_TITLES.length; i++) {
-            Icon icon = GuiIcons.loadIcon(HoTroGUI.class, ICON_PATHS[i], 16, 16);
+            Icon icon = GuiIcons.loadIcon(HoTroManagerGUI.class, ICON_PATHS[i], 16, 16);
             TabButton btn = new TabButton(TAB_TITLES[i], icon, i);
             sidebarPanel.add(btn);
             sidebarPanel.add(Box.createVerticalStrut(6));
             buttons.add(btn);
         }
 
-        // Đặt trực tiếp sidebarPanel vào pnlOuter, không dùng JScrollPane
-        // JScrollPane chặn mouseEntered/mouseExited làm hover không hoạt động
         sidebarPanel.setPreferredSize(new Dimension(220, TAB_TITLES.length * 52));
         pnlOuter.add(sidebarPanel, BorderLayout.CENTER);
         return pnlOuter;
@@ -196,11 +197,11 @@ final class HoTroGUI extends JPanel {
         pnlContentHeader.setOpaque(false);
         pnlContentHeader.setBorder(new EmptyBorder(0, 0, 12, 0));
 
-        lblContentTitle = new JLabel("Tổng quan hệ thống");
+        lblContentTitle = new JLabel("Tổng quan vai trò Quản lý");
         lblContentTitle.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 18));
         lblContentTitle.setForeground(GuiTheme.NAVY);
 
-        lblContentBadge = new RoundedBadge("Giới thiệu chung");
+        lblContentBadge = new RoundedBadge("Tổng quan điều hành");
 
         pnlContentHeader.add(lblContentTitle, BorderLayout.WEST);
         pnlContentHeader.add(lblContentBadge, BorderLayout.EAST);
@@ -218,9 +219,10 @@ final class HoTroGUI extends JPanel {
         // Xây dựng các card nội dung bằng thuần Swing — không dùng HTML
         rightCardPanel.setOpaque(false);
         buildCard_Overview();
-        buildCard_DatVe();
-        buildCard_DoiTra();
-        buildCard_ThongKeCa();
+        buildCard_NhanVienCaLam();
+        buildCard_TauChuyen();
+        buildCard_KhuyenMai();
+        buildCard_ThongKe();
         buildCard_PhimTat();
         buildCard_FAQ();
         buildCard_LienHe();
@@ -230,7 +232,7 @@ final class HoTroGUI extends JPanel {
         pnlNoResults.setBackground(Color.WHITE);
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.gridx = 0; gbc.gridy = 0; gbc.insets = new Insets(0, 0, 10, 0);
-        JLabel lblIcon = new JLabel(GuiIcons.loadIcon(HoTroGUI.class, "/images/traCuu.png", 48, 48), SwingConstants.CENTER);
+        JLabel lblIcon = new JLabel(GuiIcons.loadIcon(HoTroManagerGUI.class, "/images/traCuu.png", 48, 48), SwingConstants.CENTER);
         pnlNoResults.add(lblIcon, gbc);
         gbc.gridy = 1; gbc.insets = new Insets(0, 0, 5, 0);
         JLabel lblNoTitle = new JLabel("Không tìm thấy kết quả phù hợp", SwingConstants.CENTER);
@@ -253,147 +255,176 @@ final class HoTroGUI extends JPanel {
     private void buildCard_Overview() {
         JPanel card = makeScrollCard();
         JPanel body = (JPanel) ((JScrollPane) card.getComponent(0)).getViewport().getView();
-        addTitle(body, "Giới thiệu");
+        addTitle(body, "Giới thiệu vai trò Quản lý");
         addParagraph(body,
-            "Chào mừng bạn đến với hệ thống Quản lý bán vé tàu hỏa. " +
-            "Đây là cổng hỗ trợ thông tin và hướng dẫn nghiệp vụ dành riêng cho nhân viên bán vé mới.");
+            "Chào mừng bạn đến với phân hệ quản trị dành riêng cho vai trò Quản lý ga tàu. " +
+            "Đây là cổng hỗ trợ cung cấp toàn bộ tài liệu hướng dẫn nghiệp vụ điều hành và quy định chính sách của hệ thống.");
         addParagraph(body,
-            "Hệ thống được thiết kế tối ưu hóa nhằm giúp bạn thực hiện các thao tác tìm kiếm chuyến đi, " +
-            "đặt chỗ, đổi trả vé và báo cáo ca làm việc một cách chính xác và nhanh chóng nhất.");
-        addSectionTitle(body, "MỤC TIÊU BÀI HỌC CHO NHÂN VIÊN MỚI");
-        addBullet(body, "Hiểu rõ quy trình tra cứu chuyến đi và đặt vé tàu cho khách hàng.");
-        addBullet(body, "Nắm vững nghiệp vụ đổi vé, trả vé và tính toán mức phí hoàn trả theo quy định.");
-        addBullet(body, "Biết cách quản lý ca làm việc cá nhân (Mở ca, bàn giao ca) chính xác, khớp số liệu tiền mặt thực tế.");
-        addBullet(body, "Thành thạo các tổ hợp phím tắt để tối ưu hóa thời gian phục vụ hành khách tại quầy.");
-        addParagraph(body, "Hãy lựa chọn các chuyên mục hướng dẫn cụ thể ở thanh thực đơn bên trái để bắt đầu học thao tác!");
+            "Với tư cách là Quản lý, bạn nắm giữ quyền điều phối nhân sự, kiểm soát tài chính ca trực, " +
+            "cấu hình tài sản toa tàu, lập lịch các chuyến đi và thiết lập các chính sách khuyến mãi kích cầu kinh doanh.");
+        addSectionTitle(body, "CÁC LĨNH VỰC QUẢN TRỊ TRỌNG TÂM");
+        addBullet(body, "Quản lý nhân viên: Cấp mới tài khoản, kích hoạt hoặc tạm khóa tài khoản nhân viên quầy vé.");
+        addBullet(body, "Quản lý ca làm việc: Thiết lập khung giờ ca, giám sát khai báo đầu ca và xác nhận bàn giao khớp số liệu thực tế cuối ca.");
+        addBullet(body, "Quản lý tàu & toa: Thêm tàu mới, cấu hình số lượng và phân loại toa thường/VIP, kiểm tra trạng thái bảo dưỡng.");
+        addBullet(body, "Lập lịch trình chuyến đi: Thiết lập ga đi/ga đến, giờ xuất phát/đến dự kiến và đơn giá chặng cơ sở.");
+        addBullet(body, "Cấu hình chính sách khuyến mãi: Triển khai các ưu đãi đối tượng đặc biệt và chiến dịch giảm giá theo thời hạn.");
+        addBullet(body, "Giám sát tài chính & doanh số: Phân tích biểu đồ doanh thu thời gian thực và xuất báo cáo tài chính PDF ca làm.");
+        addParagraph(body, "Vui lòng bấm chọn danh mục hướng dẫn ở menu bên trái để xem các quy trình nghiệp vụ chi tiết!");
         rightCardPanel.add(card, "OVERVIEW");
     }
 
-    private void buildCard_DatVe() {
+    private void buildCard_NhanVienCaLam() {
         JPanel card = makeScrollCard();
         JPanel body = (JPanel) ((JScrollPane) card.getComponent(0)).getViewport().getView();
-        addTitle(body, "Quy trình đặt vé tàu — 5 bước chuẩn");
-        addParagraph(body, "Để hoàn tất một giao dịch đặt vé cho khách hàng, vui lòng tuân thủ quy trình sau:");
-        addStepRow(body, "Bước 1", "Tra cứu thông tin hành trình",
-            "Tại giao diện Đặt vé tàu, chọn Ga đi, Ga đến, Ngày đi. Sau đó nhấn Tìm kiếm.");
-        addStepRow(body, "Bước 2", "Chọn Toa & Chỗ ngồi",
-            "Hệ thống hiển thị sơ đồ tàu trực quan. Toa màu xanh là còn chỗ trống. Click chọn Toa, rồi click chọn Ghế trống (màu trắng).");
-        addStepRow(body, "Bước 3", "Nhập thông tin hành khách",
-            "Bắt buộc nhập chính xác Số CCCD/Hộ chiếu và Họ tên theo giấy tờ tùy thân.");
-        addStepRow(body, "Bước 4", "Áp dụng ưu đãi & khuyến mãi",
-            "Trẻ em dưới 6 tuổi: miễn phí hoặc giảm giá. Sinh viên: giảm 10%. Người cao tuổi (≥60): giảm 15%.");
-        addStepRow(body, "Bước 5", "Thanh toán & In vé giấy",
-            "Xác nhận phương thức thanh toán (Tiền mặt hoặc VietQR). Sau khi xác nhận thành công, hệ thống sẽ in vé.");
-        rightCardPanel.add(card, "DAT_VE");
-    }
-
-    private void buildCard_DoiTra() {
-        JPanel card = makeScrollCard();
-        JPanel body = (JPanel) ((JScrollPane) card.getComponent(0)).getViewport().getView();
-        addTitle(body, "Quy trình đổi trả vé");
-        addParagraph(body, "Nghiệp vụ đổi trả vé yêu cầu độ chính xác cao để bảo vệ quyền lợi khách hàng và tránh thất thoát quỹ ca.");
-        addSectionTitle(body, "1. Quy trình thực hiện chung");
-        addBullet(body, "Tìm kiếm vé cần xử lý bằng Mã vé hoặc Số điện thoại khách hàng tại màn hình Đổi/Trả vé.");
-        addBullet(body, "Xác minh thông tin hành khách trùng khớp với vé hệ thống trước khi tiếp tục.");
-        addSectionTitle(body, "2. Chính sách Trả vé (Hoàn tiền)");
-        addTableRow(body, true, "Thời gian yêu cầu", "Phí khấu trừ", "Điều kiện");
-        addTableRow(body, false, "Trước giờ tàu chạy > 24 giờ", "10% giá vé", "Áp dụng tất cả vé thông thường");
-        addTableRow(body, false, "Trước giờ tàu chạy 4 – 24 giờ", "20% giá vé", "Áp dụng tất cả vé thông thường");
-        addTableRow(body, false, "Trước giờ tàu chạy < 4 giờ", "Không áp dụng", "Hệ thống khóa chức năng trả vé tự động");
-        addSectionTitle(body, "3. Chính sách Đổi vé");
-        addBullet(body, "Khách hàng được đổi vé sang chuyến tàu khác miễn phí 1 lần duy nhất trước giờ chạy tàu ít nhất 24 giờ.");
-        addBullet(body, "Nếu vé mới cao giá hơn: thu thêm phần chênh lệch. Nếu thấp hơn: hoàn lại tiền sau khi trừ phí dịch vụ.");
-        rightCardPanel.add(card, "DOI_TRA");
-    }
-
-    private void buildCard_ThongKeCa() {
-        JPanel card = makeScrollCard();
-        JPanel body = (JPanel) ((JScrollPane) card.getComponent(0)).getViewport().getView();
-        addTitle(body, "Nghiệp vụ Báo cáo & Thống kê ca trực");
-        addParagraph(body, "Nghiệp vụ thống kê giúp nhân viên theo dõi doanh số bán vé trong ngày, tự kiểm tra quỹ tiền mặt và thực hiện chốt ca đúng quy định để bàn giao cho ca tiếp theo.");
+        addTitle(body, "Nghiệp vụ Quản lý Nhân viên & Ca làm việc");
+        addParagraph(body, "Công tác quản lý nhân sự chặt chẽ là chìa khóa giúp vận hành quầy vé thông suốt, tránh thất thoát doanh số bán vé.");
         
-        addSectionTitle(body, "1. Các chỉ số thống kê cá nhân thời gian thực");
-        addBullet(body, "Doanh số bán vé: Tổng số vé đã in và xuất thành công cho khách hàng.");
-        addBullet(body, "Doanh thu tiền mặt (Cash): Tổng tiền mặt thu trực tiếp từ khách tại quầy (dùng để nộp lại cuối ca).");
-        addBullet(body, "Doanh thu chuyển khoản (VietQR): Tổng tiền khách thanh toán qua quét mã QR (đã khớp lệnh tự động).");
-        addBullet(body, "Doanh thu hoàn trả: Số tiền mặt đã chi ra để hoàn vé cho khách theo chính sách đổi trả.");
+        addSectionTitle(body, "1. Quy trình quản lý hồ sơ nhân viên");
+        addBullet(body, "Thêm mới nhân viên: Nhập đầy đủ Họ tên, CCCD/Hộ chiếu, Số điện thoại, Email và phân quyền vai trò.");
+        addBullet(body, "Phân quyền: Hệ thống hỗ trợ 2 vai trò chính là 'Nhân viên bán vé' (bán, đổi, trả vé) và 'Quản lý' (quản trị hệ thống).");
+        addBullet(body, "Điều chỉnh trạng thái: Khi nhân viên nghỉ việc hoặc tạm dừng công tác, chuyển trạng thái tài khoản sang 'Ngưng hoạt động' để khóa truy cập.");
 
-        addSectionTitle(body, "2. Quy trình 4 bước chốt ca & Bàn giao quỹ tiền mặt");
-        addStepRow(body, "Bước 1", "Kiểm đếm tiền mặt thực tế",
-            "Đếm toàn bộ số tiền mặt trong ngăn kéo. Loại trừ số tiền lẻ nhận bàn giao đầu ca để ra số tiền thực thu.");
-        addStepRow(body, "Bước 2", "Đối chiếu số liệu hệ thống",
-            "Mở giao diện 'Thống kê ca trực' (phím tắt Ctrl + G). Đối chiếu số tiền mặt thực đếm với số tiền mặt báo cáo trên phần mềm.");
-        addStepRow(body, "Bước 3", "Khai báo kết ca & Bàn giao",
-            "Nhập số tiền mặt thực tế nộp lại. Nếu có chênh lệch (thừa hoặc thiếu tiền mặt so với phần mềm), bắt buộc ghi rõ lý do để Quản lý duyệt.");
-        addStepRow(body, "Bước 4", "Bấm chốt ca & Đăng xuất",
-            "Nhấn nút 'Kết ca' để gửi dữ liệu chốt ca trực đến tài khoản Quản lý, sau đó bấm Ctrl + L để đăng xuất và bàn giao quầy.");
-        rightCardPanel.add(card, "THONG_KE_CA");
+        addSectionTitle(body, "2. Quy trình 4 bước kiểm tra ca làm việc");
+        addStepRow(body, "Bước 1", "Khởi tạo ca trực mẫu",
+            "Định nghĩa các ca trực chuẩn của ga (ví dụ: Ca sáng: 06:00 - 14:00, Ca chiều: 14:00 - 22:00, Ca đêm: 22:00 - 06:00).");
+        addStepRow(body, "Bước 2", "Phân công nhân sự quầy",
+            "Gán nhân viên bán vé chịu trách nhiệm trực tiếp cho ca trực của ngày cụ thể. Mỗi quầy trực có tối đa 1 nhân viên chịu trách nhiệm quỹ.");
+        addStepRow(body, "Bước 3", "Giám sát quá trình Mở ca",
+            "Khi vào ca, nhân viên bắt buộc khai báo số tiền mặt nhận bàn giao đầu ca (tiền lẻ trả lại khách). Quản lý duyệt số liệu để nhân viên bắt đầu bán vé.");
+        addStepRow(body, "Bước 4", "Đối chiếu & Chốt đóng ca trực",
+            "Cuối ca, nhân viên chốt số liệu. Hệ thống tự động tổng hợp doanh thu tiền mặt và chuyển khoản (VietQR). Quản lý đối chiếu số tiền mặt thực tế nhân viên nộp lại, ghi nhận chênh lệch nếu có và bấm Xác nhận đóng ca.");
+        rightCardPanel.add(card, "NHAN_VIEN_CA_LAM");
+    }
+
+    private void buildCard_TauChuyen() {
+        JPanel card = makeScrollCard();
+        JPanel body = (JPanel) ((JScrollPane) card.getComponent(0)).getViewport().getView();
+        addTitle(body, "Điều phối phương tiện & Lập lịch trình chuyến đi");
+        addParagraph(body, "Đảm bảo hạ tầng tàu hỏa hoạt động ở hiệu suất tối đa và đáp ứng chính xác nhu cầu đi lại của hành khách.");
+
+        addSectionTitle(body, "1. Quản lý Tàu, Toa và Ghế ngồi");
+        addBullet(body, "Cấu hình Tàu: Tạo mới tàu (ví dụ: SE1, SE3, SE5) và quản lý tình trạng hoạt động (Đang chạy, Đang bảo trì, Tạm ngưng).");
+        addBullet(body, "Quản lý Toa tàu: Liên kết toa vào đoàn tàu. Phân loại toa cụ thể: Toa ghế ngồi thường, Toa ghế ngồi điều hòa VIP, Toa giường nằm.");
+        addBullet(body, "Định cấu hình số ghế: Hệ thống hỗ trợ tự động sinh số ghế theo sơ đồ toa đã chọn để nhân viên bán vé dễ dàng thao tác chọn chỗ trực quan.");
+
+        addSectionTitle(body, "2. Quy trình lập lịch Chuyến tàu mới");
+        addStepRow(body, "Bước 1", "Thiết lập thông tin hành trình",
+            "Chọn Ga đi (ví dụ: Ga Sài Gòn), Ga đến (ví dụ: Ga Hà Nội) và mã hiệu tàu sẽ đảm nhận chuyến chạy.");
+        addStepRow(body, "Bước 2", "Xác định thời gian xuất hành",
+            "Nhập chính xác Ngày đi, Giờ khởi hành dự kiến và Giờ đến dự kiến. Hệ thống tự động tính toán tổng thời gian hành trình.");
+        addStepRow(body, "Bước 3", "Cấu hình đơn giá gốc chuyến đi",
+            "Nhập giá vé cơ sở cho chuyến tàu. Đơn giá ghế thực tế sẽ bằng: [Giá cơ sở] x [Hệ số loại ghế] x [Hệ số toa VIP/Toa thường].");
+        rightCardPanel.add(card, "TAU_CHUYEN");
+    }
+
+    private void buildCard_KhuyenMai() {
+        JPanel card = makeScrollCard();
+        JPanel body = (JPanel) ((JScrollPane) card.getComponent(0)).getViewport().getView();
+        addTitle(body, "Quản lý chính sách Khuyến mãi & Giảm giá");
+        addParagraph(body, "Hệ thống hỗ trợ quản lý linh hoạt hai nhóm chính sách giảm giá: Giảm giá đối tượng ưu tiên bắt buộc và các chương trình khuyến mãi kích cầu kinh doanh.");
+
+        addSectionTitle(body, "1. Chính sách giảm giá đối tượng ưu tiên (Theo quy định Nhà nước)");
+        addTableRow(body, true, "Đối tượng", "Mức giảm giá", "Giấy tờ xác minh yêu cầu");
+        addTableRow(body, false, "Trẻ em dưới 6 tuổi", "Miễn phí (ngồi chung ghế)", "Giấy khai sinh / Hộ chiếu của bé");
+        addTableRow(body, false, "Trẻ em từ 6 – 10 tuổi", "Giảm 25% giá vé", "Giấy khai sinh để xác minh tuổi");
+        addTableRow(body, false, "Học sinh / Sinh viên", "Giảm 10% giá vé", "Thẻ học sinh, sinh viên còn thời hạn");
+        addTableRow(body, false, "Người cao tuổi (≥ 60 tuổi)", "Giảm 15% giá vé", "Thẻ CCCD / Hộ chiếu bản gốc");
+        addTableRow(body, false, "Thương binh / Người khuyết tật", "Giảm 30% giá vé", "Thẻ thương binh / Giấy chứng nhận khuyết tật");
+
+        addSectionTitle(body, "2. Quản lý chiến dịch Khuyến mãi kích cầu");
+        addBullet(body, "Khởi tạo chiến dịch: Đặt tên chương trình khuyến mãi, mô tả điều kiện áp dụng.");
+        addBullet(body, "Định nghĩa mã giảm giá: Thiết lập Tỷ lệ giảm giá (%) hoặc số tiền giảm cụ thể kèm thời gian hiệu lực (Ngày bắt đầu - Ngày kết thúc).");
+        addBullet(body, "Điều kiện áp dụng: Có thể ràng buộc theo chặng bay/chặng tàu cụ thể, hoặc số lượng mua vé tối thiểu của hóa đơn.");
+        rightCardPanel.add(card, "KHUYEN_MAI");
+    }
+
+    private void buildCard_ThongKe() {
+        JPanel card = makeScrollCard();
+        JPanel body = (JPanel) ((JScrollPane) card.getComponent(0)).getViewport().getView();
+        addTitle(body, "Giám sát tài chính & Báo cáo doanh thu");
+        addParagraph(body, "Công cụ đắc lực giúp Quản lý nắm bắt dòng tiền bán vé, theo dõi hiệu suất kinh doanh của từng chặng chạy và hiệu quả làm việc của nhân viên.");
+
+        addSectionTitle(body, "1. Các bảng số liệu tài chính quan trọng");
+        addBullet(body, "Doanh thu tổng hợp: Biểu đồ cột thể hiện biến động doanh thu theo Ngày, Tuần, Tháng, Quý hoặc Năm.");
+        addBullet(body, "Tỷ lệ lấp đầy chỗ (Occupancy Rate): Phân tích biểu đồ tròn tỷ lệ chỗ ngồi đã bán trên tổng số ghế của chuyến tàu để điều chỉnh lịch trình phù hợp.");
+        addBullet(body, "Bảng xếp hạng hiệu suất: Bảng so sánh doanh số bán vé giữa các nhân viên để khen thưởng hoặc đào tạo lại kỹ năng phục vụ.");
+
+        addSectionTitle(body, "2. Quy trình 3 bước xuất báo cáo tài chính");
+        addStepRow(body, "Bước 1", "Lọc dữ liệu báo cáo",
+            "Chọn khoảng thời gian cần tổng hợp (ví dụ: Từ ngày 01/05 đến ngày 31/05) và bộ lọc đối tượng (Chuyến tàu, Nhân viên).");
+        addStepRow(body, "Bước 2", "Phân tích biểu đồ trực quan",
+            "Hệ thống kết xuất dữ liệu và hiển thị biểu đồ xu hướng. Kiểm tra các điểm đỉnh doanh thu và các chặng vắng khách.");
+        addStepRow(body, "Bước 3", "Kết xuất văn bản PDF chính thức",
+            "Nhấn nút 'Xuất Báo Cáo PDF'. Hệ thống sẽ tự động tổng hợp số liệu, vẽ biểu đồ và xuất file PDF có định dạng chuẩn chỉnh để in ấn ký duyệt.");
+        rightCardPanel.add(card, "THONG_KE");
     }
 
     private void buildCard_PhimTat() {
         JPanel card = makeScrollCard();
         JPanel body = (JPanel) ((JScrollPane) card.getComponent(0)).getViewport().getView();
-        addTitle(body, "Bảng phím tắt nhanh");
-        addParagraph(body, "Sử dụng phím tắt giúp nhân viên thao tác nhanh hơn, giảm thiểu thời gian chờ của hành khách tại quầy.");
-        addTableRow(body, true, "Phím tắt", "Màn hình / Chức năng", "Mô tả chi tiết");
-        addTableRow(body, false, "F1", "Màn hình Hỗ trợ", "Mở ngay trang hướng dẫn sử dụng và bảng phím tắt này.");
-        addTableRow(body, false, "Ctrl + B", "Màn hình Đặt vé tàu", "Mở nhanh giao diện đặt vé tàu để phục vụ khách mới.");
-        addTableRow(body, false, "Ctrl + R", "Màn hình Đổi/Trả vé", "Chuyển nhanh sang tab đổi vé, hoàn vé cho khách hàng.");
-        addTableRow(body, false, "Ctrl + F", "Thực đơn Tra cứu", "Mở/Đóng nhanh thanh menu phụ dùng cho các mục tìm kiếm.");
-        addTableRow(body, false, "Ctrl + D", "Danh sách chuyến đi", "Tra cứu nhanh thông tin các chuyến tàu chạy trong ngày.");
-        addTableRow(body, false, "Ctrl + H", "Trang Thông tin cá nhân", "Quay lại trang thông tin tài khoản nhân viên đang đăng nhập.");
-        addTableRow(body, false, "Ctrl + G", "Màn hình Thống kê ca làm", "Kiểm tra tổng số vé đã bán và doanh thu lũy kế của ca hiện tại.");
-        addTableRow(body, false, "Ctrl + L", "Đăng xuất tài khoản", "Đăng xuất nhanh khỏi hệ thống để giao máy cho ca sau.");
-        addTableRow(body, false, "F5", "Làm mới (Refresh)", "Tải lại dữ liệu màn hình hiện tại để cập nhật ghế trống mới nhất.");
-        addTableRow(body, false, "ESC", "Đóng pop-up nhanh", "Tự động đóng bất kỳ hộp thoại JDialog nào đang hiển thị.");
+        addTitle(body, "Bảng phím tắt nhanh của Quản lý");
+        addParagraph(body, "Sử dụng các tổ hợp phím tắt nhanh giúp Quản lý tối ưu hóa tốc độ làm việc, giảm thời gian thao tác qua lại giữa các màn hình điều hành.");
+        addTableRow(body, true, "Phím tắt", "Màn hình / Chức năng", "Mô tả chi tiết tác vụ");
+        addTableRow(body, false, "F1", "Trang Hỗ trợ Quản lý", "Mở ngay trang hướng dẫn nghiệp vụ và bảng phím tắt này.");
+        addTableRow(body, false, "Ctrl + N", "Quản lý nhân viên", "Chuyển nhanh sang màn hình thêm mới và phân quyền nhân sự.");
+        addTableRow(body, false, "Ctrl + C", "Quản lý ca làm việc", "Mở nhanh giao diện giám sát ca trực và chốt sổ tiền mặt.");
+        addTableRow(body, false, "Ctrl + U", "Quản lý thông tin tàu", "Chuyển sang màn hình cấu hình tàu và phân chia toa.");
+        addTableRow(body, false, "Ctrl + T", "Quản lý chuyến tàu", "Mở nhanh giao diện lập lịch trình chuyến đi và đặt giá vé.");
+        addTableRow(body, false, "Ctrl + M", "Quản lý khuyến mãi", "Chuyển sang màn hình cấu hình các đợt giảm giá ưu đãi.");
+        addTableRow(body, false, "Ctrl + G", "Thống kê doanh thu", "Mở nhanh trang tổng hợp biểu đồ doanh thu ga tàu.");
+        addTableRow(body, false, "Ctrl + H", "Hồ sơ cá nhân", "Quay lại trang thông tin tài khoản của quản lý.");
+        addTableRow(body, false, "Ctrl + L", "Đăng xuất nhanh", "Đăng xuất khỏi hệ thống để bảo mật tài khoản quản lý.");
+        addTableRow(body, false, "ESC", "Đóng Dialog nhanh", "Đóng lập tức các cửa sổ pop-up đang hiển thị trên màn hình.");
         rightCardPanel.add(card, "PHIM_TAT");
     }
 
     private void buildCard_FAQ() {
         JPanel card = makeScrollCard();
         JPanel body = (JPanel) ((JScrollPane) card.getComponent(0)).getViewport().getView();
-        addTitle(body, "Câu hỏi thường gặp (FAQ)");
-        addParagraph(body, "Dưới đây là cẩm nang giải quyết các sự cố thường gặp nhất khi bán vé tại quầy:");
-        addSectionTitle(body, "Q1: Khách mua vé giảm giá nhưng không mang theo giấy tờ minh chứng?");
+        addTitle(body, "Câu hỏi thường gặp & Hướng dẫn xử lý sự cố (FAQ)");
+        addParagraph(body, "Dưới đây là cẩm nang giải quyết các sự cố vận hành khẩn cấp thường gặp nhất tại ga dành riêng cho Quản lý:");
+        
+        addSectionTitle(body, "Q1: Nhân viên báo sai lệch quỹ tiền mặt khi chốt ca trực cuối ngày?");
         addParagraph(body,
-            "Giải pháp: Tuyệt đối không xuất vé giảm giá nếu khách không xuất trình được giấy tờ gốc hợp lệ " +
-            "(Thẻ sinh viên, Giấy khai sinh/CCCD của trẻ). Giải thích lịch sự và hướng dẫn khách mua vé Người lớn bình thường.");
-        addSectionTitle(body, "Q2: Khách mua vé xong làm mất hoặc rách ướt vé giấy?");
+            "Giải pháp: Quản lý cùng nhân viên đếm lại tiền mặt thực tế 2 lần độc lập. Kiểm tra lịch sử giao dịch trực tuyến (VietQR) " +
+            "để đảm bảo không có giao dịch nào bị chậm lệnh từ phía ngân hàng. Đối chiếu các vé in lỗi đã thu hồi. " +
+            "Ghi nhận số chênh lệch vào biên bản kết ca trên phần mềm và duyệt kết ca.");
+
+        addSectionTitle(body, "Q2: Xảy ra tình trạng trùng chỗ ngồi của hành khách trên cùng một toa (Overbooking)?");
         addParagraph(body,
-            "Giải pháp: Yêu cầu khách cung cấp SĐT hoặc CCCD đã dùng để đặt vé. " +
-            "Dùng màn hình Tra cứu vé để tìm lại thông tin, xác nhận đúng thông tin cá nhân rồi thực hiện in lại vé.");
-        addSectionTitle(body, "Q3: Khách thanh toán QR thành công nhưng hệ thống chưa báo nhận?");
+            "Giải pháp: Lỗi này xảy ra do đồng bộ dữ liệu ghế trống bị gián đoạn trong lúc mất mạng tạm thời. " +
+            "Quản lý sử dụng quyền admin để tra cứu các chỗ còn trống khác trong cùng chuyến tàu. Tiến hành chuyển hành khách sang " +
+            "ghế trống tương đương ở toa khác hoặc nâng cấp lên toa VIP miễn phí nếu đã hết ghế thường.");
+
+        addSectionTitle(body, "Q3: Lỗi kết nối Cơ sở dữ liệu và hệ thống bị đóng băng không thể giao dịch?");
         addParagraph(body,
-            "Giải pháp: Yêu cầu khách cung cấp hóa đơn giao dịch trên ứng dụng ngân hàng. Đối chiếu Mã giao dịch " +
-            "và Nội dung chuyển khoản (phải khớp Mã hóa đơn). Chụp màn hình làm minh chứng rồi bấm Xác nhận thanh toán thủ công.");
+            "Giải pháp: Yêu cầu nhân viên tạm ngưng giao dịch tại quầy. Báo cáo ngay lên phòng điều hành trung tâm " +
+            "và chuyển hướng khách hàng sang hình thức mua vé online hoặc ghi nhận thông tin viết tay tạm thời đối với trường hợp cấp bách.");
         rightCardPanel.add(card, "FAQ");
     }
 
     private void buildCard_LienHe() {
         JPanel card = makeScrollCard();
         JPanel body = (JPanel) ((JScrollPane) card.getComponent(0)).getViewport().getView();
-        addTitle(body, "Liên hệ kỹ thuật & Hỗ trợ");
-        addParagraph(body,
-            "Trong trường hợp gặp sự cố hệ thống (lỗi kết nối cơ sở dữ liệu, lỗi máy in vé, hoặc lỗi phần mềm " +
-            "không thể tự khắc phục), vui lòng liên hệ ngay các đầu mối sau:");
-        addSectionTitle(body, "1. Đội ngũ Hỗ trợ kỹ thuật phần mềm (IT Helpdesk)");
-        addBullet(body, "Hotline nội bộ: nhánh số 102 (Phục vụ 24/7).");
-        addBullet(body, "Email liên hệ: support.railway@railway.gov.vn");
-        addBullet(body, "Người chịu trách nhiệm chính: Kỹ sư Nguyễn Văn A (SĐT: 0987.654.321).");
-        addSectionTitle(body, "2. Người quản lý ca trực trực tiếp tại ga");
-        addBullet(body,
-            "Vui lòng báo cáo ngay với Trưởng ga hoặc Trưởng ca trực để được hướng dẫn xử lý " +
-            "các vấn đề phát sinh liên quan đến khách hàng, tiền mặt bàn giao ca hoặc sự cố hạ tầng tại ga.");
-        addSectionTitle(body, "3. Tài liệu số hóa");
-        addParagraph(body,
-            "Truy cập mạng nội bộ để xem video hướng dẫn chi tiết và tài liệu Wiki tại: " +
-            "https://wiki.railway.vn/docs/huong-dan-ban-ve");
+        addTitle(body, "Liên hệ kỹ thuật & Hỗ trợ điều hành");
+        addParagraph(body, "Trong trường hợp gặp sự cố hệ thống nghiêm trọng nằm ngoài thẩm quyền hoặc khả năng tự giải quyết kỹ thuật, vui lòng liên hệ các kênh hỗ trợ sau:");
+        
+        addSectionTitle(body, "1. Đường dây nóng Hỗ trợ kỹ thuật phần mềm (IT Helpdesk)");
+        addBullet(body, "Hotline nội bộ: Nhánh số 102 hoặc 204 (Phục vụ 24/7 cho các ga trực thuộc).");
+        addBullet(body, "Email liên hệ chính thức: support.railway@railway.gov.vn");
+        addBullet(body, "Trưởng ban hỗ trợ: Kỹ sư Nguyễn Văn A (SĐT: 0987.654.321).");
+
+        addSectionTitle(body, "2. Trung tâm điều hành đường sắt khu vực");
+        addBullet(body, "Phòng điều vụ ga trung tâm: Nhánh số 301 (dùng để báo cáo các sự cố chậm tàu, hủy chuyến lớn).");
+        addBullet(body, "Đầu mối hỗ trợ khẩn cấp: 0912.345.678 (Mr. Bình - Trưởng ca điều vụ).");
+
+        addSectionTitle(body, "3. Cổng thông tin tài liệu & Wiki nội bộ");
+        addParagraph(body, "Truy cập mạng WAN nội bộ của ga để tải tài liệu hướng dẫn kỹ thuật chi tiết tại: https://wiki.railway.vn/docs/admin-manual");
         rightCardPanel.add(card, "LIEN_HE");
     }
 
     // ===== HELPER BUILD SWING CONTENT =====
 
-    /** Tạo một card có JScrollPane bao ngoài một body JPanel dạng BoxLayout Y */
     private JPanel makeScrollCard() {
         JPanel body = new JPanel();
         body.setLayout(new BoxLayout(body, BoxLayout.Y_AXIS));
@@ -412,7 +443,6 @@ final class HoTroGUI extends JPanel {
         return card;
     }
 
-    /** Tiêu đề lớn */
     private void addTitle(JPanel body, String text) {
         JLabel lbl = new JLabel(text);
         lbl.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 16));
@@ -422,7 +452,6 @@ final class HoTroGUI extends JPanel {
         body.add(lbl);
     }
 
-    /** Tiêu đề phần (section) */
     private void addSectionTitle(JPanel body, String text) {
         body.add(Box.createVerticalStrut(10));
         JLabel lbl = new JLabel(text);
@@ -433,28 +462,24 @@ final class HoTroGUI extends JPanel {
         body.add(lbl);
     }
 
-    /** Đoạn văn bản */
     private void addParagraph(JPanel body, String text) {
         JLabel lbl = makeWrappedLabel(text, GuiTheme.font("Segoe UI", Font.PLAIN, 13), GuiTheme.TEXT);
         lbl.setBorder(new EmptyBorder(0, 0, 8, 0));
         body.add(lbl);
     }
 
-    /** Bullet point */
     private void addBullet(JPanel body, String text) {
         JLabel lbl = makeWrappedLabel("  •  " + text, GuiTheme.font("Segoe UI", Font.PLAIN, 13), GuiTheme.TEXT);
         lbl.setBorder(new EmptyBorder(2, 10, 4, 0));
         body.add(lbl);
     }
 
-    /** Row bước (số thứ tự + tiêu đề bước + mô tả) */
     private void addStepRow(JPanel body, String step, String title, String desc) {
         body.add(Box.createVerticalStrut(6));
         JPanel row = new JPanel(new BorderLayout(12, 0));
         row.setOpaque(false);
         row.setAlignmentX(LEFT_ALIGNMENT);
 
-        // Badge số bước
         JLabel badge = new JLabel(step, SwingConstants.CENTER) {
             @Override
             protected void paintComponent(Graphics g) {
@@ -500,7 +525,6 @@ final class HoTroGUI extends JPanel {
         body.add(Box.createVerticalStrut(4));
     }
 
-    /** Row bảng */
     private void addTableRow(JPanel body, boolean isHeader, String col1, String col2, String col3) {
         JPanel row = new JPanel(new java.awt.GridLayout(1, 3, 1, 0));
         row.setAlignmentX(LEFT_ALIGNMENT);
@@ -526,7 +550,6 @@ final class HoTroGUI extends JPanel {
         body.add(row);
     }
 
-    /** JLabel tự xuống dòng bằng HTML wrapper (chỉ cho text, không có HTML content) */
     private JLabel makeWrappedLabel(String text, Font font, Color fg) {
         JLabel lbl = new JLabel("<html><body style='width:520px'>" + escapeHtml(text) + "</body></html>");
         lbl.setFont(font);
@@ -686,7 +709,6 @@ final class HoTroGUI extends JPanel {
 
             int w = getWidth(), h = getHeight();
 
-            // Nền
             if (active) {
                 g2.setColor(COLOR_ACTIVE);
                 g2.fillRoundRect(0, 0, w, h, 8, 8);
@@ -695,7 +717,6 @@ final class HoTroGUI extends JPanel {
                 g2.fillRoundRect(0, 0, w, h, 8, 8);
             }
 
-            // Icon
             ImageIcon ico = active ? activeIcon : (hover ? hoverIcon : originalIcon);
             int iconX = 15;
             int iconY = (h - 16) / 2;
@@ -703,7 +724,6 @@ final class HoTroGUI extends JPanel {
                 g2.drawImage(ico.getImage(), iconX, iconY, 16, 16, this);
             }
 
-            // Text
             g2.setColor(active ? COLOR_ACTIVE_FG : (hover ? COLOR_HOVER_FG : COLOR_NORMAL_FG));
             g2.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 13));
             FontMetrics fm = g2.getFontMetrics();
@@ -766,7 +786,7 @@ final class HoTroGUI extends JPanel {
         private final ImageIcon searchIcon;
         JTextFieldWithPlaceholder(String placeholder) {
             this.placeholder = placeholder;
-            this.searchIcon = GuiIcons.loadIcon(HoTroGUI.class, "/images/traCuu.png", 16, 16);
+            this.searchIcon = GuiIcons.loadIcon(HoTroManagerGUI.class, "/images/traCuu.png", 16, 16);
             setBorder(new EmptyBorder(5, 32, 5, 10));
         }
         @Override
