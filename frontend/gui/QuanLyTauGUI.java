@@ -891,6 +891,7 @@ public final class QuanLyTauGUI extends JPanel {
                     JOptionPane.showMessageDialog(dlg, "Thêm tàu mới thành công!\nTự động khởi tạo 12 toa và 240 ghế hoạt động.", "Thành công", JOptionPane.INFORMATION_MESSAGE);
                     dlg.dispose();
                     loadDataToTableAndCards();
+                    TauGUI.notifyDataChanged(); // Đồng bộ sang màn hình tra cứu tàu
                 } catch (Exception ex) {
                     conn.rollback();
                     ex.printStackTrace();
@@ -1005,6 +1006,7 @@ public final class QuanLyTauGUI extends JPanel {
                 JOptionPane.showMessageDialog(dlg, "Cập nhật thông tin tàu thành công!", "Thành công", JOptionPane.INFORMATION_MESSAGE);
                 dlg.dispose();
                 loadDataToTableAndCards();
+                TauGUI.notifyDataChanged(); // Đồng bộ sang màn hình tra cứu tàu
             } catch (SQLException ex) {
                 ex.printStackTrace();
                 JOptionPane.showMessageDialog(dlg, "Cập nhật thất bại: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
@@ -1198,6 +1200,7 @@ public final class QuanLyTauGUI extends JPanel {
                     selectedToaIdForDetail = maToa;
                     loadToaCards();
                     loadDataToTableAndCards();
+                    TauGUI.notifyDataChanged(); // Đồng bộ sang màn hình tra cứu tàu
                 } catch (Exception ex) {
                     conn.rollback();
                     ex.printStackTrace();
@@ -1397,6 +1400,7 @@ public final class QuanLyTauGUI extends JPanel {
                     
                     loadToaCards();
                     loadSeatsOfToa();
+                    TauGUI.notifyDataChanged(); // Đồng bộ sang màn hình tra cứu tàu
                 } catch (Exception ex) {
                     conn.rollback();
                     ex.printStackTrace();
@@ -1466,6 +1470,7 @@ public final class QuanLyTauGUI extends JPanel {
                 selectedToaIdForDetail = "";
                 loadToaCards();
                 loadDataToTableAndCards();
+                TauGUI.notifyDataChanged(); // Đồng bộ sang màn hình tra cứu tàu
             } catch (Exception ex) {
                 conn.rollback();
                 ex.printStackTrace();
@@ -1506,6 +1511,7 @@ public final class QuanLyTauGUI extends JPanel {
             
             JOptionPane.showMessageDialog(this, "Đã chuyển đổi trạng thái của ghế " + maGhe + " sang \"" + nextStatus + "\"!", "Thành công", JOptionPane.INFORMATION_MESSAGE);
             loadSeatsOfToa();
+            TauGUI.notifyDataChanged(); // Đồng bộ trạng thái ghế sang màn hình tra cứu tàu
         } catch (SQLException ex) {
             ex.printStackTrace();
             JOptionPane.showMessageDialog(this, "Đổi trạng thái ghế thất bại: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);

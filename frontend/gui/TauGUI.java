@@ -9,8 +9,19 @@ import javax.swing.*;
 import javax.swing.border.*;
 import javax.swing.table.*;
 import connect_DB.Connect_DB;
+import entity.TrangThaiGhe;
 
 final class TauGUI extends JPanel {
+    // Static instance để QuanLyTauGUI có thể notify refresh
+    private static TauGUI instance;
+
+    /** Gọi từ QuanLyTauGUI sau khi thêm/sửa/xóa tàu, toa, ghế */
+    static void notifyDataChanged() {
+        if (instance != null) {
+            SwingUtilities.invokeLater(instance::loadDataToTableAndCards);
+        }
+    }
+
     private static final Color BORDER = GuiTheme.SEARCH_FIELD_BORDER;
     private static final Color PRIMARY = new Color(71, 71, 156);
 
@@ -39,6 +50,7 @@ final class TauGUI extends JPanel {
     private String selectedToaIdForDetail = "";
 
     TauGUI() {
+        instance = this;
         setBackground(GuiTheme.LIGHT_BG);
         setLayout(new BorderLayout());
 
@@ -85,9 +97,13 @@ final class TauGUI extends JPanel {
         JPanel pnlHeader = new JPanel(new BorderLayout(0, 8));
         pnlHeader.setOpaque(false);
 
+        // Header badge đồng bộ với các panel khác (Danh sách toa tàu, Danh sách ghế)
         JLabel lblTitle = new JLabel("TRẠNG THÁI ĐỘI TÀU TRỰC TUYẾN");
-        lblTitle.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 14));
-        lblTitle.setForeground(GuiTheme.NAVY);
+        lblTitle.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 15));
+        lblTitle.setForeground(Color.WHITE);
+        lblTitle.setOpaque(true);
+        lblTitle.setBackground(new Color(44, 82, 150));
+        lblTitle.setBorder(new EmptyBorder(6, 15, 6, 15));
         pnlHeader.add(lblTitle, BorderLayout.WEST);
 
         JPanel line = new JPanel();
@@ -408,7 +424,8 @@ final class TauGUI extends JPanel {
 
         pnlOuter.add(pnlHeader, BorderLayout.NORTH);
 
-        String[] cols = {"STT", "Mã ghế", "Loại ghế", "Số toa"};
+        // Đồng bộ cột với QuanLyTauGUI: thêm Số ghế + Trạng thái
+        String[] cols = {"STT", "Mã ghế", "Số ghế", "Loại ghế", "Số toa", "Trạng thái"};
         tblSeatModel = new DefaultTableModel(cols, 0) {
             @Override public boolean isCellEditable(int r, int c) { return false; }
         };
@@ -433,7 +450,11 @@ final class TauGUI extends JPanel {
         };
 
         for (int i = 0; i < tblSeatData.getColumnCount(); i++) {
-            tblSeatData.getColumnModel().getColumn(i).setCellRenderer(zebraRenderer);
+            if (i == 5) { // Cột Trạng thái
+                tblSeatData.getColumnModel().getColumn(i).setCellRenderer(new StatusBadgeRenderer());
+            } else {
+                tblSeatData.getColumnModel().getColumn(i).setCellRenderer(zebraRenderer);
+            }
         }
         ((DefaultTableCellRenderer)tblSeatData.getTableHeader().getDefaultRenderer()).setHorizontalAlignment(SwingConstants.CENTER);
 
@@ -570,7 +591,8 @@ final class TauGUI extends JPanel {
         if (conn == null) return;
 
         try {
-            String sql = "SELECT g.maGhe, g.soGhe, g.loaiGhe, t.soToa " +
+            // Đồng bộ với QuanLyTauGUI: thêm soGhe + trangThai
+            String sql = "SELECT g.maGhe, g.soGhe, g.loaiGhe, t.soToa, g.trangThai " +
                          "FROM Ghe g " +
                          "JOIN ToaTau t ON g.maToaTau = t.maToaTau " +
                          "WHERE t.maToaTau = ? " +
@@ -584,14 +606,15 @@ final class TauGUI extends JPanel {
                 tblSeatModel.addRow(new Object[] {
                     stt++,
                     rs.getString("maGhe"),
+                    rs.getString("soGhe"),
                     loaiGheToVietnamese(rs.getString("loaiGhe")),
-                    rs.getInt("soToa")
+                    rs.getInt("soToa"),
+                    TrangThaiGhe.tuMoTa(rs.getString("trangThai")).toString()
                 });
             }
         } catch (SQLException e) {
-            // Trường hợp cast soGhe sang INT thất bại (ví dụ có chứa chữ cái), fallback sắp xếp chuỗi thường
             try {
-                String sql = "SELECT g.maGhe, g.soGhe, g.loaiGhe, t.soToa " +
+                String sql = "SELECT g.maGhe, g.soGhe, g.loaiGhe, t.soToa, g.trangThai " +
                              "FROM Ghe g " +
                              "JOIN ToaTau t ON g.maToaTau = t.maToaTau " +
                              "WHERE t.maToaTau = ? " +
@@ -605,8 +628,10 @@ final class TauGUI extends JPanel {
                     tblSeatModel.addRow(new Object[] {
                         stt++,
                         rs.getString("maGhe"),
+                        rs.getString("soGhe"),
                         loaiGheToVietnamese(rs.getString("loaiGhe")),
-                        rs.getInt("soToa")
+                        rs.getInt("soToa"),
+                        TrangThaiGhe.tuMoTa(rs.getString("trangThai")).toString()
                     });
                 }
             } catch (SQLException ex) {
@@ -767,6 +792,7 @@ final class TauGUI extends JPanel {
         private final int soToa;
         private final int tongSoGhe;
         private final String status;
+        private final boolean isSelected;
         private boolean isHovered = false;
 
         TrainCard(String id, String name, int toa, int ghe, String status) {
@@ -775,22 +801,21 @@ final class TauGUI extends JPanel {
             this.soToa = toa;
             this.tongSoGhe = ghe;
             this.status = status;
+            this.isSelected = id.equals(selectedTrainIdForDetail);
 
             setPreferredSize(new Dimension(67, 95));
             setOpaque(false);
             setLayout(new BorderLayout(0, 4));
-            setBorder(new EmptyBorder(38, 5, 5, 5)); // More top padding for taller icon
+            setBorder(new EmptyBorder(38, 5, 5, 5));
 
             JLabel lblId = new JLabel(id, SwingConstants.CENTER);
             lblId.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 10));
-            lblId.setForeground(new Color(27, 38, 59)); // Clean dark navy
+            lblId.setForeground(new Color(27, 38, 59));
             add(lblId, BorderLayout.CENTER);
 
-            // Status label (pill badge)
             boolean isActive = status.contains("hoạt động") || status.contains("Hoạt động") || status.contains("Đang hoạt động");
             String statusText = isActive ? "HOẠT ĐỘNG" : "BẢO TRÌ";
             
-            // Custom pill label
             JLabel lblStatus = new JLabel(statusText, SwingConstants.CENTER) {
                 @Override
                 protected void paintComponent(Graphics g) {
@@ -803,15 +828,15 @@ final class TauGUI extends JPanel {
                 }
             };
             lblStatus.setOpaque(false);
-            lblStatus.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 7)); // Slightly smaller text to fit
+            lblStatus.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 7));
             lblStatus.setBorder(new EmptyBorder(2, 6, 2, 6));
             
             if (isActive) {
-                lblStatus.setBackground(new Color(218, 230, 255)); // Light blue
-                lblStatus.setForeground(new Color(40, 100, 220)); // Navy blue
+                lblStatus.setBackground(new Color(218, 230, 255));
+                lblStatus.setForeground(new Color(40, 100, 220));
             } else {
-                lblStatus.setBackground(new Color(254, 226, 226)); // Light red
-                lblStatus.setForeground(new Color(220, 38, 38)); // Red
+                lblStatus.setBackground(new Color(254, 226, 226));
+                lblStatus.setForeground(new Color(220, 38, 38));
             }
             
             JPanel pnlStatusWrap = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 0));
@@ -819,7 +844,6 @@ final class TauGUI extends JPanel {
             pnlStatusWrap.add(lblStatus);
             add(pnlStatusWrap, BorderLayout.SOUTH);
 
-            // Click and Hover listeners
             addMouseListener(new MouseAdapter() {
                 @Override
                 public void mouseClicked(MouseEvent e) {
@@ -849,45 +873,41 @@ final class TauGUI extends JPanel {
         protected void paintComponent(Graphics g) {
             Graphics2D g2 = (Graphics2D) g.create();
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-
             boolean isSelected = cardId.equals(selectedTrainIdForDetail);
+
             boolean isActive = status.contains("hoạt động") || status.contains("Hoạt động") || status.contains("Đang hoạt động");
             
-            // Draw background card shadow/fill
             Color bgCard;
             if (isSelected) {
-                bgCard = new Color(230, 240, 255); // Highlighted soft blue for selection
+                bgCard = new Color(230, 240, 255);
             } else if (isHovered) {
-                bgCard = new Color(248, 250, 255); // Smooth hover state
+                bgCard = new Color(248, 250, 255);
             } else {
-                bgCard = isActive ? new Color(243, 248, 255) : new Color(255, 245, 245); // Soft blue or red bg
+                bgCard = isActive ? new Color(243, 248, 255) : new Color(255, 245, 245);
             }
             g2.setColor(bgCard);
             g2.fillRoundRect(0, 0, getWidth(), getHeight(), 12, 12);
 
-            // Draw border
             Color borderColor;
             float borderStroke;
             if (isSelected) {
-                borderColor = new Color(50, 100, 220); // Thick blue border for selected
+                borderColor = new Color(50, 100, 220);
                 borderStroke = 2.5f;
             } else if (isHovered) {
-                borderColor = new Color(120, 160, 240); // Bright border for hover
+                borderColor = new Color(120, 160, 240);
                 borderStroke = 1.5f;
             } else {
-                borderColor = isActive ? new Color(218, 230, 255) : new Color(254, 215, 215); // Soft blue or red border
+                borderColor = isActive ? new Color(218, 230, 255) : new Color(254, 215, 215);
                 borderStroke = 1.0f;
             }
             g2.setColor(borderColor);
             g2.setStroke(new BasicStroke(borderStroke));
             g2.drawRoundRect((int)(borderStroke/2), (int)(borderStroke/2), getWidth() - (int)borderStroke - 1, getHeight() - (int)borderStroke - 1, 12, 12);
 
-            // Draw top color bar (3px/4px height)
             Color topBarColor = isActive ? new Color(50, 120, 220) : new Color(220, 38, 38);
             g2.setColor(topBarColor);
             g2.fillRoundRect(2, 0, getWidth() - 4, 4, 4, 4);
 
-            // Paint train icon procedurally on top (centered at y = 10, width/height = 32)
             Color iconColor = isActive ? new Color(40, 100, 220) : new Color(220, 38, 38);
             int iconHeight = Math.min(28, Math.max(24, getHeight() - 56));
             drawTrainIcon(g2, (getWidth() - 22) / 2, 7, 22, iconHeight, iconColor);
@@ -900,22 +920,12 @@ final class TauGUI extends JPanel {
             g2.setColor(color);
             g2.setStroke(new BasicStroke(2.0f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
             
-            // 1. Train outer profile (roof dome + body)
-            g2.drawRoundRect(x + 2, y + 2, w - 4, h - 10, 6, 6);
+            g2.drawRoundRect(x + 2, y + 2, w - 4, h - 6, 6, 6);
+            g2.drawRect(x + 6, y + 8, w - 12, 10);
+            g2.drawLine(x + w / 2, y + 8, x + w / 2, y + 18);
             
-            // 2. Windshield glass area
-            int windowY = y + 8;
-            int windowH = Math.max(10, h - 18);
-            g2.drawRect(x + 6, windowY, w - 12, windowH);
-            g2.drawLine(x + w / 2, windowY, x + w / 2, windowY + windowH);
-            
-            // 3. Headlights (filled circles)
-            g2.fillOval(x + 7, y + h - 12, 5, 5);
-            g2.fillOval(x + w - 12, y + h - 12, 5, 5);
-            
-            // 4. Bumper/lower grille details
-            g2.drawLine(x + 8, y + h - 7, x + w - 8, y + h - 7);
-            g2.drawLine(x + 11, y + h - 4, x + w - 11, y + h - 4);
+            g2.fillOval(x + 7, y + 24, 5, 5);
+            g2.fillOval(x + w - 12, y + 24, 5, 5);
         }
     }
 
@@ -947,7 +957,7 @@ final class TauGUI extends JPanel {
                 public void mouseClicked(MouseEvent e) {
                     selectedToaIdForDetail = maToa;
                     loadSeatsOfToa();
-                    loadToaCards(); // Reload to update visual highlight
+                    loadToaCards();
                 }
             });
             setCursor(new Cursor(Cursor.HAND_CURSOR));
@@ -989,12 +999,15 @@ final class TauGUI extends JPanel {
         private void drawToaIcon(Graphics2D g2, int x, int y, int w, int h, Color color) {
             g2.setColor(color);
             g2.setStroke(new BasicStroke(1.5f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
-            g2.drawRoundRect(x + 2, y + 2, w - 4, h - 12, 4, 4);
-            g2.drawRect(x + 4, y + 6, 6, 6);
-            g2.drawRect(x + w - 12, y + 6, 6, 6);
-            g2.drawOval(x + 4, y + h - 8, 5, 5);
-            g2.drawOval(x + w - 10, y + h - 8, 5, 5);
-            g2.drawLine(x + 8, y + h - 5, x + w - 8, y + h - 5);
+            
+            g2.drawRoundRect(x + 2, y + 2, w - 4, h - 10, 4, 4);
+            g2.drawRect(x + 6, y + 7, 8, 8);
+            g2.drawRect(x + w - 14, y + 7, 8, 8);
+            
+            g2.drawOval(x + 6, y + h - 8, 6, 6);
+            g2.drawOval(x + w - 12, y + h - 8, 6, 6);
+            
+            g2.drawLine(x + 12, y + h - 5, x + w - 12, y + h - 5);
         }
     }
 
