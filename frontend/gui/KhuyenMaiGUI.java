@@ -33,8 +33,8 @@ public class KhuyenMaiGUI extends JPanel {
     private static final int   BTN_H      = 38;
 
     static final String[]        LOAI_KH_VIET = {
-            "Tất cả", "Dưới 6 tuổi", "Từ 6 đến dưới 10 tuổi",
-            "Từ 60 tuổi trở lên", "Sinh viên", "Người lớn"
+            "Tất cả", "Trẻ em (<6 tuổi)", "Trẻ em (6-10 tuổi)",
+            "Người cao tuổi", "Sinh viên", "Người lớn"
     };
     static final LoaiKhachHang[] LOAI_KH_ENUM = {
             null, LoaiKhachHang.DUOI_6_TUOI, LoaiKhachHang.TU_6_TOI_DUOI_10,
@@ -68,16 +68,16 @@ public class KhuyenMaiGUI extends JPanel {
         return !today.isAfter(end) ? "Đang áp dụng" : "Ngừng áp dụng";
     }
 
-    private final KhuyenMaiDAO     dao          = new KhuyenMaiDAO();
-    private       String           filterStatus = "ALL";
-    private       String           searchText   = "";
-    private       JTable           table;
+    private final KhuyenMaiDAO      dao          = new KhuyenMaiDAO();
+    private       String            filterStatus = "ALL";
+    private       String            searchText   = "";
+    private       JTable            table;
     private       DefaultTableModel tableModel;
-    private       JTextField       tfSearch;
-    private final List<Object[]>   allRows      = new ArrayList<>();
-    private       JPopupMenu       popupMenu;
-    private       JMenuItem        menuSua, menuXoa;
-    private       int              popupRow     = -1;
+    private       JTextField        tfSearch;
+    private final List<Object[]>    allRows      = new ArrayList<>();
+    private       JPopupMenu        popupMenu;
+    private       JMenuItem         menuSua, menuXoa;
+    private       int               popupRow     = -1;
 
     public KhuyenMaiGUI() {
         setLayout(new BorderLayout(0, 0));
@@ -95,9 +95,6 @@ public class KhuyenMaiGUI extends JPanel {
         loadData();
     }
 
-    // =========================================================
-    // POPUP MENU
-    // =========================================================
     private void initPopupMenu() {
         popupMenu = new JPopupMenu();
         menuSua   = new JMenuItem("Sửa thông tin");
@@ -111,9 +108,6 @@ public class KhuyenMaiGUI extends JPanel {
         popupMenu.add(menuXoa);
     }
 
-    // =========================================================
-    // TOP BAR
-    // =========================================================
     private JPanel buildTopBar() {
         JPanel top = new JPanel();
         top.setLayout(new BoxLayout(top, BoxLayout.Y_AXIS));
@@ -173,9 +167,6 @@ public class KhuyenMaiGUI extends JPanel {
         return top;
     }
 
-    // =========================================================
-    // BOTTOM BAR
-    // =========================================================
     private JPanel buildBottomBar() {
         JPanel bar = new JPanel(new FlowLayout(FlowLayout.RIGHT, 16, 12));
         bar.setOpaque(false);
@@ -202,9 +193,6 @@ public class KhuyenMaiGUI extends JPanel {
         return bar;
     }
 
-    // =========================================================
-    // TABLE
-    // =========================================================
     private JPanel buildTableArea() {
         String[] cols = {"Mã KM", "Tên khuyến mãi", "Tỉ lệ giảm", "Loại KH",
                 "Bắt đầu", "Kết thúc", "Trạng thái", "Thao tác"};
@@ -237,7 +225,6 @@ public class KhuyenMaiGUI extends JPanel {
         header.setBorder(new MatteBorder(0, 0, 1, 0, BORDER_C));
         header.setReorderingAllowed(false);
 
-        // Renderer cột Trạng thái
         table.getColumnModel().getColumn(6).setCellRenderer((tbl, val, sel, foc, row, col) -> {
             String txt = val == null ? "" : val.toString();
             Color bg, fg;
@@ -264,7 +251,6 @@ public class KhuyenMaiGUI extends JPanel {
             return lbl;
         });
 
-        // Renderer cột ⋮
         table.getColumnModel().getColumn(7).setCellRenderer((tbl, val, sel, foc, row, col) -> {
             JLabel lbl = new JLabel("...", SwingConstants.CENTER);
             lbl.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 20));
@@ -306,14 +292,13 @@ public class KhuyenMaiGUI extends JPanel {
         return wrapper;
     }
 
-    // =========================================================
-    // DATA
-    // =========================================================
     private void loadData() {
         allRows.clear();
         DateTimeFormatter sdf = DateTimeFormatter.ofPattern("dd/MM/yyyy");
         for (KhuyenMai km : dao.selectAll()) {
-            String tileStr = String.format("%.0f%%", km.getTiLeGiamGia() * 100);
+            // Hiển thị tỉ lệ dạng số nguyên + % (ví dụ: "20%")
+            int pct    = (int) Math.round(km.getTiLeGiamGia() * 100);
+            String tileStr = pct + "%";
             String loaiKH  = loaiKHToViet(km.getLoaiKhachHang());
             String bdStr   = km.getThoiGianBatDau()  != null ? km.getThoiGianBatDau().toLocalDate().format(sdf)  : "";
             String ktStr   = km.getThoiGianKetThuc() != null ? km.getThoiGianKetThuc().toLocalDate().format(sdf) : "";
@@ -425,7 +410,6 @@ public class KhuyenMaiGUI extends JPanel {
         KhuyenMaiFormDialog(Frame owner, String maKM) {
             super(owner, maKM == null ? "Thêm khuyến mãi mới" : "Chỉnh sửa khuyến mãi", true);
             this.editMaKM = maKM;
-            setSize(540, maKM == null ? 560 : 600); // nhỏ hơn khi tạo mới vì bỏ 1 dòng
             setResizable(false);
             setLocationRelativeTo(owner);
             setLayout(new BorderLayout());
@@ -433,6 +417,10 @@ public class KhuyenMaiGUI extends JPanel {
             add(buildForm(),          BorderLayout.CENTER);
             add(buildDialogButtons(), BorderLayout.SOUTH);
             if (maKM != null) loadKhuyenMai(maKM);
+            // pack() để dialog tự co theo nội dung, tránh khoảng trống thừa
+            pack();
+            setMinimumSize(new Dimension(520, 0));
+            setLocationRelativeTo(owner);
         }
 
         boolean isConfirmed() { return confirmed; }
@@ -456,18 +444,28 @@ public class KhuyenMaiGUI extends JPanel {
         private JPanel buildForm() {
             JPanel p = new JPanel(new GridBagLayout());
             p.setBackground(Color.WHITE);
+            // Padding cân đối: trên/dưới bằng nhau
             p.setBorder(BorderFactory.createCompoundBorder(
                     new MatteBorder(0, 0, 1, 0, new Color(210, 215, 224)),
-                    new EmptyBorder(20, 24, 16, 24)));
+                    new EmptyBorder(16, 24, 16, 24)));
 
             GridBagConstraints g = new GridBagConstraints();
             g.fill = GridBagConstraints.HORIZONTAL;
-            g.insets = new Insets(6, 0, 6, 0);
+            g.insets = new Insets(5, 0, 5, 0);
 
             tfMaKM  = inputField();
             tfTenKM = inputField();
-            tfTiLe  = inputField();
-            tfTiLe.setToolTipText("Ví dụ: 0.2 (tương đương 20%)");
+
+            // Ô nhập tỉ lệ + ký hiệu %
+            tfTiLe = inputField();
+            tfTiLe.setToolTipText("Nhập số từ 1 đến 100");
+            JLabel lblPct = new JLabel("%");
+            lblPct.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 14));
+            lblPct.setBorder(new EmptyBorder(0, 6, 0, 0));
+            JPanel pnlTiLe = new JPanel(new BorderLayout(4, 0));
+            pnlTiLe.setOpaque(false);
+            pnlTiLe.add(tfTiLe,  BorderLayout.CENTER);
+            pnlTiLe.add(lblPct,  BorderLayout.EAST);
 
             dcBatDau  = buildDateChooser();
             dcKetThuc = buildDateChooser();
@@ -486,34 +484,35 @@ public class KhuyenMaiGUI extends JPanel {
             cbTrangThai.setBackground(Color.WHITE);
             cbTrangThai.setEnabled(false);
 
-            // Khi chỉnh sửa → hiện mã (read-only); khi tạo mới → không hiện, tự sinh sau
+            int row = 0;
+            // Mã KM chỉ hiện khi chỉnh sửa (read-only)
             if (editMaKM != null) {
                 tfMaKM.setEditable(false);
                 tfMaKM.setBackground(new Color(245, 247, 250));
-                addRow(p, g, 0, "Mã KM", tfMaKM);
+                addRow(p, g, row++, "Mã KM",              tfMaKM);
             }
-            addRow(p, g, 1, "Tên khuyến mãi *",     tfTenKM);
-            addRow(p, g, 2, "Tỉ lệ giảm (0 - 100%)", tfTiLe);
-            addRow(p, g, 3, "Loại khách hàng",       cbLoaiKH);
-            addRow(p, g, 4, "Ngày bắt đầu *",        dcBatDau);
-            addRow(p, g, 5, "Ngày kết thúc *",       dcKetThuc);
+            addRow(p, g, row++, "Tên khuyến mãi *",       tfTenKM);
+            addRow(p, g, row++, "Tỉ lệ giảm (1 - 100)",   pnlTiLe);
+            addRow(p, g, row++, "Loại khách hàng",         cbLoaiKH);
+            addRow(p, g, row++, "Ngày bắt đầu *",          dcBatDau);
+            addRow(p, g, row++, "Ngày kết thúc *",         dcKetThuc);
 
-            g.gridy = 6; g.gridx = 0; g.weightx = 0.35;
+            g.gridy = row++; g.gridx = 0; g.weightx = 0.35;
             JLabel lbMoTa = new JLabel("Mô tả");
             lbMoTa.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 13));
             lbMoTa.setForeground(GuiTheme.SUB_TEXT);
             p.add(lbMoTa, g);
             g.gridx = 1; g.weightx = 0.65; p.add(spMoTa, g);
 
-            addRow(p, g, 7, "Trạng thái", cbTrangThai);
+            addRow(p, g, row, "Trạng thái", cbTrangThai);
             return p;
         }
 
         private void updateAutoStatus() {
             if (cbTrangThai == null) return;
-            LocalDateTime bd = toLocalDateTime(dcBatDau.getDate());
-            LocalDateTime kt = toLocalDateTime(dcKetThuc.getDate());
-            cbTrangThai.setSelectedItem(computeStatus(bd, kt));
+            cbTrangThai.setSelectedItem(computeStatus(
+                    toLocalDateTime(dcBatDau.getDate()),
+                    toLocalDateTime(dcKetThuc.getDate())));
         }
 
         private LocalDateTime toLocalDateTime(Date date) {
@@ -556,7 +555,9 @@ public class KhuyenMaiGUI extends JPanel {
             if (km == null) return;
             tfMaKM.setText(km.getMaKhuyenMai());
             tfTenKM.setText(km.getTenKhuyenMai());
-            tfTiLe.setText(String.valueOf(km.getTiLeGiamGia()));
+            // Hiển thị dạng số nguyên (ví dụ: 0.2 → "20")
+            int pct = (int) Math.round(km.getTiLeGiamGia() * 100);
+            tfTiLe.setText(String.valueOf(pct));
             cbLoaiKH.setSelectedItem(loaiKHToViet(km.getLoaiKhachHang()));
             if (km.getThoiGianBatDau()  != null)
                 dcBatDau.setDate(java.sql.Timestamp.valueOf(km.getThoiGianBatDau()));
@@ -587,14 +588,16 @@ public class KhuyenMaiGUI extends JPanel {
                 return;
             }
 
-            double tiLe = 0.0;
-            try { tiLe = Double.parseDouble(tfTiLe.getText().trim()); } catch (Exception ignored) {}
-            if (tiLe <= 0 || tiLe > 1) {
+            // Tỉ lệ nhập dạng số nguyên 1-100, lưu DB dạng thập phân 0.01-1.0
+            int pctInput = 0;
+            try { pctInput = Integer.parseInt(tfTiLe.getText().trim()); } catch (Exception ignored) {}
+            if (pctInput < 1 || pctInput > 100) {
                 JOptionPane.showMessageDialog(this,
-                        "Tỉ lệ giảm phải nằm trong khoảng (0, 1].\nVí dụ: 0.1 tương đương 10%, 1 tương đương 100%.",
+                        "Tỉ lệ giảm phải là số nguyên từ 1 đến 100.\nVí dụ: nhập 20 tương đương giảm 20%.",
                         "Tỉ lệ không hợp lệ", JOptionPane.WARNING_MESSAGE);
                 return;
             }
+            double tiLe = pctInput / 100.0; // chuyển về thập phân để lưu DB
 
             LoaiKhachHang loaiKH = vietToLoaiKH(cbLoaiKH.getSelectedItem().toString());
 
@@ -603,18 +606,15 @@ public class KhuyenMaiGUI extends JPanel {
 
             if (bd == null) {
                 JOptionPane.showMessageDialog(this, "Vui lòng chọn Ngày bắt đầu.",
-                        "Cảnh báo", JOptionPane.WARNING_MESSAGE);
-                return;
+                        "Cảnh báo", JOptionPane.WARNING_MESSAGE); return;
             }
             if (kt == null) {
                 JOptionPane.showMessageDialog(this, "Vui lòng chọn Ngày kết thúc.",
-                        "Cảnh báo", JOptionPane.WARNING_MESSAGE);
-                return;
+                        "Cảnh báo", JOptionPane.WARNING_MESSAGE); return;
             }
             if (!bd.isBefore(kt)) {
                 JOptionPane.showMessageDialog(this, "Ngày bắt đầu phải trước ngày kết thúc.",
-                        "Ngày không hợp lệ", JOptionPane.WARNING_MESSAGE);
-                return;
+                        "Ngày không hợp lệ", JOptionPane.WARNING_MESSAGE); return;
             }
 
             boolean trangThai = "Đang áp dụng".equals(computeStatus(bd, kt));
