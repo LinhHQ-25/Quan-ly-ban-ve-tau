@@ -465,7 +465,22 @@ public class AppFrame extends JFrame {
         doiVeGUI2 = new DoiVeGUI2(this);
         contentCards.add(doiVeGUI2, "doi-ve-step-3");
     }
-
+ // Thêm vào trong AppFrame.java
+    public void setGlassPaneVisible(boolean visible) {
+        if (this.getGlassPane() == null || !(this.getGlassPane() instanceof JPanel)) {
+            JPanel glass = new JPanel() {
+                @Override
+                protected void paintComponent(Graphics g) {
+                    // Vẽ một lớp màu đen có độ trong suốt (100 = độ mờ từ 0-255)
+                    g.setColor(new Color(0, 0, 0, 100));
+                    g.fillRect(0, 0, getWidth(), getHeight());
+                }
+            };
+            glass.setOpaque(false);
+            this.setGlassPane(glass);
+        }
+        this.getGlassPane().setVisible(visible);
+    }
     public void onLoginSuccess(boolean isAdmin) {
         lblName.setText(AuthService.getCurrentHoTen());
         if (isAdmin) {
