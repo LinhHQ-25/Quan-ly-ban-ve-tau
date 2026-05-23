@@ -187,7 +187,7 @@ public class DoiVeGUI1 extends JPanel {
     }
 
     private JPanel buildCompareCard() {
-        JPanel card = buildCard("So sánh chi tiết lộ trình");
+        JPanel card = buildCard("SO SÁNH CHI TIẾT THÔNG TIN VÉ");
         cardLayout = new CardLayout();
         pnlCardContainer = new JPanel(cardLayout); pnlCardContainer.setOpaque(false);
 
@@ -214,8 +214,8 @@ public class DoiVeGUI1 extends JPanel {
     private JPanel createCompareGrid(boolean isDi, JLabel oldMaVe, JLabel oldChuyen, JLabel oldToa, JLabel oldGhe, JLabel oldNgay, JLabel oldGa1, JLabel oldGa2, JLabel vMa, JLabel vCh, JLabel vTo, JLabel vGh, JLabel vNgay, JLabel vGaDi, JLabel vGaDen) {
         JPanel grid = new JPanel(new GridBagLayout()); grid.setOpaque(false);
         GridBagConstraints gbc = new GridBagConstraints(); gbc.fill = GridBagConstraints.HORIZONTAL; gbc.insets = new Insets(5, 10, 5, 10);
-        gbc.gridy = 0; gbc.gridx = 1; grid.add(headerLabel("HIỆN TẠI (CŨ)", GuiTheme.SUB_TEXT), gbc); gbc.gridx = 3; grid.add(headerLabel("ĐỔI SANG (MỚI)", NEW_FG), gbc);
-        addGridRow(grid, 1, "Mã vé", oldMaVe, vMa); addGridRow(grid, 2, "Chuyến", oldChuyen, vCh); addGridRow(grid, 3, "Toa", oldToa, vTo); addGridRow(grid, 4, "Ghế", oldGhe, vGh); addGridRow(grid, 5, isDi ? "Ngày đi" : "Ngày về", oldNgay, vNgay); addGridRow(grid, 6, "Ga đi", oldGa1, vGaDi); addGridRow(grid, 7, "Ga đến", oldGa2, vGaDen);
+        gbc.gridy = 0; gbc.gridx = 1; grid.add(headerLabel("THÔNG TIN VÉ HIỆN TẠI (CŨ)", GuiTheme.SUB_TEXT), gbc); gbc.gridx = 3; grid.add(headerLabel("THÔNG TIN VÉ ĐỔI (MỚI)", NEW_FG), gbc);
+        addGridRow(grid, 1, "Mã vé", oldMaVe, vMa); addGridRow(grid, 2, "Mã chuyến", oldChuyen, vCh); addGridRow(grid, 3, "Toa", oldToa, vTo); addGridRow(grid, 4, "Ghế", oldGhe, vGh); addGridRow(grid, 5, isDi ? "Ngày đi" : "Ngày về", oldNgay, vNgay); addGridRow(grid, 6, "Ga đi", oldGa1, vGaDi); addGridRow(grid, 7, "Ga đến", oldGa2, vGaDen);
         return grid;
     }
 
@@ -263,7 +263,7 @@ public class DoiVeGUI1 extends JPanel {
     private String safe(String[] a, int i) { return (a!=null && i<a.length && a[i]!=null) ? a[i] : "—"; }
 
     private JPanel buildSuccessBox() { JPanel p = new JPanel(new BorderLayout()) { @Override protected void paintComponent(Graphics g) { Graphics2D g2 = (Graphics2D) g.create(); g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON); g2.setColor(new Color(236, 252, 240)); g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10); g2.dispose(); } }; p.setBorder(new EmptyBorder(16, 20, 16, 20)); p.setMaximumSize(new Dimension(Integer.MAX_VALUE, 55)); JLabel msg = new JLabel("Thông tin hợp lệ. Vui lòng xác nhận lộ trình đổi vé."); msg.setFont(FONT_B14); msg.setForeground(new Color(30, 130, 70)); msg.setHorizontalAlignment(SwingConstants.CENTER); p.add(msg, BorderLayout.CENTER); return p; }
-    private JPanel buildCard(String t) { JPanel card = new JPanel(new BorderLayout(0, 12)); card.setBackground(Color.WHITE); card.setBorder(BorderFactory.createCompoundBorder(new LineBorder(BORDER, 1, true), new EmptyBorder(20, 24, 20, 24))); JLabel lbTitle = new JLabel(t); lbTitle.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 16)); card.add(lbTitle, BorderLayout.NORTH); return card; }
+    private JPanel buildCard(String t) { JPanel card = new JPanel(new BorderLayout(0, 12)); card.setBackground(Color.WHITE); card.setBorder(BorderFactory.createCompoundBorder(new LineBorder(BORDER, 1, true), new EmptyBorder(20, 24, 20, 24))); JLabel lbTitle = new JLabel(t, SwingConstants.CENTER); lbTitle.setHorizontalAlignment(SwingConstants.CENTER); lbTitle.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 16)); card.add(lbTitle, BorderLayout.NORTH); return card; }
     private JLabel headerLabel(String t, Color c) { JLabel lb = new JLabel(t); lb.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 13)); lb.setForeground(c); lb.setHorizontalAlignment(SwingConstants.CENTER); return lb; }
     private JLabel fieldLabel(Color c) { JLabel lb = new JLabel("—"); lb.setFont(FONT_B14); lb.setForeground(c); lb.setOpaque(true); lb.setBackground(GuiTheme.SEARCH_FIELD_BG); lb.setBorder(BorderFactory.createCompoundBorder(new LineBorder(BORDER, 1, false), new EmptyBorder(8, 12, 8, 12))); return lb; }
     private JButton makeNavyButton(String t, int w, int h) { JButton btn = new JButton(t) { @Override protected void paintComponent(Graphics g) { Graphics2D g2 = (Graphics2D) g.create(); g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON); g2.setColor(NAVY); g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8); g2.setColor(Color.WHITE); g2.setFont(FONT_B14); FontMetrics fm = g2.getFontMetrics(); g2.drawString(getText(), (getWidth() - fm.stringWidth(getText())) / 2, (getHeight() + fm.getAscent() - fm.getDescent()) / 2); g2.dispose(); } }; btn.setPreferredSize(new Dimension(w, h)); btn.setContentAreaFilled(false); btn.setBorderPainted(false); btn.setCursor(new Cursor(Cursor.HAND_CURSOR)); return btn; }

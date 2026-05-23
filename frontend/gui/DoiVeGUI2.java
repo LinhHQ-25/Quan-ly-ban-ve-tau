@@ -81,6 +81,7 @@ public class DoiVeGUI2 extends JPanel {
     private DefaultTableModel modelChiTiet;
 
     // Các label tài chính
+    private JLabel            lblMaNV_Val, lblTenNV_Val, lblMaKH_Val, lblTenKH_Val, lblSdtKH_Val;
     private JLabel            lblGiaVeCu, lblGiaVeMoi, lblPhiDoiVe, lblKhachBu, lblTongTienTT;
     private JLabel            lblQR, lblCountdown;
     private JToggleButton     btnTienMat, btnChuyenKhoan;
@@ -118,6 +119,14 @@ public class DoiVeGUI2 extends JPanel {
         secondsLeft = 600;
         startCountdown();
         loadKhachHangInfo();
+        String maNV = AuthService.getCurrentMaNV();
+        String tenNV = AuthService.getCurrentHoTen();
+
+        lblMaNV_Val.setText(maNV != null ? maNV : "N/A");
+        lblTenNV_Val.setText(tenNV != null ? tenNV : "N/A");
+        lblMaKH_Val.setText(maKH != null ? maKH : "N/A");
+        lblTenKH_Val.setText(tenKH != null ? tenKH : "N/A");
+        lblSdtKH_Val.setText(sdtKH != null ? sdtKH : "N/A");
 
         if (maVeMoiHienThi.isEmpty()) {
             maVeMoiHienThi = "VE" + UUID.randomUUID().toString().replace("-", "").substring(0, 7).toUpperCase();
@@ -200,9 +209,9 @@ public class DoiVeGUI2 extends JPanel {
 
         TableColumnModel tcm = tblChiTiet.getColumnModel();
         tcm.getColumn(0).setMaxWidth(40);
-        tcm.getColumn(1).setMinWidth(85); tcm.getColumn(1).setMaxWidth(85);
-        tcm.getColumn(2).setMinWidth(85); tcm.getColumn(2).setMaxWidth(85);
-        tcm.getColumn(3).setMinWidth(90);
+        tcm.getColumn(1).setPreferredWidth(110); tcm.getColumn(1).setMinWidth(110);
+        tcm.getColumn(2).setPreferredWidth(110); tcm.getColumn(2).setMinWidth(110);
+        tcm.getColumn(3).setPreferredWidth(110); tcm.getColumn(3).setMinWidth(110);
 
         JScrollPane scroll = new JScrollPane(tblChiTiet); scroll.setBorder(BorderFactory.createEmptyBorder()); scroll.getViewport().setBackground(Color.WHITE); pnlTableWrapper.add(scroll, BorderLayout.CENTER);
 
@@ -241,14 +250,21 @@ public class DoiVeGUI2 extends JPanel {
         String maNV = AuthService.getCurrentMaNV() != null ? AuthService.getCurrentMaNV() : "N/A";
         String tenNV = AuthService.getCurrentHoTen() != null ? AuthService.getCurrentHoTen() : "N/A";
 
-        content.add(createDetailLabel("Mã nhân viên:", maNV)); content.add(Box.createVerticalStrut(4));
-        content.add(createDetailLabel("Tên nhân viên:", tenNV)); content.add(Box.createVerticalStrut(4));
-        content.add(createDetailLabel("Mã khách hàng:", maKH)); content.add(Box.createVerticalStrut(4));
-        content.add(createDetailLabel("Tên khách hàng:", tenKH)); content.add(Box.createVerticalStrut(4));
-        content.add(createDetailLabel("Số điện thoại:", sdtKH)); content.add(Box.createVerticalStrut(10));
+        lblMaNV_Val  = new JLabel("N/A"); lblMaNV_Val.setFont(FONT_B14); lblMaNV_Val.setForeground(Color.BLACK);
+        lblTenNV_Val = new JLabel("N/A"); lblTenNV_Val.setFont(FONT_B14); lblTenNV_Val.setForeground(Color.BLACK);
+        lblMaKH_Val  = new JLabel("N/A"); lblMaKH_Val.setFont(FONT_B14); lblMaKH_Val.setForeground(Color.BLACK);
+        lblTenKH_Val = new JLabel("N/A"); lblTenKH_Val.setFont(FONT_B14); lblTenKH_Val.setForeground(Color.BLACK);
+        lblSdtKH_Val = new JLabel("N/A"); lblSdtKH_Val.setFont(FONT_B14); lblSdtKH_Val.setForeground(Color.BLACK);
+
+        content.add(createUpdatableRow("Mã nhân viên:", lblMaNV_Val)); content.add(Box.createVerticalStrut(4));
+        content.add(createUpdatableRow("Tên nhân viên:", lblTenNV_Val)); content.add(Box.createVerticalStrut(4));
+        content.add(createUpdatableRow("Mã khách hàng:", lblMaKH_Val)); content.add(Box.createVerticalStrut(4));
+        content.add(createUpdatableRow("Tên khách hàng:", lblTenKH_Val)); content.add(Box.createVerticalStrut(4));
+        content.add(createUpdatableRow("Số điện thoại:", lblSdtKH_Val)); content.add(Box.createVerticalStrut(10));
         content.add(new JSeparator()); content.add(Box.createVerticalStrut(10));
 
         JPanel pnlPTTTTitle = new JPanel(new BorderLayout()) { @Override public Dimension getMaximumSize() { return new Dimension(Integer.MAX_VALUE, super.getPreferredSize().height); } };
+        // ... (Giữ nguyên đoạn từ Phương thức thanh toán trở xuống)
         pnlPTTTTitle.setOpaque(false); pnlPTTTTitle.add(new JLabel("Phương thức thanh toán:") {{ setFont(FONT_14); }}, BorderLayout.WEST); content.add(pnlPTTTTitle); content.add(Box.createVerticalStrut(5));
 
         btnTienMat = createToggleBtn("Tiền mặt"); btnChuyenKhoan = createToggleBtn("Chuyển khoản");
@@ -309,6 +325,14 @@ public class DoiVeGUI2 extends JPanel {
         JPanel left = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 4)); left.setBackground(Color.WHITE); left.add(btnQuayLai); left.add(btnHuy);
         JPanel right = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 4)); right.setBackground(Color.WHITE); right.add(lblCountdown); right.add(btnThanhToan);
         bar.add(left, BorderLayout.WEST); bar.add(right, BorderLayout.EAST); return bar;
+    }
+    private JPanel createUpdatableRow(String title, JLabel valueLabel) {
+        JPanel p = new JPanel(new BorderLayout()); p.setOpaque(false);
+        p.setMaximumSize(new Dimension(Integer.MAX_VALUE, 24));
+        JLabel lblTitle = new JLabel(title); lblTitle.setFont(FONT_14); lblTitle.setForeground(Color.DARK_GRAY);
+        p.add(lblTitle, BorderLayout.WEST);
+        p.add(valueLabel, BorderLayout.EAST);
+        return p;
     }
 
     private void showHuyPopup() {

@@ -194,7 +194,7 @@ public class DoiVeGUI extends JPanel {
         bar.setBackground(Color.WHITE);
 
         bar.setBorder(BorderFactory.createCompoundBorder(
-                new MatteBorder(1, 0, 0, 0, BORDER), new EmptyBorder(4, 15, 4, 15)));
+                new MatteBorder(1, 0, 0, 0, BORDER), new EmptyBorder(12, 15, 12, 15)));
 
         lbWarning = new JLabel(" ");
         lbWarning.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
@@ -246,7 +246,10 @@ public class DoiVeGUI extends JPanel {
         lbMaVeCu.setText("Mã vé: " + (s_maVe.isEmpty() ? "—" : s_maVe));
         tfGaDi   .setText(s_data[1]);
         tfGaDen  .setText(s_data[2]);
-        tfLoai   .setText(s_data[3]);
+        String _rawLoai = s_data[3];
+        tfLoai   .setText("MOT_CHIEU".equalsIgnoreCase(_rawLoai) ? "Một chiều"
+                : "KHU_HOI".equalsIgnoreCase(_rawLoai)   ? "Khứ hồi"
+                  : _rawLoai);
         tfNgayGio.setText(s_data[5]);
         tfNgayVe .setText("—");
         tfSoLuong.setText(s_data[6]);

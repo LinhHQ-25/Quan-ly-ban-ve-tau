@@ -43,7 +43,6 @@ public class AppFrame extends JFrame {
     private DoiVeGUI  doiVeGUI;
     private TraVeGUI  traVeGUI;
     private DoiVeGUI1 doiVeGUI1;
-    private TraVeGUI1 traVeGUI1;
     private DoiVeGUI0 doiVeGUI0;
     private DoiTraGUI doiTraGUI;
     private ThongKeGUI thongKeGUI; // THÊM MỚI
@@ -295,7 +294,6 @@ public class AppFrame extends JFrame {
         if ("doi-ve-step-2".equals(card) && doiVeGUI1 != null) doiVeGUI1.refresh();
         if ("doi-ve-step-3".equals(card) && doiVeGUI2 != null) doiVeGUI2.refresh();
         if ("tra-ve".equals(card)        && traVeGUI  != null) traVeGUI .refresh();
-        if ("tra-ve-step-2".equals(card) && traVeGUI1 != null) traVeGUI1.refresh();
         if ("doi-tra".equals(card)       && doiTraGUI != null) doiTraGUI.refresh();
         if ("dat-ve".equals(card)  && datVeGUI   != null) datVeGUI.refresh();
         if ("login".equals(card)   && loginPanel != null) loginPanel.refresh();
@@ -455,8 +453,6 @@ public class AppFrame extends JFrame {
         doiVeGUI = new DoiVeGUI(this);
         traVeGUI = new TraVeGUI(this);
         contentCards.add(traVeGUI,               "tra-ve");
-        traVeGUI1 = new TraVeGUI1(this);
-        contentCards.add(traVeGUI1,              "tra-ve-step-2");
         contentCards.add(doiVeGUI,               "doi-ve");
         doiVeGUI1 = new DoiVeGUI1(this);
         contentCards.add(doiVeGUI1,              "doi-ve-step-2");

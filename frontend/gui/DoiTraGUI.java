@@ -69,7 +69,7 @@ public final class DoiTraGUI extends JPanel {
 		};
 		p.setOpaque(false);
 		p.setLayout(new BoxLayout(p, BoxLayout.Y_AXIS));
-		p.setBorder(new EmptyBorder(10, 14, 10, 14));
+		p.setBorder(new EmptyBorder(6, 10, 6, 10));
 		Color c = new Color(0, 0, 0);
 		Font bold  = GuiTheme.font("Segoe UI", Font.BOLD,  14);
 		Font plain = GuiTheme.font("Segoe UI", Font.PLAIN, 14);
@@ -127,6 +127,20 @@ public final class DoiTraGUI extends JPanel {
 
 		table.setRowHeight(28);
 		table.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
+
+		// Căn lề trái + cố định độ rộng cột cân đối
+		javax.swing.table.DefaultTableCellRenderer _leftR = new javax.swing.table.DefaultTableCellRenderer();
+		_leftR.setHorizontalAlignment(SwingConstants.LEFT);
+		_leftR.setBorder(new EmptyBorder(0, 8, 0, 8));
+		for (int _i = 0; _i < table.getColumnCount(); _i++) {
+			table.getColumnModel().getColumn(_i).setCellRenderer(_leftR);
+		}
+		// Mã vé | Mã Chuyến | Ga đi | Ga đến | Loại vé | Chiều | Ngày/Giờ | SL | Ghế
+		int[] _widths = {110, 110, 110, 110, 90, 80, 130, 50, 100};
+		for (int _i = 0; _i < _widths.length && _i < table.getColumnCount(); _i++) {
+			table.getColumnModel().getColumn(_i).setPreferredWidth(_widths[_i]);
+		}
+		table.getTableHeader().setReorderingAllowed(false);
 		table.setForeground(GuiTheme.TEXT);
 		table.setGridColor(new Color(230, 233, 238));
 		table.setSelectionBackground(new Color(207, 222, 243));
@@ -209,7 +223,7 @@ public final class DoiTraGUI extends JPanel {
 				"SELECT v.maVe, ct.maChuyenTau AS maChuyenTau, gDi.tenGa AS gaDi, gDen.tenGa AS gaDen, " +
 						"v.loaiVe, dt.thoiGianKhoiHanh, v.giaVe, v.maGhe, g.soGhe, kh.hoTenKH, " +
 						"dt.maGaDi, dt.maGaDen, " +
-						"(SELECT COUNT(*) FROM Ve v2 WHERE v2.maHoaDon = v.maHoaDon) AS soLuongVe " +
+						"1 AS soLuongVe " +
 						"FROM Ve v " +
 						"JOIN ChiTietChuyenTau dt ON v.maChuyenTau = dt.maChuyenTau " +
 						"JOIN ChuyenTau ct ON dt.maChuyenTau = ct.maChuyenTau " +

@@ -23,7 +23,8 @@ public class TraVeGUI extends JPanel {
     private static String[] s_data = new String[0];
 
     public static void setVeDuocChon(String maVe, String[] data) {
-        s_maVe = maVe; s_data = data.clone();
+        s_maVe = maVe;
+        s_data = data.clone();
     }
 
     private final AppFrame appFrame;
@@ -45,14 +46,26 @@ public class TraVeGUI extends JPanel {
 
         JPanel pnlCenter = new JPanel(new GridBagLayout());
         pnlCenter.setOpaque(false);
+
         GridBagConstraints gbc = new GridBagConstraints();
+        gbc.gridx = 0;
+        gbc.weightx = 1.0;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.anchor = GridBagConstraints.NORTH;
 
-        gbc.gridx = 0; gbc.gridy = 0; gbc.weightx = 0.60; gbc.weighty = 1;
-        gbc.fill = GridBagConstraints.BOTH; gbc.insets = new Insets(0, 0, 0, 15);
-        pnlCenter.add(buildLeftPanel(), gbc);
+        // 1. Panel Thông tin vé (Top)
+        gbc.gridy = 0; gbc.insets = new Insets(10, 0, 15, 0);
+        pnlCenter.add(buildTopInfoPanel(), gbc);
 
-        gbc.gridx = 1; gbc.weightx = 0.40; gbc.insets = new Insets(0, 0, 0, 0);
-        pnlCenter.add(buildRightPanel(), gbc);
+        // 2. Panel Chi tiết (Bottom)
+        gbc.gridy = 1; gbc.insets = new Insets(0, 0, 0, 0);
+        pnlCenter.add(buildBottomDetailPanel(), gbc);
+
+        // 3. Panel độn (Filler) dãn nốt chiều dọc
+        gbc.gridy = 2; gbc.weighty = 1.0; gbc.fill = GridBagConstraints.BOTH;
+        JPanel filler = new JPanel();
+        filler.setOpaque(false);
+        pnlCenter.add(filler, gbc);
 
         pnlPage.add(pnlCenter, BorderLayout.CENTER);
         pnlPage.add(buildButtonRow(), BorderLayout.SOUTH);
@@ -60,87 +73,101 @@ public class TraVeGUI extends JPanel {
         refresh();
     }
 
-    public void refresh() { fillInfo(); calcFee(); }
+    public void refresh() {
+        fillInfo();
+        calcFee();
+    }
 
-    // ===================== LEFT PANEL: THÔNG TIN VÉ =====================
-    private JPanel buildLeftPanel() {
+    private JPanel buildTopInfoPanel() {
         JPanel outer = new JPanel(new BorderLayout(0, 15));
         outer.setBackground(Color.WHITE);
-        outer.setBorder(BorderFactory.createCompoundBorder(new LineBorder(BORDER, 1, true), new EmptyBorder(20, 24, 20, 24)));
+        outer.setBorder(BorderFactory.createCompoundBorder(
+                new LineBorder(BORDER, 1, true),
+                new EmptyBorder(12, 14, 15, 14)
+        ));
 
         JLabel lbTitle = new JLabel("Thông tin vé trả");
-        lbTitle.setFont(new Font("Segoe UI", Font.BOLD, 16)); lbTitle.setForeground(NAVY);
+        lbTitle.setFont(new Font("Segoe UI", Font.BOLD, 15));
+        lbTitle.setForeground(NAVY);
         lbTitle.setBorder(new MatteBorder(0, 0, 1, 0, BORDER));
+
         outer.add(lbTitle, BorderLayout.NORTH);
 
-        tfMaVe      = readField(); tfKhachHang = readField();
-        tfChuyen    = readField(); tfGaDi      = readField(); tfGaDen = readField();
-        tfNgayGio   = readField(); tfLoai      = readField();
-        tfMaGhe     = readField(); tfViTri     = readField(); tfGia   = readField();
+        tfMaVe      = readField();
+        tfKhachHang = readField();
+        tfChuyen    = readField();
+        tfGaDi      = readField();
+        tfGaDen     = readField();
+        tfNgayGio   = readField();
+        tfLoai      = readField();
+        tfMaGhe     = readField();
+        tfViTri     = readField();
+        tfGia       = readField();
 
         lbDieuKien = new JLabel("—");
-        lbDieuKien.setFont(FONT_B14); lbDieuKien.setForeground(GuiTheme.SUB_TEXT);
+        lbDieuKien.setFont(FONT_B14);
+        lbDieuKien.setForeground(GuiTheme.SUB_TEXT);
 
-        // Lưới thông tin 4 hàng x 2 cột (ngắn lại)
-        JPanel infoGrid = new JPanel(new GridLayout(4, 2, 20, 12));
+        JPanel infoGrid = new JPanel(new GridLayout(2, 4, 15, 15));
         infoGrid.setOpaque(false);
-        infoGrid.add(fieldBox("Mã vé",       tfMaVe));       infoGrid.add(fieldBox("Khách hàng",  tfKhachHang));
-        infoGrid.add(fieldBox("Mã chuyến",   tfChuyen));     infoGrid.add(fieldBox("Loại vé",     tfLoai));
-        infoGrid.add(fieldBox("Ngày/Giờ KH", tfNgayGio));    infoGrid.add(fieldBox("Đơn giá",     tfGia));
-        infoGrid.add(fieldBox("Ga đi",       tfGaDi));       infoGrid.add(fieldBox("Ga đến",      tfGaDen));
 
-        JPanel topWrap = new JPanel(new BorderLayout());
-        topWrap.setOpaque(false);
-        topWrap.add(infoGrid, BorderLayout.NORTH);
-        outer.add(topWrap, BorderLayout.CENTER);
+        infoGrid.add(fieldBox("Mã vé", tfMaVe));
+        infoGrid.add(fieldBox("Khách hàng", tfKhachHang));
+        infoGrid.add(fieldBox("Mã chuyến", tfChuyen));
+        infoGrid.add(fieldBox("Loại vé", tfLoai));
 
+        infoGrid.add(fieldBox("Ngày/Giờ KH", tfNgayGio));
+        infoGrid.add(fieldBox("Đơn giá", tfGia));
+        infoGrid.add(fieldBox("Ga đi", tfGaDi));
+        infoGrid.add(fieldBox("Ga đến", tfGaDen));
+
+        outer.add(infoGrid, BorderLayout.CENTER);
         return outer;
     }
 
-    // ===================== RIGHT PANEL: TÍNH TIỀN & LÝ DO =====================
-    private JPanel buildRightPanel() {
-        JPanel outer = new JPanel(new BorderLayout(0, 15));
+    private JPanel buildBottomDetailPanel() {
+        JPanel outer = new JPanel(new GridBagLayout());
         outer.setOpaque(false);
 
-        // 1. Panel Thống kê tiền
-        JPanel pnlFinance = new JPanel();
-        pnlFinance.setLayout(new BoxLayout(pnlFinance, BoxLayout.Y_AXIS));
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.gridx = 0;
+        gbc.weightx = 1.0;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+
+        JPanel pnlFinance = new JPanel(new BorderLayout(0, 15));
         pnlFinance.setBackground(Color.WHITE);
-        pnlFinance.setBorder(BorderFactory.createCompoundBorder(new LineBorder(BORDER, 1, true), new EmptyBorder(20, 20, 20, 20)));
+        pnlFinance.setBorder(BorderFactory.createCompoundBorder(new LineBorder(BORDER, 1, true), new EmptyBorder(15, 14, 15, 14)));
 
         lbStatTong = statLabel(GuiTheme.TEXT, Font.BOLD, 22);
         lbStatPhi  = statLabel(new Color(180, 60, 0), Font.BOLD, 22);
         lbStatHoan = statLabel(OK_FG, Font.BOLD, 22);
 
-        JPanel statRow = new JPanel(new GridLayout(1, 3, 10, 0));
-        statRow.setOpaque(false); statRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 90));
+        JPanel statRow = new JPanel(new GridLayout(1, 3, 15, 0));
+        statRow.setOpaque(false);
         statRow.add(buildStatCard("Tiền vé", lbStatTong, new Color(248,250,252), BORDER, GuiTheme.TEXT));
         statPanelPhi = buildStatCard("Phí trả", lbStatPhi, new Color(254, 249, 235), new Color(251, 207, 100), new Color(160,100,0));
         statRow.add(statPanelPhi);
         statRow.add(buildStatCard("Hoàn lại", lbStatHoan, new Color(240, 253, 244), new Color(134, 239, 172), OK_FG));
 
-        pnlFinance.add(statRow);
-        pnlFinance.add(Box.createVerticalStrut(12));
-
-        // Điều kiện trả vé — canh trái, cùng hàng label + value
         JPanel dieuKienRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
         dieuKienRow.setOpaque(false);
-        dieuKienRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 28));
         JLabel lbDKTitle = new JLabel("Điều kiện trả vé:  ");
         lbDKTitle.setFont(new Font("Segoe UI", Font.PLAIN, 14));
         lbDKTitle.setForeground(GuiTheme.SUB_TEXT);
         dieuKienRow.add(lbDKTitle);
         dieuKienRow.add(lbDieuKien);
-        pnlFinance.add(dieuKienRow);
 
-        // 2. Panel Lý do
-        JPanel pnlReason = new JPanel(new BorderLayout(0, 10));
+        pnlFinance.add(statRow, BorderLayout.CENTER);
+        pnlFinance.add(dieuKienRow, BorderLayout.SOUTH);
+
+        JPanel pnlReason = new JPanel(new BorderLayout(0, 12));
         pnlReason.setBackground(Color.WHITE);
-        pnlReason.setBorder(BorderFactory.createCompoundBorder(new LineBorder(BORDER, 1, true), new EmptyBorder(20, 20, 20, 20)));
+        pnlReason.setBorder(BorderFactory.createCompoundBorder(new LineBorder(BORDER, 1, true), new EmptyBorder(15, 14, 15, 14)));
 
         cbLyDo = new JComboBox<>(new String[]{"Thay đổi kế hoạch", "Bận việc đột xuất", "Lý do sức khỏe", "Khác"});
         cbLyDo.setFont(FONT_14); cbLyDo.setBackground(Color.WHITE);
         cbLyDo.setBorder(BorderFactory.createCompoundBorder(new LineBorder(BORDER, 1), new EmptyBorder(2, 4, 2, 4)));
+        cbLyDo.setPreferredSize(new Dimension(200, FIELD_H));
 
         txtLyDoKhac = new JTextField();
         txtLyDoKhac.setFont(FONT_14); txtLyDoKhac.setVisible(false);
@@ -155,7 +182,7 @@ public class TraVeGUI extends JPanel {
         lbWarning = new JLabel(" ");
         lbWarning.setFont(FONT_14); lbWarning.setForeground(WARN_FG);
 
-        JPanel lyDoWrapper = new JPanel(new BorderLayout(10, 0));
+        JPanel lyDoWrapper = new JPanel(new BorderLayout(15, 0));
         lyDoWrapper.setOpaque(false);
         lyDoWrapper.add(cbLyDo, BorderLayout.WEST);
         lyDoWrapper.add(txtLyDoKhac, BorderLayout.CENTER);
@@ -163,10 +190,9 @@ public class TraVeGUI extends JPanel {
         pnlReason.add(fieldBox("Lý do trả vé (Khách hàng cung cấp)", lyDoWrapper), BorderLayout.NORTH);
         pnlReason.add(labelBox("Trạng thái", lbWarning), BorderLayout.CENTER);
 
-        // 3. Panel Ghi chú (Thay thế cho Nội quy)
         JPanel pnlGhiChu = new JPanel(new BorderLayout());
         pnlGhiChu.setBackground(Color.WHITE);
-        pnlGhiChu.setBorder(BorderFactory.createCompoundBorder(new LineBorder(BORDER, 1, true), new EmptyBorder(20, 20, 20, 20)));
+        pnlGhiChu.setBorder(BorderFactory.createCompoundBorder(new LineBorder(BORDER, 1, true), new EmptyBorder(15, 14, 15, 14)));
 
         txtGhiChuNV = new JTextField("Không có");
         txtGhiChuNV.setFont(FONT_14);
@@ -174,28 +200,26 @@ public class TraVeGUI extends JPanel {
 
         pnlGhiChu.add(fieldBox("Ghi chú của Nhân viên (Tùy chọn)", txtGhiChuNV), BorderLayout.CENTER);
 
-        // Gộp lại
-        JPanel wrapper = new JPanel();
-        wrapper.setLayout(new BoxLayout(wrapper, BoxLayout.Y_AXIS));
-        wrapper.setOpaque(false);
-        wrapper.add(pnlFinance);
-        wrapper.add(Box.createVerticalStrut(15));
-        wrapper.add(pnlReason);
-        wrapper.add(Box.createVerticalStrut(15));
-        wrapper.add(pnlGhiChu);
+        gbc.gridy = 0; gbc.insets = new Insets(0, 0, 15, 0);
+        outer.add(pnlFinance, gbc);
 
-        outer.add(wrapper, BorderLayout.NORTH);
+        gbc.gridy = 1;
+        outer.add(pnlReason, gbc);
+
+        gbc.gridy = 2; gbc.insets = new Insets(0, 0, 0, 0);
+        outer.add(pnlGhiChu, gbc);
+
         return outer;
     }
 
     private JPanel buildButtonRow() {
-        JPanel p = new JPanel(new FlowLayout(FlowLayout.RIGHT, 15, 4));
+        JPanel p = new JPanel(new FlowLayout(FlowLayout.RIGHT, 15, 10));
         p.setOpaque(false); p.setBorder(new MatteBorder(1, 0, 0, 0, BORDER));
 
         JButton btnBack = makeOutlineBtn("Quay lại", 130, 38);
         btnBack.addActionListener(e -> appFrame.showCard("doi-tra"));
 
-        btnXacNhan = makeNavyBtn("Tiếp tục", 130, 38);
+        btnXacNhan = makeNavyBtn("Xác nhận trả vé", 130, 38);
         btnXacNhan.setEnabled(false);
         btnXacNhan.addActionListener(e -> handleTiepTuc());
 
@@ -203,7 +227,6 @@ public class TraVeGUI extends JPanel {
         return p;
     }
 
-    // ===================== LOGIC =====================
     private void fillInfo() {
         if (s_data.length < 9) { clearInfo(); return; }
         tfMaVe.setText(s_maVe.isEmpty() ? "—" : s_maVe);
@@ -214,7 +237,6 @@ public class TraVeGUI extends JPanel {
         tfLoai.setText(loaiVeChuan); tfNgayGio.setText(s_data[5]);
         tfMaGhe.setText(s_data[7]);
 
-        // Đã sửa: Lấy Vị trí (Số ghế) ở index 9 và Khách hàng ở index 10 từ mảng s_data (được gửi từ DoiTraGUI)
         tfViTri.setText(s_data.length > 9 ? s_data[9] : "—");
         tfKhachHang.setText(s_data.length > 10 ? s_data[10] : "—");
 
@@ -282,9 +304,69 @@ public class TraVeGUI extends JPanel {
             lyDo = txtLyDoKhac.getText().trim();
         }
 
-        // Bạn có thể lấy thêm giá trị txtGhiChuNV.getText() nếu muốn truyền đi
-        TraVeGUI1.setDonTra(s_maVe, s_data, lbStatPhi.getText(), lbStatHoan.getText(), lyDo);
-        appFrame.showCard("tra-ve-step-2");
+        int choice = JOptionPane.showConfirmDialog(this,
+                "Xác nhận trả vé " + s_maVe + "?", "Xác nhận", JOptionPane.YES_NO_OPTION);
+        if (choice != JOptionPane.YES_OPTION) return;
+
+        String maDon;
+        try (java.sql.Connection conn = connect_DB.Connect_DB.getInstance().getConnection()) {
+            maDon = util.MaTuDong.taoMaDon(conn, java.time.LocalDate.now());
+        } catch (Exception e) { return; }
+
+        long tienHoanKhach = 0;
+        try { tienHoanKhach = Long.parseLong(lbStatHoan.getText().replaceAll("[^0-9]", "")); } catch (Exception ignored) {}
+
+        long phiHuyVe = 0;
+        try { phiHuyVe = Long.parseLong(lbStatPhi.getText().replaceAll("[^0-9]", "")); } catch (Exception ignored) {}
+
+        String sqlInsertHD = "INSERT INTO HoaDon (maHoaDon, ngayLapHD, maNV, maKH, tongTien, tienNhan, phuongThucThanhToan) " +
+                "SELECT ?, GETDATE(), hd.maNV, hd.maKH, ?, 0, N'Hoàn tiền' " +
+                "FROM HoaDon hd JOIN Ve v ON v.maHoaDon = hd.maHoaDon WHERE v.maVe = ?";
+
+        String sqlUpdateVe  = "UPDATE Ve SET trangThaiVe = N'Đã hủy', maHoaDon = ? WHERE maVe = ?";
+        String sqlInsertDon = "INSERT INTO DonDoiTraVe (maDon, tienBu, ngayLap, tienHoanTra, loaiDon, maVe) VALUES (?, ?, GETDATE(), ?, 'DON_TRA', ?)";
+
+        try (java.sql.Connection conn = connect_DB.Connect_DB.getInstance().getConnection()) {
+            conn.setAutoCommit(false);
+            try (java.sql.PreparedStatement psHD  = conn.prepareStatement(sqlInsertHD);
+                 java.sql.PreparedStatement psVe  = conn.prepareStatement(sqlUpdateVe);
+                 java.sql.PreparedStatement psDon = conn.prepareStatement(sqlInsertDon)) {
+
+                psHD.setString(1, maDon);
+                psHD.setLong  (2, phiHuyVe);
+                psHD.setString(3, s_maVe);
+                int hdRows = psHD.executeUpdate();
+                if (hdRows == 0) throw new Exception("Không tìm được hóa đơn gốc của vé " + s_maVe);
+
+                psVe.setString(1, maDon);
+                psVe.setString(2, s_maVe);
+                if (psVe.executeUpdate() == 0) throw new Exception("Không tìm thấy vé " + s_maVe);
+
+                psDon.setString(1, maDon);
+                psDon.setLong  (2, phiHuyVe);
+                psDon.setLong  (3, tienHoanKhach);
+                psDon.setString(4, s_maVe);
+                psDon.executeUpdate();
+
+                conn.commit();
+                xuatHoaDonPDF(maDon);
+
+                JOptionPane.showMessageDialog(this,
+                        "<html><div style='padding:6px'><b>Trả vé thành công!</b><br><br>" +
+                                "Mã đơn: <b>" + maDon + "</b><br>" +
+                                "Phí giữ lại: <b>" + fmtTien(phiHuyVe) + "</b><br>" +
+                                "Hoàn trả khách: <b>" + fmtTien(tienHoanKhach) + "</b></div></html>",
+                        "Hoàn tất", JOptionPane.PLAIN_MESSAGE);
+                appFrame.showCard("doi-tra");
+
+            } catch (Exception ex) {
+                conn.rollback();
+                throw ex;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Lỗi: " + e.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+        }
     }
 
     private static long tinhGio(String s) {
@@ -292,19 +374,18 @@ public class TraVeGUI extends JPanel {
         catch (Exception e) { return -1; }
     }
 
-    // ===================== UI HELPERS =====================
     private JPanel buildStatCard(String title, JLabel valueLb, Color bg, Color border, Color titleColor) {
-        JPanel p = new JPanel() {
+        JPanel p = new JPanel(new BorderLayout(0, 8)) {
             @Override protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create(); g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                 g2.setColor(bg); g2.fillRoundRect(0,0,getWidth(),getHeight(),10,10);
                 g2.setColor(border); g2.drawRoundRect(0,0,getWidth()-1,getHeight()-1,10,10); g2.dispose();
             }
         };
-        p.setOpaque(false); p.setLayout(new BoxLayout(p, BoxLayout.Y_AXIS)); p.setBorder(new EmptyBorder(12,10,12,10));
-        JLabel lbTt = new JLabel(title); lbTt.setFont(FONT_14); lbTt.setForeground(titleColor); lbTt.setAlignmentX(CENTER_ALIGNMENT); lbTt.setName("stat-title");
-        valueLb.setAlignmentX(CENTER_ALIGNMENT); valueLb.setHorizontalAlignment(SwingConstants.CENTER);
-        p.add(lbTt); p.add(Box.createVerticalStrut(6)); p.add(valueLb); return p;
+        p.setOpaque(false); p.setBorder(new EmptyBorder(15,10,15,10));
+        JLabel lbTt = new JLabel(title); lbTt.setFont(FONT_14); lbTt.setForeground(titleColor); lbTt.setHorizontalAlignment(SwingConstants.CENTER); lbTt.setName("stat-title");
+        valueLb.setHorizontalAlignment(SwingConstants.CENTER);
+        p.add(lbTt, BorderLayout.NORTH); p.add(valueLb, BorderLayout.CENTER); return p;
     }
 
     private void updateStatTitle(JPanel card, String newTitle) {
@@ -319,21 +400,19 @@ public class TraVeGUI extends JPanel {
         JTextField tf = new JTextField("—"); tf.setFont(FONT_14); tf.setEditable(false);
         tf.setForeground(GuiTheme.TEXT); tf.setBackground(GuiTheme.SEARCH_FIELD_BG);
         tf.setBorder(BorderFactory.createCompoundBorder(new LineBorder(BORDER,1), new EmptyBorder(4,10,4,10)));
-        tf.setPreferredSize(new Dimension(0, FIELD_H)); tf.setMaximumSize(new Dimension(Integer.MAX_VALUE, FIELD_H)); return tf;
+        tf.setPreferredSize(new Dimension(0, FIELD_H)); return tf;
     }
 
     private JPanel fieldBox(String label, JComponent comp) {
-        JPanel p = new JPanel(); p.setLayout(new BoxLayout(p, BoxLayout.Y_AXIS)); p.setOpaque(false);
-        JLabel lb = new JLabel(label); lb.setFont(FONT_14); lb.setForeground(GuiTheme.SUB_TEXT); lb.setAlignmentX(LEFT_ALIGNMENT);
-        comp.setAlignmentX(LEFT_ALIGNMENT); comp.setMaximumSize(new Dimension(Integer.MAX_VALUE, FIELD_H));
-        p.add(lb); p.add(Box.createVerticalStrut(4)); p.add(comp); p.setMaximumSize(new Dimension(Integer.MAX_VALUE, 58)); return p;
+        JPanel p = new JPanel(new BorderLayout(0, 6)); p.setOpaque(false);
+        JLabel lb = new JLabel(label); lb.setFont(FONT_14); lb.setForeground(GuiTheme.SUB_TEXT);
+        p.add(lb, BorderLayout.NORTH); p.add(comp, BorderLayout.CENTER); return p;
     }
 
     private JPanel labelBox(String labelText, JLabel value) {
-        JPanel p = new JPanel(); p.setLayout(new BoxLayout(p, BoxLayout.Y_AXIS)); p.setOpaque(false);
-        JLabel lb = new JLabel(labelText); lb.setFont(FONT_14); lb.setForeground(GuiTheme.SUB_TEXT); lb.setAlignmentX(LEFT_ALIGNMENT);
-        value.setAlignmentX(LEFT_ALIGNMENT); value.setMaximumSize(new Dimension(Integer.MAX_VALUE, FIELD_H));
-        p.add(lb); p.add(Box.createVerticalStrut(4)); p.add(value); p.setMaximumSize(new Dimension(Integer.MAX_VALUE, 58)); return p;
+        JPanel p = new JPanel(new BorderLayout(0, 6)); p.setOpaque(false);
+        JLabel lb = new JLabel(labelText); lb.setFont(FONT_14); lb.setForeground(GuiTheme.SUB_TEXT);
+        p.add(lb, BorderLayout.NORTH); p.add(value, BorderLayout.CENTER); return p;
     }
 
     private static String fmtTien(long a) { return String.format("%,d đ", a).replace(",", "."); }
@@ -363,5 +442,201 @@ public class TraVeGUI extends JPanel {
             }
         };
         b.setPreferredSize(new Dimension(w,h)); b.setContentAreaFilled(false); b.setBorderPainted(false); b.setFocusPainted(false); b.setCursor(new Cursor(Cursor.HAND_CURSOR)); return b;
+    }
+
+    private void xuatHoaDonPDF(String maDon) {
+        try (java.sql.Connection conn = connect_DB.Connect_DB.getConnection()) {
+            String sqlHD = "SELECT h.tongTien, h.tienNhan, h.phuongThucThanhToan, k.hoTenKH, k.sdt FROM HoaDon h LEFT JOIN KhachHang k ON h.maKH = k.maKH WHERE h.maHoaDon = ?";
+            String tenKH = "Khách vãng lai", sdtKH = "", hinhThuc = "";
+            try (java.sql.PreparedStatement ps = conn.prepareStatement(sqlHD)) {
+                ps.setString(1, maDon);
+                try (java.sql.ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        tenKH = rs.getString("hoTenKH") != null ? rs.getString("hoTenKH") : "Khách vãng lai";
+                        sdtKH = rs.getString("sdt") != null ? rs.getString("sdt") : "";
+                        hinhThuc = rs.getString("phuongThucThanhToan") != null ? rs.getString("phuongThucThanhToan") : "";
+                    }
+                }
+            }
+
+            String sqlDon = "SELECT tienBu, tienHoanTra FROM DonDoiTraVe WHERE maDon = ?";
+            double phiTraVe = 0, tienHoanThucTe = 0;
+            try (java.sql.PreparedStatement ps = conn.prepareStatement(sqlDon)) {
+                ps.setString(1, maDon);
+                try (java.sql.ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        phiTraVe = rs.getDouble("tienBu");
+                        tienHoanThucTe = rs.getDouble("tienHoanTra");
+                    }
+                }
+            }
+
+            String sqlVe = "SELECT v.maVe, v.loaiVe, v.giaVe, g.loaiGhe, gaDi.tenGa AS gaDi, gaDen.tenGa AS gaDen FROM Ve v JOIN Ghe g ON v.maGhe = g.maGhe JOIN ChiTietChuyenTau dt ON v.maChuyenTau = dt.maChuyenTau JOIN Ga gaDi ON dt.maGaDi = gaDi.maGa JOIN Ga gaDen ON dt.maGaDen = gaDen.maGa WHERE v.maHoaDon = ?";
+
+            java.io.File folder = new java.io.File("HoaDon");
+            if (!folder.exists()) folder.mkdir();
+            java.io.File pdfFile = new java.io.File(folder, maDon + ".pdf");
+
+            com.itextpdf.text.Document document = new com.itextpdf.text.Document(com.itextpdf.text.PageSize.A4);
+            com.itextpdf.text.pdf.PdfWriter.getInstance(document, new java.io.FileOutputStream(pdfFile));
+            document.open();
+
+            com.itextpdf.text.pdf.BaseFont bf = com.itextpdf.text.pdf.BaseFont.createFont("c:/windows/fonts/arial.ttf", com.itextpdf.text.pdf.BaseFont.IDENTITY_H, com.itextpdf.text.pdf.BaseFont.EMBEDDED);
+            com.itextpdf.text.Font fontTitle = new com.itextpdf.text.Font(bf, 16, com.itextpdf.text.Font.BOLD);
+            com.itextpdf.text.Font fontBold = new com.itextpdf.text.Font(bf, 11, com.itextpdf.text.Font.BOLD);
+            com.itextpdf.text.Font fontNormal = new com.itextpdf.text.Font(bf, 11, com.itextpdf.text.Font.NORMAL);
+            com.itextpdf.text.Font fontItalic = new com.itextpdf.text.Font(bf, 11, com.itextpdf.text.Font.ITALIC);
+
+            com.itextpdf.text.Paragraph title = new com.itextpdf.text.Paragraph("HÓA ĐƠN GIÁ TRỊ GIA TĂNG", fontTitle);
+            title.setAlignment(com.itextpdf.text.Element.ALIGN_CENTER);
+            document.add(title);
+
+            String dateStr = new java.text.SimpleDateFormat("dd/MM/yyyy HH:mm:ss").format(new java.util.Date());
+            com.itextpdf.text.Paragraph dateP = new com.itextpdf.text.Paragraph("Ngày xuất: " + dateStr, fontItalic);
+            dateP.setAlignment(com.itextpdf.text.Element.ALIGN_CENTER);
+            document.add(dateP);
+            document.add(new com.itextpdf.text.Paragraph(" ", fontNormal));
+            document.add(new com.itextpdf.text.Paragraph(" ", fontNormal));
+
+            document.add(new com.itextpdf.text.Paragraph("Đơn vị bán hàng: CÔNG TY CỔ PHẦN VẬN TẢI ĐƯỜNG SẮT", fontBold));
+            document.add(new com.itextpdf.text.Paragraph("Mã số thuế: 0100106264", fontNormal));
+            document.add(new com.itextpdf.text.Paragraph("Địa chỉ: 113 Nguyễn Đình Thụ, Tuy Phước, Gia Lai", fontNormal));
+            document.add(new com.itextpdf.text.Paragraph(" ", fontNormal));
+
+            document.add(new com.itextpdf.text.Paragraph("Họ tên người mua hàng: " + tenKH, fontBold));
+            document.add(new com.itextpdf.text.Paragraph("Điện thoại: " + sdtKH, fontNormal));
+            document.add(new com.itextpdf.text.Paragraph("Hình thức thanh toán: " + hinhThuc + "          Mã HĐ: " + maDon, fontNormal));
+            document.add(new com.itextpdf.text.Paragraph(" ", fontNormal));
+
+            com.itextpdf.text.pdf.PdfPTable table = new com.itextpdf.text.pdf.PdfPTable(10);
+            table.setWidthPercentage(100);
+            table.setWidths(new float[]{1f, 3.5f, 2f, 2.3f, 1.8f, 2f, 1f, 1f, 2f, 2.2f});
+            for (String h : new String[]{"STT","Tên dịch vụ","Loại vé","Mã vé","Chiều","Giá vé","ĐVT","SL","Phụ phí","Thành tiền"}) {
+                com.itextpdf.text.pdf.PdfPCell cell = new com.itextpdf.text.pdf.PdfPCell(new com.itextpdf.text.Phrase(h, fontBold));
+                cell.setHorizontalAlignment(com.itextpdf.text.Element.ALIGN_CENTER);
+                cell.setVerticalAlignment(com.itextpdf.text.Element.ALIGN_MIDDLE);
+                cell.setPaddingBottom(6);
+                cell.setBackgroundColor(new com.itextpdf.text.BaseColor(245, 245, 245));
+                table.addCell(cell);
+            }
+
+            java.text.DecimalFormat df = new java.text.DecimalFormat("#,###");
+            int stt = 1;
+            double tongTienVe = 0;
+            double tongPhuPhi = 0;
+
+            try (java.sql.PreparedStatement ps = conn.prepareStatement(sqlVe)) {
+                ps.setString(1, maDon);
+                try (java.sql.ResultSet rs = ps.executeQuery()) {
+                    while (rs.next()) {
+                        double giaVe = rs.getDouble("giaVe");
+                        double phuPhiDong = phiTraVe;
+                        double thanhTien = giaVe - phuPhiDong;
+                        tongTienVe += giaVe;
+                        tongPhuPhi += phuPhiDong;
+
+                        String lv = rs.getString("loaiVe");
+                        String loaiVeHienThi = "MOT_CHIEU".equals(lv) ? "Một chiều" : "KHU_HOI".equals(lv) ? "Khứ hồi" : (lv != null ? lv : "");
+
+                        pdfAddCell(table, fontNormal, String.valueOf(stt++), com.itextpdf.text.Element.ALIGN_CENTER);
+                        pdfAddCell(table, fontNormal, "Vé HK trực tiếp tại nhà ga", com.itextpdf.text.Element.ALIGN_LEFT);
+                        pdfAddCell(table, fontNormal, loaiVeHienThi, com.itextpdf.text.Element.ALIGN_CENTER);
+                        pdfAddCell(table, fontNormal, rs.getString("maVe") != null ? rs.getString("maVe") : "", com.itextpdf.text.Element.ALIGN_CENTER);
+                        pdfAddCell(table, fontNormal, rs.getString("gaDi") + " → " + rs.getString("gaDen"), com.itextpdf.text.Element.ALIGN_CENTER);
+                        pdfAddCell(table, fontNormal, df.format(giaVe), com.itextpdf.text.Element.ALIGN_RIGHT);
+                        pdfAddCell(table, fontNormal, "Vé", com.itextpdf.text.Element.ALIGN_CENTER);
+                        pdfAddCell(table, fontNormal, "1", com.itextpdf.text.Element.ALIGN_CENTER);
+                        pdfAddCell(table, fontNormal, df.format(phuPhiDong), com.itextpdf.text.Element.ALIGN_RIGHT);
+                        pdfAddCell(table, fontNormal, df.format(thanhTien), com.itextpdf.text.Element.ALIGN_RIGHT);
+                    }
+                }
+            }
+
+            document.add(table);
+            document.add(new com.itextpdf.text.Paragraph(" ", fontNormal));
+
+            double tongTienHoan = tongTienVe - tongPhuPhi;
+            com.itextpdf.text.Paragraph pGiaVe = new com.itextpdf.text.Paragraph("Tiền vé: " + df.format(tongTienVe), fontNormal);
+            pGiaVe.setAlignment(com.itextpdf.text.Element.ALIGN_RIGHT);
+            document.add(pGiaVe);
+
+            com.itextpdf.text.Paragraph pPhi = new com.itextpdf.text.Paragraph("Phụ phí (phí trả vé): " + df.format(tongPhuPhi), fontNormal);
+            pPhi.setAlignment(com.itextpdf.text.Element.ALIGN_RIGHT);
+            document.add(pPhi);
+
+            com.itextpdf.text.Paragraph pTong = new com.itextpdf.text.Paragraph("Tổng tiền hoàn: " + df.format(tongTienHoan), fontBold);
+            pTong.setAlignment(com.itextpdf.text.Element.ALIGN_RIGHT);
+            document.add(pTong);
+
+            com.itextpdf.text.Paragraph pChu = new com.itextpdf.text.Paragraph("Bằng chữ: " + docSoThanh((long) tongTienHoan), fontItalic);
+            pChu.setAlignment(com.itextpdf.text.Element.ALIGN_RIGHT);
+            document.add(pChu);
+
+            document.add(new com.itextpdf.text.Paragraph(" ", fontNormal));
+            document.add(new com.itextpdf.text.Paragraph("Ghi chú: ......................................................................................................................................", fontNormal));
+            document.add(new com.itextpdf.text.Paragraph(" ", fontNormal));
+            document.add(new com.itextpdf.text.Paragraph(" ", fontNormal));
+
+            com.itextpdf.text.pdf.PdfPTable signTable = new com.itextpdf.text.pdf.PdfPTable(2);
+            signTable.setWidthPercentage(100);
+            com.itextpdf.text.pdf.PdfPCell cBuyer = new com.itextpdf.text.pdf.PdfPCell(new com.itextpdf.text.Phrase("Người mua hàng\n(Ký, ghi rõ họ tên)", fontNormal));
+            com.itextpdf.text.pdf.PdfPCell cSeller = new com.itextpdf.text.pdf.PdfPCell(new com.itextpdf.text.Phrase("Người bán hàng\n(Ký, ghi rõ họ tên)", fontNormal));
+            cBuyer.setHorizontalAlignment(com.itextpdf.text.Element.ALIGN_CENTER); cBuyer.setBorder(com.itextpdf.text.pdf.PdfPCell.NO_BORDER);
+            cSeller.setHorizontalAlignment(com.itextpdf.text.Element.ALIGN_CENTER); cSeller.setBorder(com.itextpdf.text.pdf.PdfPCell.NO_BORDER);
+            signTable.addCell(cBuyer);
+            signTable.addCell(cSeller);
+            document.add(signTable);
+
+            document.close();
+            if (java.awt.Desktop.isDesktopSupported()) java.awt.Desktop.getDesktop().open(pdfFile);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            javax.swing.JOptionPane.showMessageDialog(this, "Lỗi xuất PDF: " + e.getMessage(), "Lỗi", javax.swing.JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void pdfAddCell(com.itextpdf.text.pdf.PdfPTable table, com.itextpdf.text.Font font, String text, int align) {
+        com.itextpdf.text.pdf.PdfPCell cell = new com.itextpdf.text.pdf.PdfPCell(new com.itextpdf.text.Phrase(text != null ? text : "", font));
+        cell.setHorizontalAlignment(align);
+        cell.setVerticalAlignment(com.itextpdf.text.Element.ALIGN_MIDDLE);
+        cell.setPaddingBottom(4);
+        table.addCell(cell);
+    }
+
+    private String docSoThanh(long so) {
+        if (so == 0) return "Không đồng";
+        String[] donVi = {"", "nghìn", "triệu", "tỷ"};
+        String[] chu = {"", "một", "hai", "ba", "bốn", "năm", "sáu", "bảy", "tám", "chín"};
+        if (so < 0) return "Âm " + docSoThanh(-so);
+        StringBuilder sb = new StringBuilder();
+        int i = 0;
+        while (so > 0) {
+            int nhom = (int)(so % 1000);
+            if (nhom != 0) {
+                String phan = docNhom(nhom, chu) + (donVi[i].isEmpty() ? "" : " " + donVi[i]);
+                sb.insert(0, (sb.length() > 0 ? " " : "") + phan);
+            }
+            so /= 1000; i++;
+        }
+        String result = sb.toString().trim();
+        return Character.toUpperCase(result.charAt(0)) + result.substring(1) + " đồng";
+    }
+
+    private String docNhom(int n, String[] chu) {
+        int tram = n / 100, chuc = (n % 100) / 10, dv = n % 10;
+        StringBuilder s = new StringBuilder();
+        if (tram > 0) s.append(chu[tram]).append(" trăm");
+        if (chuc > 1) {
+            s.append(s.length() > 0 ? " " : "").append(chu[chuc]).append(" mươi");
+            if (dv > 0) s.append(" ").append(dv == 1 ? "mốt" : dv == 5 ? "lăm" : chu[dv]);
+        } else if (chuc == 1) {
+            s.append(s.length() > 0 ? " " : "").append("mười");
+            if (dv > 0) s.append(" ").append(dv == 5 ? "lăm" : chu[dv]);
+        } else if (dv > 0) {
+            if (tram > 0) s.append(" lẻ");
+            s.append(" ").append(chu[dv]);
+        }
+        return s.toString().trim();
     }
 }
