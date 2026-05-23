@@ -11,6 +11,7 @@ public class AuthService {
         SUCCESS_BAN_VE,
         WRONG_PASSWORD,
         ACCOUNT_NOT_FOUND,
+        ACCOUNT_LOCKED,
         DB_ERROR
     }
 

@@ -288,7 +288,8 @@ public class DoiVeGUI2 extends JPanel {
                 }
 
                 conn.commit();
-                HoaDonPDFExporter.xuatPDF(maDon);
+                xuatHoaDonPDF(maDon);
+                xuatVePDF(s_maVe);
                 JOptionPane.showMessageDialog(this, "Đổi vé thành công!\nMã hóa đơn mới: " + maDon, "Thành công", JOptionPane.INFORMATION_MESSAGE);
                 appFrame.showCard("doi-tra");
 
@@ -310,4 +311,400 @@ public class DoiVeGUI2 extends JPanel {
     private JButton makeOutlineBtn(String text, Icon icon) { JButton b = new JButton(text) { @Override protected void paintComponent(Graphics g) { Graphics2D g2=(Graphics2D)g.create(); g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,RenderingHints.VALUE_ANTIALIAS_ON); g2.setColor(getModel().isPressed()?new Color(220,230,245):getModel().isRollover()?new Color(230,240,250):new Color(242,247,252)); g2.fillRoundRect(0,0,getWidth(),getHeight(),6,6); g2.setColor(NAVY); g2.drawRoundRect(0,0,getWidth()-1,getHeight()-1,6,6); g2.dispose(); super.paintComponent(g); } }; if (icon!=null) b.setIcon(icon); b.setFont(FONT_14); b.setForeground(NAVY); b.setIconTextGap(8); b.setContentAreaFilled(false); b.setFocusPainted(false); b.setCursor(new Cursor(Cursor.HAND_CURSOR)); return b; }
     private double parseMoney(String s) { try { return Double.parseDouble(s.replaceAll("[^0-9]","")); } catch (Exception e) { return 0; } }
     private Icon loadIcon(String path, int w, int h) { try { URL u=getClass().getResource(path); if(u!=null) return new ImageIcon(new ImageIcon(u).getImage().getScaledInstance(w,h,Image.SCALE_SMOOTH)); } catch(Exception ignored){} return null; }
+
+
+
+
+
+
+    private void xuatHoaDonPDF(String maDon) {
+        try (java.sql.Connection conn = connect_DB.Connect_DB.getConnection()) {
+            String sqlHD = "SELECT h.tongTien, h.tienNhan, h.phuongThucThanhToan, " +
+                    "k.hoTenKH, k.sdt " +
+                    "FROM HoaDon h LEFT JOIN KhachHang k ON h.maKH = k.maKH " +
+                    "WHERE h.maHoaDon = ?";
+            String tenKH = "Khách vãng lai", sdtKH = "", hinhThuc = "";
+            double tongTien = 0;
+            try (java.sql.PreparedStatement ps = conn.prepareStatement(sqlHD)) {
+                ps.setString(1, maDon);
+                try (java.sql.ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        tenKH    = rs.getString("hoTenKH")             != null ? rs.getString("hoTenKH")             : "Khách vãng lai";
+                        sdtKH    = rs.getString("sdt")                 != null ? rs.getString("sdt")                 : "";
+                        hinhThuc = rs.getString("phuongThucThanhToan") != null ? rs.getString("phuongThucThanhToan") : "";
+                        tongTien = rs.getDouble("tongTien");
+                    }
+                }
+            }
+
+            String sqlVe = "SELECT v.maVe, v.loaiVe, v.giaVe, g.loaiGhe, " +
+                    "gaDi.tenGa AS gaDi, gaDen.tenGa AS gaDen " +
+                    "FROM Ve v " +
+                    "JOIN Ghe g              ON v.maGhe       = g.maGhe " +
+                    "JOIN ChiTietChuyenTau dt ON v.maChuyenTau = dt.maChuyenTau " +
+                    "JOIN Ga gaDi            ON dt.maGaDi      = gaDi.maGa " +
+                    "JOIN Ga gaDen           ON dt.maGaDen     = gaDen.maGa " +
+                    "WHERE v.maHoaDon = ?";
+
+            java.io.File folder = new java.io.File("HoaDon");
+            if (!folder.exists()) folder.mkdir();
+            java.io.File pdfFile = new java.io.File(folder, maDon + ".pdf");
+
+            com.itextpdf.text.Document document = new com.itextpdf.text.Document(com.itextpdf.text.PageSize.A4);
+            com.itextpdf.text.pdf.PdfWriter.getInstance(document, new java.io.FileOutputStream(pdfFile));
+            document.open();
+
+            com.itextpdf.text.pdf.BaseFont bf = com.itextpdf.text.pdf.BaseFont.createFont(
+                    "c:/windows/fonts/arial.ttf",
+                    com.itextpdf.text.pdf.BaseFont.IDENTITY_H,
+                    com.itextpdf.text.pdf.BaseFont.EMBEDDED);
+            com.itextpdf.text.Font fontTitle  = new com.itextpdf.text.Font(bf, 16, com.itextpdf.text.Font.BOLD);
+            com.itextpdf.text.Font fontBold   = new com.itextpdf.text.Font(bf, 11, com.itextpdf.text.Font.BOLD);
+            com.itextpdf.text.Font fontNormal = new com.itextpdf.text.Font(bf, 11, com.itextpdf.text.Font.NORMAL);
+            com.itextpdf.text.Font fontItalic = new com.itextpdf.text.Font(bf, 11, com.itextpdf.text.Font.ITALIC);
+
+            com.itextpdf.text.Paragraph title = new com.itextpdf.text.Paragraph("HÓA ĐƠN GIÁ TRỊ GIA TĂNG", fontTitle);
+            title.setAlignment(com.itextpdf.text.Element.ALIGN_CENTER);
+            document.add(title);
+
+            String dateStr = new java.text.SimpleDateFormat("dd/MM/yyyy HH:mm:ss").format(new java.util.Date());
+            com.itextpdf.text.Paragraph dateP = new com.itextpdf.text.Paragraph("Ngày xuất: " + dateStr, fontItalic);
+            dateP.setAlignment(com.itextpdf.text.Element.ALIGN_CENTER);
+            document.add(dateP);
+            document.add(new com.itextpdf.text.Paragraph(" ", fontNormal));
+            document.add(new com.itextpdf.text.Paragraph(" ", fontNormal));
+
+            document.add(new com.itextpdf.text.Paragraph("Đơn vị bán hàng: CÔNG TY CỔ PHẦN VẬN TẢI ĐƯỜNG SẮT", fontBold));
+            document.add(new com.itextpdf.text.Paragraph("Mã số thuế: 0100106264", fontNormal));
+            document.add(new com.itextpdf.text.Paragraph("Địa chỉ: 113 Nguyễn Đình Thụ, Tuy Phước, Gia Lai", fontNormal));
+            document.add(new com.itextpdf.text.Paragraph(" ", fontNormal));
+
+            document.add(new com.itextpdf.text.Paragraph("Họ tên người mua hàng: " + tenKH, fontBold));
+            document.add(new com.itextpdf.text.Paragraph("Điện thoại: " + sdtKH, fontNormal));
+            document.add(new com.itextpdf.text.Paragraph("Hình thức thanh toán: " + hinhThuc + "          Mã HĐ: " + maDon, fontNormal));
+            document.add(new com.itextpdf.text.Paragraph(" ", fontNormal));
+
+            com.itextpdf.text.pdf.PdfPTable table = new com.itextpdf.text.pdf.PdfPTable(10);
+            table.setWidthPercentage(100);
+            table.setWidths(new float[]{1f, 3.5f, 2f, 2.3f, 1.8f, 2f, 1f, 1f, 2f, 2.2f});
+            for (String h : new String[]{"STT","Tên dịch vụ","Loại vé","Mã vé","Chiều","Giá vé","ĐVT","SL","Khuyến mãi","Thành tiền"}) {
+                com.itextpdf.text.pdf.PdfPCell cell = new com.itextpdf.text.pdf.PdfPCell(new com.itextpdf.text.Phrase(h, fontBold));
+                cell.setHorizontalAlignment(com.itextpdf.text.Element.ALIGN_CENTER);
+                cell.setVerticalAlignment(com.itextpdf.text.Element.ALIGN_MIDDLE);
+                cell.setPaddingBottom(6);
+                cell.setBackgroundColor(new com.itextpdf.text.BaseColor(245, 245, 245));
+                table.addCell(cell);
+            }
+
+            java.text.DecimalFormat df = new java.text.DecimalFormat("#,###");
+            int stt = 1;
+            try (java.sql.PreparedStatement ps = conn.prepareStatement(sqlVe)) {
+                ps.setString(1, maDon);
+                try (java.sql.ResultSet rs = ps.executeQuery()) {
+                    while (rs.next()) {
+                        double giaVe = rs.getDouble("giaVe");
+                        String lv = rs.getString("loaiVe");
+                        String loaiVeHienThi = "MOT_CHIEU".equals(lv) ? "Một chiều"
+                                : "KHU_HOI".equals(lv)   ? "Khứ hồi"
+                                  : (lv != null ? lv : "");
+                        pdfAddCell(table, fontNormal, String.valueOf(stt++), com.itextpdf.text.Element.ALIGN_CENTER);
+                        pdfAddCell(table, fontNormal, "Vé HK trực tiếp tại nhà ga", com.itextpdf.text.Element.ALIGN_LEFT);
+                        pdfAddCell(table, fontNormal, loaiVeHienThi, com.itextpdf.text.Element.ALIGN_CENTER);
+                        pdfAddCell(table, fontNormal, rs.getString("maVe") != null ? rs.getString("maVe") : "", com.itextpdf.text.Element.ALIGN_CENTER);
+                        pdfAddCell(table, fontNormal, rs.getString("gaDi") + " → " + rs.getString("gaDen"), com.itextpdf.text.Element.ALIGN_CENTER);
+                        pdfAddCell(table, fontNormal, df.format(giaVe), com.itextpdf.text.Element.ALIGN_RIGHT);
+                        pdfAddCell(table, fontNormal, "Vé", com.itextpdf.text.Element.ALIGN_CENTER);
+                        pdfAddCell(table, fontNormal, "1", com.itextpdf.text.Element.ALIGN_CENTER);
+                        pdfAddCell(table, fontNormal, "0", com.itextpdf.text.Element.ALIGN_RIGHT);
+                        pdfAddCell(table, fontNormal, df.format(giaVe), com.itextpdf.text.Element.ALIGN_RIGHT);
+                    }
+                }
+            }
+            document.add(table);
+            document.add(new com.itextpdf.text.Paragraph(" ", fontNormal));
+
+            com.itextpdf.text.Paragraph pTong = new com.itextpdf.text.Paragraph("Tổng tiền: " + df.format(tongTien), fontBold);
+            pTong.setAlignment(com.itextpdf.text.Element.ALIGN_RIGHT);
+            document.add(pTong);
+
+            com.itextpdf.text.Paragraph pChu = new com.itextpdf.text.Paragraph("Bằng chữ: " + docSoThanh((long) tongTien), fontItalic);
+            pChu.setAlignment(com.itextpdf.text.Element.ALIGN_RIGHT);
+            document.add(pChu);
+
+            document.add(new com.itextpdf.text.Paragraph(" ", fontNormal));
+            document.add(new com.itextpdf.text.Paragraph("Ghi chú: ......................................................................................................................................", fontNormal));
+            document.add(new com.itextpdf.text.Paragraph(" ", fontNormal));
+            document.add(new com.itextpdf.text.Paragraph(" ", fontNormal));
+
+            com.itextpdf.text.pdf.PdfPTable signTable = new com.itextpdf.text.pdf.PdfPTable(2);
+            signTable.setWidthPercentage(100);
+            com.itextpdf.text.pdf.PdfPCell cBuyer  = new com.itextpdf.text.pdf.PdfPCell(new com.itextpdf.text.Phrase("Người mua hàng\n(Ký, ghi rõ họ tên)", fontNormal));
+            com.itextpdf.text.pdf.PdfPCell cSeller = new com.itextpdf.text.pdf.PdfPCell(new com.itextpdf.text.Phrase("Người bán hàng\n(Ký, ghi rõ họ tên)", fontNormal));
+            cBuyer.setHorizontalAlignment(com.itextpdf.text.Element.ALIGN_CENTER);  cBuyer.setBorder(com.itextpdf.text.pdf.PdfPCell.NO_BORDER);
+            cSeller.setHorizontalAlignment(com.itextpdf.text.Element.ALIGN_CENTER); cSeller.setBorder(com.itextpdf.text.pdf.PdfPCell.NO_BORDER);
+            signTable.addCell(cBuyer);
+            signTable.addCell(cSeller);
+            document.add(signTable);
+
+            document.close();
+            if (java.awt.Desktop.isDesktopSupported()) java.awt.Desktop.getDesktop().open(pdfFile);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            javax.swing.JOptionPane.showMessageDialog(this,
+                    "Lỗi xuất PDF: " + e.getMessage(), "Lỗi", javax.swing.JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void pdfAddCell(com.itextpdf.text.pdf.PdfPTable table, com.itextpdf.text.Font font, String text, int align) {
+        com.itextpdf.text.pdf.PdfPCell cell = new com.itextpdf.text.pdf.PdfPCell(new com.itextpdf.text.Phrase(text != null ? text : "", font));
+        cell.setHorizontalAlignment(align);
+        cell.setVerticalAlignment(com.itextpdf.text.Element.ALIGN_MIDDLE);
+        cell.setPaddingBottom(4);
+        table.addCell(cell);
+    }
+
+    private String docSoThanh(long so) {
+        if (so == 0) return "Không đồng";
+        String[] donVi = {"", "nghìn", "triệu", "tỷ"};
+        String[] chu   = {"", "một", "hai", "ba", "bốn", "năm", "sáu", "bảy", "tám", "chín"};
+        if (so < 0) return "Âm " + docSoThanh(-so);
+        StringBuilder sb = new StringBuilder();
+        int i = 0;
+        while (so > 0) {
+            int nhom = (int)(so % 1000);
+            if (nhom != 0) {
+                String phan = docNhom(nhom, chu) + (donVi[i].isEmpty() ? "" : " " + donVi[i]);
+                sb.insert(0, (sb.length() > 0 ? " " : "") + phan);
+            }
+            so /= 1000; i++;
+        }
+        String result = sb.toString().trim();
+        return Character.toUpperCase(result.charAt(0)) + result.substring(1) + " đồng";
+    }
+
+    private String docNhom(int n, String[] chu) {
+        int tram = n / 100, chuc = (n % 100) / 10, dv = n % 10;
+        StringBuilder s = new StringBuilder();
+        if (tram > 0) s.append(chu[tram]).append(" trăm");
+        if (chuc > 1) {
+            s.append(s.length() > 0 ? " " : "").append(chu[chuc]).append(" mươi");
+            if (dv > 0) s.append(" ").append(dv == 1 ? "mốt" : dv == 5 ? "lăm" : chu[dv]);
+        } else if (chuc == 1) {
+            s.append(s.length() > 0 ? " " : "").append("mười");
+            if (dv > 0) s.append(" ").append(dv == 5 ? "lăm" : chu[dv]);
+        } else if (dv > 0) {
+            if (tram > 0) s.append(" lẻ");
+            s.append(" ").append(chu[dv]);
+        }
+        return s.toString().trim();
+    }
+
+    private void xuatVePDF(String maVe) {
+        try (java.sql.Connection conn = connect_DB.Connect_DB.getConnection()) {
+            // Query thông tin vé
+            String sql = "SELECT v.loaiVe, v.maGhe, k.hoTenKH, k.cccd, " +
+                    "t.tenTau, ct.thoiGianKhoiHanh, " +
+                    "gaDi.tenGa AS gaDi, gaDen.tenGa AS gaDen, " +
+                    "g.soGhe, tt.soToa, g.loaiGhe " +
+                    "FROM Ve v " +
+                    "JOIN KhachHang k         ON v.maKH         = k.maKH " +
+                    "JOIN ChiTietChuyenTau ct  ON v.maChuyenTau  = ct.maChuyenTau " +
+                    "JOIN ChuyenTau c          ON ct.maChuyenTau = c.maChuyenTau " +
+                    "JOIN Tau t                ON c.maTau        = t.maTau " +
+                    "JOIN Ga gaDi             ON ct.maGaDi       = gaDi.maGa " +
+                    "JOIN Ga gaDen            ON ct.maGaDen      = gaDen.maGa " +
+                    "JOIN Ghe g               ON v.maGhe         = g.maGhe " +
+                    "JOIN ToaTau tt            ON g.maToaTau      = tt.maToaTau " +
+                    "WHERE v.maVe = ?";
+
+            String loaiVe="", tenKH="", cccd="", tenTau="", ngayDi="", gioDi="";
+            String gaDi="", gaDen="", soGhe="", soToa="", loaiGheRaw="";
+
+            try (java.sql.PreparedStatement ps = conn.prepareStatement(sql)) {
+                ps.setString(1, maVe);
+                try (java.sql.ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        loaiVe  = rs.getString("loaiVe")  != null ? rs.getString("loaiVe")  : "";
+                        tenKH   = rs.getString("hoTenKH") != null ? rs.getString("hoTenKH") : "";
+                        String rawCccd = rs.getString("cccd");
+                        cccd = cheCCCDVe(rawCccd != null ? rawCccd : "");
+                        tenTau  = rs.getString("tenTau")  != null ? rs.getString("tenTau")  : "";
+                        gaDi    = rs.getString("gaDi")    != null ? rs.getString("gaDi")    : "";
+                        gaDen   = rs.getString("gaDen")   != null ? rs.getString("gaDen")   : "";
+                        soGhe   = rs.getString("soGhe")   != null ? rs.getString("soGhe")   : "";
+                        soToa   = String.valueOf(rs.getInt("soToa"));
+                        loaiGheRaw = rs.getString("loaiGhe") != null ? rs.getString("loaiGhe") : "";
+                        java.sql.Timestamp ts = rs.getTimestamp("thoiGianKhoiHanh");
+                        if (ts != null) {
+                            ngayDi = new java.text.SimpleDateFormat("dd/MM/yyyy").format(ts);
+                            gioDi  = new java.text.SimpleDateFormat("HH:mm").format(ts);
+                        }
+                    }
+                }
+            }
+
+            // Chuẩn hóa loại vé
+            String loaiVeHienThi = "MOT_CHIEU".equals(loaiVe) ? "Một chiều"
+                    : "KHU_HOI".equals(loaiVe)   ? "Khứ hồi" : loaiVe;
+            String loaiGheHienThi = switch (loaiGheRaw.trim()) {
+                case "GHE_CUNG"   -> "Ghế cứng";
+                case "GHE_MEM"    -> "Ghế mềm";
+                case "GIUONG_NAM" -> "Giường nằm";
+                default           -> loaiGheRaw;
+            };
+            String hangVe = "Giường nằm".equals(loaiGheHienThi) ? "VIP" : "Thường";
+
+            // Tạo PDF - cùng khổ trang với DatVeGUI3
+            java.io.File folder = new java.io.File("Ve");
+            if (!folder.exists()) folder.mkdir();
+            java.io.File pdfFile = new java.io.File(folder, "Ve_" + maVe + ".pdf");
+
+            com.itextpdf.text.Rectangle pageSize = new com.itextpdf.text.Rectangle(240, 580);
+            com.itextpdf.text.Document doc = new com.itextpdf.text.Document(pageSize, 10, 10, 12, 12);
+            com.itextpdf.text.pdf.PdfWriter.getInstance(doc, new java.io.FileOutputStream(pdfFile));
+            doc.open();
+
+            com.itextpdf.text.pdf.BaseFont bf = com.itextpdf.text.pdf.BaseFont.createFont(
+                    "c:/windows/fonts/arial.ttf", com.itextpdf.text.pdf.BaseFont.IDENTITY_H, com.itextpdf.text.pdf.BaseFont.EMBEDDED);
+            com.itextpdf.text.Font fCongTy  = new com.itextpdf.text.Font(bf, 10, com.itextpdf.text.Font.BOLD);
+            com.itextpdf.text.Font fGaTen   = new com.itextpdf.text.Font(bf, 11, com.itextpdf.text.Font.BOLD);
+            com.itextpdf.text.Font fTieuDe  = new com.itextpdf.text.Font(bf, 12, com.itextpdf.text.Font.BOLD);
+            com.itextpdf.text.Font fSub     = new com.itextpdf.text.Font(bf,  8, com.itextpdf.text.Font.NORMAL);
+            com.itextpdf.text.Font fGaLabel = new com.itextpdf.text.Font(bf,  8, com.itextpdf.text.Font.NORMAL, com.itextpdf.text.BaseColor.GRAY);
+            com.itextpdf.text.Font fGaValue = new com.itextpdf.text.Font(bf, 11, com.itextpdf.text.Font.BOLD);
+            com.itextpdf.text.Font fLabel   = new com.itextpdf.text.Font(bf,  9, com.itextpdf.text.Font.NORMAL);
+            com.itextpdf.text.Font fValue   = new com.itextpdf.text.Font(bf,  9, com.itextpdf.text.Font.BOLD);
+            com.itextpdf.text.Font fMaVe    = new com.itextpdf.text.Font(bf,  8, com.itextpdf.text.Font.NORMAL, com.itextpdf.text.BaseColor.GRAY);
+
+            com.itextpdf.text.pdf.PdfPTable wrap = new com.itextpdf.text.pdf.PdfPTable(1);
+            wrap.setWidthPercentage(100);
+            com.itextpdf.text.pdf.PdfPCell wc = new com.itextpdf.text.pdf.PdfPCell();
+            wc.setBorder(com.itextpdf.text.Rectangle.BOX);
+            wc.setBorderWidth(0.8f);
+            wc.setPaddingLeft(10); wc.setPaddingRight(10);
+            wc.setPaddingTop(10);  wc.setPaddingBottom(10);
+
+            // Header
+            com.itextpdf.text.Paragraph pCty = new com.itextpdf.text.Paragraph("TỔNG CÔNG TY ĐƯỜNG SẮT VIỆT NAM", fCongTy);
+            pCty.setAlignment(com.itextpdf.text.Element.ALIGN_CENTER);
+            wc.addElement(pCty);
+
+            com.itextpdf.text.Paragraph pGaTen = new com.itextpdf.text.Paragraph("GA DIÊU TRÌ", fGaTen);
+            pGaTen.setAlignment(com.itextpdf.text.Element.ALIGN_CENTER);
+            wc.addElement(pGaTen);
+
+            // Đường kẻ
+            com.itextpdf.text.pdf.PdfPTable lineTable = new com.itextpdf.text.pdf.PdfPTable(1);
+            lineTable.setWidthPercentage(100); lineTable.setSpacingBefore(4); lineTable.setSpacingAfter(4);
+            com.itextpdf.text.pdf.PdfPCell lineCell = new com.itextpdf.text.pdf.PdfPCell(new com.itextpdf.text.Phrase(""));
+            lineCell.setBorder(com.itextpdf.text.Rectangle.BOTTOM);
+            lineCell.setBorderWidth(0.5f);
+            lineCell.setBorderColor(com.itextpdf.text.BaseColor.GRAY);
+            lineCell.setPaddingBottom(0);
+            lineTable.addCell(lineCell);
+            wc.addElement(lineTable);
+
+            com.itextpdf.text.Paragraph pTieuDe = new com.itextpdf.text.Paragraph("VÉ LÊN TÀU HỎA", fTieuDe);
+            pTieuDe.setAlignment(com.itextpdf.text.Element.ALIGN_CENTER);
+            wc.addElement(pTieuDe);
+
+            com.itextpdf.text.Paragraph pBoarding = new com.itextpdf.text.Paragraph("BOARDING TICKET", fSub);
+            pBoarding.setAlignment(com.itextpdf.text.Element.ALIGN_CENTER);
+            pBoarding.setSpacingAfter(5);
+            wc.addElement(pBoarding);
+
+            // Barcode
+            com.itextpdf.text.pdf.Barcode128 barcode = new com.itextpdf.text.pdf.Barcode128();
+            barcode.setCode(maVe);
+            barcode.setBarHeight(32f); barcode.setX(1.0f);
+            barcode.setBaseline(0f); barcode.setAltText("");
+            java.awt.Image awtImg = barcode.createAwtImage(java.awt.Color.BLACK, java.awt.Color.WHITE);
+            com.itextpdf.text.Image imgBar = com.itextpdf.text.Image.getInstance(awtImg, null);
+            imgBar.setAlignment(com.itextpdf.text.Element.ALIGN_CENTER);
+            imgBar.scaleToFit(240f, 38f);
+            wc.addElement(imgBar);
+
+            com.itextpdf.text.Paragraph pMaVe = new com.itextpdf.text.Paragraph("Mã vé/TicketID: " + maVe, fMaVe);
+            pMaVe.setAlignment(com.itextpdf.text.Element.ALIGN_CENTER);
+            pMaVe.setSpacingAfter(6);
+            wc.addElement(pMaVe);
+
+            // Ga đi / Ga đến
+            com.itextpdf.text.pdf.PdfPTable gaTable = new com.itextpdf.text.pdf.PdfPTable(2);
+            gaTable.setWidthPercentage(100); gaTable.setSpacingBefore(2); gaTable.setSpacingAfter(2);
+
+            com.itextpdf.text.pdf.PdfPCell cGaDi = new com.itextpdf.text.pdf.PdfPCell();
+            cGaDi.setBorder(com.itextpdf.text.Rectangle.NO_BORDER); cGaDi.setPaddingLeft(16); cGaDi.setPaddingBottom(2);
+            com.itextpdf.text.Paragraph pDiLbl = new com.itextpdf.text.Paragraph("Ga đi", fGaLabel);
+            pDiLbl.setAlignment(com.itextpdf.text.Element.ALIGN_LEFT); cGaDi.addElement(pDiLbl);
+            com.itextpdf.text.Paragraph pDiVal = new com.itextpdf.text.Paragraph(gaDi.toUpperCase(), fGaValue);
+            pDiVal.setAlignment(com.itextpdf.text.Element.ALIGN_LEFT); cGaDi.addElement(pDiVal);
+            gaTable.addCell(cGaDi);
+
+            com.itextpdf.text.pdf.PdfPCell cGaDen = new com.itextpdf.text.pdf.PdfPCell();
+            cGaDen.setBorder(com.itextpdf.text.Rectangle.NO_BORDER); cGaDen.setPaddingRight(16); cGaDen.setPaddingBottom(2);
+            com.itextpdf.text.Paragraph pDenLbl = new com.itextpdf.text.Paragraph("Ga đến", fGaLabel);
+            pDenLbl.setAlignment(com.itextpdf.text.Element.ALIGN_RIGHT); cGaDen.addElement(pDenLbl);
+            com.itextpdf.text.Paragraph pDenVal = new com.itextpdf.text.Paragraph(gaDen.toUpperCase(), fGaValue);
+            pDenVal.setAlignment(com.itextpdf.text.Element.ALIGN_RIGHT); cGaDen.addElement(pDenVal);
+            gaTable.addCell(cGaDen);
+
+            com.itextpdf.text.pdf.PdfPCell cSep = new com.itextpdf.text.pdf.PdfPCell(new com.itextpdf.text.Phrase(""));
+            cSep.setColspan(2); cSep.setBorder(com.itextpdf.text.Rectangle.BOTTOM);
+            cSep.setBorderWidth(0.5f); cSep.setBorderColor(com.itextpdf.text.BaseColor.LIGHT_GRAY); cSep.setPaddingBottom(3);
+            gaTable.addCell(cSep);
+            wc.addElement(gaTable);
+
+            // Thông tin chi tiết
+            com.itextpdf.text.pdf.PdfPTable infoTable = new com.itextpdf.text.pdf.PdfPTable(2);
+            infoTable.setWidthPercentage(100);
+            infoTable.setWidths(new float[]{1.35f, 1.65f});
+            infoTable.setSpacingBefore(3);
+
+            String[][] details = {
+                    {"Số hiệu tàu/Train ID:", tenTau},
+                    {"Ngày khởi hành/Date:", ngayDi},
+                    {"Giờ khởi hành/Time:", gioDi},
+                    {"Số Toa/Coach:", soToa},
+                    {"Loại ghế/Type:", loaiGheHienThi},
+                    {"Số ghế/Seat:", soGhe},
+                    {"Loại vé/Ticket:", loaiVeHienThi},
+                    {"Hạng vé/Class:", hangVe},
+                    {"Họ Tên/Name:", tenKH.toUpperCase()},
+                    {"Giấy tờ/Passport:", cccd},
+            };
+
+            for (String[] d : details) {
+                com.itextpdf.text.pdf.PdfPCell cL = new com.itextpdf.text.pdf.PdfPCell(new com.itextpdf.text.Phrase(d[0], fLabel));
+                cL.setBorder(com.itextpdf.text.Rectangle.NO_BORDER); cL.setPaddingLeft(14); cL.setPaddingBottom(3);
+                infoTable.addCell(cL);
+                com.itextpdf.text.pdf.PdfPCell cR = new com.itextpdf.text.pdf.PdfPCell(new com.itextpdf.text.Phrase(d[1], fValue));
+                cR.setBorder(com.itextpdf.text.Rectangle.NO_BORDER); cR.setPaddingLeft(30); cR.setPaddingBottom(3);
+                infoTable.addCell(cR);
+            }
+            wc.addElement(infoTable);
+
+            wrap.addCell(wc);
+            doc.add(wrap);
+            doc.close();
+
+            if (java.awt.Desktop.isDesktopSupported()) java.awt.Desktop.getDesktop().open(pdfFile);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            javax.swing.JOptionPane.showMessageDialog(this,
+                    "Lỗi xuất vé PDF: " + e.getMessage(), "Lỗi", javax.swing.JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private String cheCCCDVe(String cccd) {
+        if (cccd != null && cccd.length() > 4) {
+            int length = cccd.length();
+            if (length == 12) return cccd.substring(0, 4) + "****" + cccd.substring(8);
+            else if (length > 6) { int v = (length-4)/2; return cccd.substring(0,v)+"****"+cccd.substring(v+4); }
+        }
+        return cccd;
+    }
+
 }

@@ -159,12 +159,12 @@ public class HomeGUI extends JPanel {
 	}
 
 	private void setFieldsEditable(boolean editable) {
-	    // Cho phép sửa tất cả trừ Mã nhân viên
-	    for (JTextField tf : new JTextField[] { tfHoTen, tfVaiTro, tfNgaySinh, tfGioiTinh, tfSdt, tfEmail, tfDiaChi }) {
-	        tf.setEditable(editable);
-	        tf.setEnabled(editable);
-	        tf.setBackground(editable ? COLOR_ENABLED : COLOR_DISABLED);
-	    }
+		// Cho phép sửa tất cả trừ Mã nhân viên
+		for (JTextField tf : new JTextField[] { tfHoTen, tfVaiTro, tfNgaySinh, tfGioiTinh, tfSdt, tfEmail, tfDiaChi }) {
+			tf.setEditable(editable);
+			tf.setEnabled(editable);
+			tf.setBackground(editable ? COLOR_ENABLED : COLOR_DISABLED);
+		}
 	}
 
 	// =========================================================================
@@ -305,6 +305,11 @@ public class HomeGUI extends JPanel {
 
 	private void kiemTraTrangThaiYeuCau() {
 		try (Connection con = Connect_DB.getConnection()) {
+			// Kiểm tra bảng YeuCauCapNhat có tồn tại không
+			DatabaseMetaData meta = con.getMetaData();
+			ResultSet tables = meta.getTables(null, null, "YeuCauCapNhat", null);
+			if (!tables.next()) return; // Bảng chưa tồn tại, bỏ qua
+
 			String sql = "SELECT trangThai FROM YeuCauCapNhat WHERE maNV = ?";
 			PreparedStatement ps = con.prepareStatement(sql);
 			ps.setString(1, currentMaNV);
@@ -376,37 +381,37 @@ public class HomeGUI extends JPanel {
 	}
 
 	private void showCustomPopup(String message, boolean isSuccess) {
-	    JDialog dialog = new JDialog();
-	    dialog.setUndecorated(true);
-	    dialog.setBackground(new Color(0, 0, 0, 0));
-	    dialog.setAlwaysOnTop(true);
-	    Color bgColor = isSuccess ? new Color(46, 204, 113) : new Color(231, 76, 60);
-	    JPanel pnl = new JPanel() {
-	        protected void paintComponent(Graphics g) {
-	            Graphics2D g2 = (Graphics2D) g;
-	            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-	            g2.setColor(bgColor);
-	            g2.fillRoundRect(0, 0, getWidth(), getHeight(), 20, 20);
-	        }
-	    };
-	    pnl.setLayout(new FlowLayout(FlowLayout.CENTER, 20, 15));
-	    JLabel lblMsg = new JLabel(message);
-	    lblMsg.setFont(new Font("Segoe UI", Font.BOLD, 15));
-	    lblMsg.setForeground(Color.WHITE);
-	    pnl.add(lblMsg);
-	    dialog.add(pnl);
-	    dialog.pack();
+		JDialog dialog = new JDialog();
+		dialog.setUndecorated(true);
+		dialog.setBackground(new Color(0, 0, 0, 0));
+		dialog.setAlwaysOnTop(true);
+		Color bgColor = isSuccess ? new Color(46, 204, 113) : new Color(231, 76, 60);
+		JPanel pnl = new JPanel() {
+			protected void paintComponent(Graphics g) {
+				Graphics2D g2 = (Graphics2D) g;
+				g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+				g2.setColor(bgColor);
+				g2.fillRoundRect(0, 0, getWidth(), getHeight(), 20, 20);
+			}
+		};
+		pnl.setLayout(new FlowLayout(FlowLayout.CENTER, 20, 15));
+		JLabel lblMsg = new JLabel(message);
+		lblMsg.setFont(new Font("Segoe UI", Font.BOLD, 15));
+		lblMsg.setForeground(Color.WHITE);
+		pnl.add(lblMsg);
+		dialog.add(pnl);
+		dialog.pack();
 
-	    // Đặt vị trí góc dưới phải màn hình
-	    Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
-	    int x = screenSize.width - dialog.getWidth() - 20;
-	    int y = screenSize.height - dialog.getHeight() - 60; // 60 để tránh taskbar
-	    dialog.setLocation(x, y);
+		// Đặt vị trí góc dưới phải màn hình
+		Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
+		int x = screenSize.width - dialog.getWidth() - 20;
+		int y = screenSize.height - dialog.getHeight() - 60; // 60 để tránh taskbar
+		dialog.setLocation(x, y);
 
-	    Timer timer = new Timer(3000, e -> dialog.dispose());
-	    timer.setRepeats(false);
-	    timer.start();
-	    dialog.setVisible(true);
+		Timer timer = new Timer(3000, e -> dialog.dispose());
+		timer.setRepeats(false);
+		timer.start();
+		dialog.setVisible(true);
 	}
 
 	private JTextField makeTextField(boolean disabled) {
@@ -422,7 +427,7 @@ public class HomeGUI extends JPanel {
 	}
 
 	private void addFieldRow(JPanel parent, GridBagConstraints gbc, int col, int row, String label, JTextField tf,
-			int width) {
+	                         int width) {
 		gbc.gridx = col;
 		gbc.gridy = row;
 		gbc.gridwidth = width;

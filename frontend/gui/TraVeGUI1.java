@@ -3,8 +3,11 @@ package gui;
 import javax.swing.*;
 import javax.swing.border.*;
 import java.awt.*;
+import java.awt.Desktop;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.text.DecimalFormat;
 import java.time.LocalDate;
 import connect_DB.Connect_DB;
 import util.MaTuDong;
@@ -207,7 +210,7 @@ public class TraVeGUI1 extends JPanel {
                 psDon.executeUpdate();
 
                 conn.commit();
-                HoaDonPDFExporter.xuatPDF(maDon);
+                xuatHoaDonPDF(maDon);
                 JOptionPane.showMessageDialog(this,
                         "<html><div style='padding:6px'><b>Trả vé thành công!</b><br><br>" +
                                 "Mã đơn: <b>" + maDon + "</b><br>" +
@@ -259,5 +262,194 @@ public class TraVeGUI1 extends JPanel {
     private JButton makeNavyBtn(String text, int w, int h) { JButton b = new JButton(text) { @Override protected void paintComponent(Graphics g) { Graphics2D g2=(Graphics2D)g.create(); g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,RenderingHints.VALUE_ANTIALIAS_ON); g2.setColor(getModel().isPressed()?GuiTheme.NAVY_DARK:getModel().isRollover()?GuiTheme.NAVY_HOVER:NAVY); g2.fillRoundRect(0,0,getWidth(),getHeight(),8,8); g2.setColor(Color.WHITE); g2.setFont(FONT_14); FontMetrics fm=g2.getFontMetrics(); String t=getText(); g2.drawString(t,(getWidth()-fm.stringWidth(t))/2,(getHeight()+fm.getAscent()-fm.getDescent())/2); g2.dispose(); } }; b.setPreferredSize(new Dimension(w,h)); b.setContentAreaFilled(false); b.setBorderPainted(false); b.setFocusPainted(false); b.setCursor(new Cursor(Cursor.HAND_CURSOR)); return b; }
     private JButton makeOutlineBtn(String text, int w, int h) { JButton b = new JButton(text) { @Override protected void paintComponent(Graphics g) { Graphics2D g2=(Graphics2D)g.create(); g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,RenderingHints.VALUE_ANTIALIAS_ON); Color bg=getModel().isPressed()?new Color(220,225,235):getModel().isRollover()?new Color(235,239,246):new Color(240,243,248); g2.setColor(bg); g2.fillRoundRect(0,0,getWidth(),getHeight(),8,8); g2.setColor(BORDER); g2.drawRoundRect(0,0,getWidth()-1,getHeight()-1,8,8); g2.setColor(GuiTheme.TEXT); g2.setFont(FONT_14); FontMetrics fm=g2.getFontMetrics(); String t=getText(); g2.drawString(t,(getWidth()-fm.stringWidth(t))/2,(getHeight()+fm.getAscent()-fm.getDescent())/2); g2.dispose(); } }; b.setPreferredSize(new Dimension(w,h)); b.setContentAreaFilled(false); b.setBorderPainted(false); b.setFocusPainted(false); b.setCursor(new Cursor(Cursor.HAND_CURSOR)); return b; }
 
+
+
+
+
+
+
+
+    private void xuatHoaDonPDF(String maDon) {
+        try (java.sql.Connection conn = connect_DB.Connect_DB.getConnection()) {
+            String sqlHD = "SELECT h.tongTien, h.tienNhan, h.phuongThucThanhToan, " +
+                    "k.hoTenKH, k.sdt " +
+                    "FROM HoaDon h LEFT JOIN KhachHang k ON h.maKH = k.maKH " +
+                    "WHERE h.maHoaDon = ?";
+            String tenKH = "Khách vãng lai", sdtKH = "", hinhThuc = "";
+            double tongTien = 0;
+            try (java.sql.PreparedStatement ps = conn.prepareStatement(sqlHD)) {
+                ps.setString(1, maDon);
+                try (java.sql.ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        tenKH    = rs.getString("hoTenKH")             != null ? rs.getString("hoTenKH")             : "Khách vãng lai";
+                        sdtKH    = rs.getString("sdt")                 != null ? rs.getString("sdt")                 : "";
+                        hinhThuc = rs.getString("phuongThucThanhToan") != null ? rs.getString("phuongThucThanhToan") : "";
+                        tongTien = rs.getDouble("tongTien");
+                    }
+                }
+            }
+
+            String sqlVe = "SELECT v.maVe, v.loaiVe, v.giaVe, g.loaiGhe, " +
+                    "gaDi.tenGa AS gaDi, gaDen.tenGa AS gaDen " +
+                    "FROM Ve v " +
+                    "JOIN Ghe g              ON v.maGhe       = g.maGhe " +
+                    "JOIN ChiTietChuyenTau dt ON v.maChuyenTau = dt.maChuyenTau " +
+                    "JOIN Ga gaDi            ON dt.maGaDi      = gaDi.maGa " +
+                    "JOIN Ga gaDen           ON dt.maGaDen     = gaDen.maGa " +
+                    "WHERE v.maHoaDon = ?";
+
+            java.io.File folder = new java.io.File("HoaDon");
+            if (!folder.exists()) folder.mkdir();
+            java.io.File pdfFile = new java.io.File(folder, maDon + ".pdf");
+
+            com.itextpdf.text.Document document = new com.itextpdf.text.Document(com.itextpdf.text.PageSize.A4);
+            com.itextpdf.text.pdf.PdfWriter.getInstance(document, new java.io.FileOutputStream(pdfFile));
+            document.open();
+
+            com.itextpdf.text.pdf.BaseFont bf = com.itextpdf.text.pdf.BaseFont.createFont(
+                    "c:/windows/fonts/arial.ttf",
+                    com.itextpdf.text.pdf.BaseFont.IDENTITY_H,
+                    com.itextpdf.text.pdf.BaseFont.EMBEDDED);
+            com.itextpdf.text.Font fontTitle  = new com.itextpdf.text.Font(bf, 16, com.itextpdf.text.Font.BOLD);
+            com.itextpdf.text.Font fontBold   = new com.itextpdf.text.Font(bf, 11, com.itextpdf.text.Font.BOLD);
+            com.itextpdf.text.Font fontNormal = new com.itextpdf.text.Font(bf, 11, com.itextpdf.text.Font.NORMAL);
+            com.itextpdf.text.Font fontItalic = new com.itextpdf.text.Font(bf, 11, com.itextpdf.text.Font.ITALIC);
+
+            com.itextpdf.text.Paragraph title = new com.itextpdf.text.Paragraph("HÓA ĐƠN GIÁ TRỊ GIA TĂNG", fontTitle);
+            title.setAlignment(com.itextpdf.text.Element.ALIGN_CENTER);
+            document.add(title);
+
+            String dateStr = new java.text.SimpleDateFormat("dd/MM/yyyy HH:mm:ss").format(new java.util.Date());
+            com.itextpdf.text.Paragraph dateP = new com.itextpdf.text.Paragraph("Ngày xuất: " + dateStr, fontItalic);
+            dateP.setAlignment(com.itextpdf.text.Element.ALIGN_CENTER);
+            document.add(dateP);
+            document.add(new com.itextpdf.text.Paragraph(" ", fontNormal));
+            document.add(new com.itextpdf.text.Paragraph(" ", fontNormal));
+
+            document.add(new com.itextpdf.text.Paragraph("Đơn vị bán hàng: CÔNG TY CỔ PHẦN VẬN TẢI ĐƯỜNG SẮT", fontBold));
+            document.add(new com.itextpdf.text.Paragraph("Mã số thuế: 0100106264", fontNormal));
+            document.add(new com.itextpdf.text.Paragraph("Địa chỉ: 113 Nguyễn Đình Thụ, Tuy Phước, Gia Lai", fontNormal));
+            document.add(new com.itextpdf.text.Paragraph(" ", fontNormal));
+
+            document.add(new com.itextpdf.text.Paragraph("Họ tên người mua hàng: " + tenKH, fontBold));
+            document.add(new com.itextpdf.text.Paragraph("Điện thoại: " + sdtKH, fontNormal));
+            document.add(new com.itextpdf.text.Paragraph("Hình thức thanh toán: " + hinhThuc + "          Mã HĐ: " + maDon, fontNormal));
+            document.add(new com.itextpdf.text.Paragraph(" ", fontNormal));
+
+            com.itextpdf.text.pdf.PdfPTable table = new com.itextpdf.text.pdf.PdfPTable(10);
+            table.setWidthPercentage(100);
+            table.setWidths(new float[]{1f, 3.5f, 2f, 2.3f, 1.8f, 2f, 1f, 1f, 2f, 2.2f});
+            for (String h : new String[]{"STT","Tên dịch vụ","Loại vé","Mã vé","Chiều","Giá vé","ĐVT","SL","Khuyến mãi","Thành tiền"}) {
+                com.itextpdf.text.pdf.PdfPCell cell = new com.itextpdf.text.pdf.PdfPCell(new com.itextpdf.text.Phrase(h, fontBold));
+                cell.setHorizontalAlignment(com.itextpdf.text.Element.ALIGN_CENTER);
+                cell.setVerticalAlignment(com.itextpdf.text.Element.ALIGN_MIDDLE);
+                cell.setPaddingBottom(6);
+                cell.setBackgroundColor(new com.itextpdf.text.BaseColor(245, 245, 245));
+                table.addCell(cell);
+            }
+
+            java.text.DecimalFormat df = new java.text.DecimalFormat("#,###");
+            int stt = 1;
+            try (java.sql.PreparedStatement ps = conn.prepareStatement(sqlVe)) {
+                ps.setString(1, maDon);
+                try (java.sql.ResultSet rs = ps.executeQuery()) {
+                    while (rs.next()) {
+                        double giaVe = rs.getDouble("giaVe");
+                        String lv = rs.getString("loaiVe");
+                        String loaiVeHienThi = "MOT_CHIEU".equals(lv) ? "Một chiều"
+                                : "KHU_HOI".equals(lv)   ? "Khứ hồi"
+                                  : (lv != null ? lv : "");
+                        pdfAddCell(table, fontNormal, String.valueOf(stt++), com.itextpdf.text.Element.ALIGN_CENTER);
+                        pdfAddCell(table, fontNormal, "Vé HK trực tiếp tại nhà ga", com.itextpdf.text.Element.ALIGN_LEFT);
+                        pdfAddCell(table, fontNormal, loaiVeHienThi, com.itextpdf.text.Element.ALIGN_CENTER);
+                        pdfAddCell(table, fontNormal, rs.getString("maVe") != null ? rs.getString("maVe") : "", com.itextpdf.text.Element.ALIGN_CENTER);
+                        pdfAddCell(table, fontNormal, rs.getString("gaDi") + " → " + rs.getString("gaDen"), com.itextpdf.text.Element.ALIGN_CENTER);
+                        pdfAddCell(table, fontNormal, df.format(giaVe), com.itextpdf.text.Element.ALIGN_RIGHT);
+                        pdfAddCell(table, fontNormal, "Vé", com.itextpdf.text.Element.ALIGN_CENTER);
+                        pdfAddCell(table, fontNormal, "1", com.itextpdf.text.Element.ALIGN_CENTER);
+                        pdfAddCell(table, fontNormal, "0", com.itextpdf.text.Element.ALIGN_RIGHT);
+                        pdfAddCell(table, fontNormal, df.format(giaVe), com.itextpdf.text.Element.ALIGN_RIGHT);
+                    }
+                }
+            }
+            document.add(table);
+            document.add(new com.itextpdf.text.Paragraph(" ", fontNormal));
+
+            com.itextpdf.text.Paragraph pTong = new com.itextpdf.text.Paragraph("Tổng tiền hoàn: " + df.format(tongTien), fontBold);
+            pTong.setAlignment(com.itextpdf.text.Element.ALIGN_RIGHT);
+            document.add(pTong);
+
+            com.itextpdf.text.Paragraph pChu = new com.itextpdf.text.Paragraph("Bằng chữ: " + docSoThanh((long) tongTien), fontItalic);
+            pChu.setAlignment(com.itextpdf.text.Element.ALIGN_RIGHT);
+            document.add(pChu);
+
+            document.add(new com.itextpdf.text.Paragraph(" ", fontNormal));
+            document.add(new com.itextpdf.text.Paragraph("Ghi chú: ......................................................................................................................................", fontNormal));
+            document.add(new com.itextpdf.text.Paragraph(" ", fontNormal));
+            document.add(new com.itextpdf.text.Paragraph(" ", fontNormal));
+
+            com.itextpdf.text.pdf.PdfPTable signTable = new com.itextpdf.text.pdf.PdfPTable(2);
+            signTable.setWidthPercentage(100);
+            com.itextpdf.text.pdf.PdfPCell cBuyer  = new com.itextpdf.text.pdf.PdfPCell(new com.itextpdf.text.Phrase("Người mua hàng\n(Ký, ghi rõ họ tên)", fontNormal));
+            com.itextpdf.text.pdf.PdfPCell cSeller = new com.itextpdf.text.pdf.PdfPCell(new com.itextpdf.text.Phrase("Người bán hàng\n(Ký, ghi rõ họ tên)", fontNormal));
+            cBuyer.setHorizontalAlignment(com.itextpdf.text.Element.ALIGN_CENTER);  cBuyer.setBorder(com.itextpdf.text.pdf.PdfPCell.NO_BORDER);
+            cSeller.setHorizontalAlignment(com.itextpdf.text.Element.ALIGN_CENTER); cSeller.setBorder(com.itextpdf.text.pdf.PdfPCell.NO_BORDER);
+            signTable.addCell(cBuyer);
+            signTable.addCell(cSeller);
+            document.add(signTable);
+
+            document.close();
+            if (java.awt.Desktop.isDesktopSupported()) java.awt.Desktop.getDesktop().open(pdfFile);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            javax.swing.JOptionPane.showMessageDialog(this,
+                    "Lỗi xuất PDF: " + e.getMessage(), "Lỗi", javax.swing.JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void pdfAddCell(com.itextpdf.text.pdf.PdfPTable table, com.itextpdf.text.Font font, String text, int align) {
+        com.itextpdf.text.pdf.PdfPCell cell = new com.itextpdf.text.pdf.PdfPCell(new com.itextpdf.text.Phrase(text != null ? text : "", font));
+        cell.setHorizontalAlignment(align);
+        cell.setVerticalAlignment(com.itextpdf.text.Element.ALIGN_MIDDLE);
+        cell.setPaddingBottom(4);
+        table.addCell(cell);
+    }
+
+    private String docSoThanh(long so) {
+        if (so == 0) return "Không đồng";
+        String[] donVi = {"", "nghìn", "triệu", "tỷ"};
+        String[] chu   = {"", "một", "hai", "ba", "bốn", "năm", "sáu", "bảy", "tám", "chín"};
+        if (so < 0) return "Âm " + docSoThanh(-so);
+        StringBuilder sb = new StringBuilder();
+        int i = 0;
+        while (so > 0) {
+            int nhom = (int)(so % 1000);
+            if (nhom != 0) {
+                String phan = docNhom(nhom, chu) + (donVi[i].isEmpty() ? "" : " " + donVi[i]);
+                sb.insert(0, (sb.length() > 0 ? " " : "") + phan);
+            }
+            so /= 1000; i++;
+        }
+        String result = sb.toString().trim();
+        return Character.toUpperCase(result.charAt(0)) + result.substring(1) + " đồng";
+    }
+
+    private String docNhom(int n, String[] chu) {
+        int tram = n / 100, chuc = (n % 100) / 10, dv = n % 10;
+        StringBuilder s = new StringBuilder();
+        if (tram > 0) s.append(chu[tram]).append(" trăm");
+        if (chuc > 1) {
+            s.append(s.length() > 0 ? " " : "").append(chu[chuc]).append(" mươi");
+            if (dv > 0) s.append(" ").append(dv == 1 ? "mốt" : dv == 5 ? "lăm" : chu[dv]);
+        } else if (chuc == 1) {
+            s.append(s.length() > 0 ? " " : "").append("mười");
+            if (dv > 0) s.append(" ").append(dv == 5 ? "lăm" : chu[dv]);
+        } else if (dv > 0) {
+            if (tram > 0) s.append(" lẻ");
+            s.append(" ").append(chu[dv]);
+        }
+        return s.toString().trim();
+    }
 
 }

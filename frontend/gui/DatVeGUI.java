@@ -57,12 +57,12 @@ public class DatVeGUI extends JPanel {
         m.put("Vinh",       "Nghệ An");
         m.put("Đồng Hới",   "Quảng Trị");
         m.put("Đông Hà",    "Quảng Trị");
-        m.put("Huế",        "Thừa Thiên Huế");
+        m.put("Huế",        "Thừa Thiên – Huế");
         m.put("Đà Nẵng",    null);
         m.put("Tam Kỳ",     "Đà Nẵng");
         m.put("Quảng Ngãi", null);
         m.put("Diêu Trì",   "Gia Lai");
-        m.put("Tuy Hòa",    "Dak Lak");
+        m.put("Tuy Hòa",    "Đắk Lắk");
         m.put("Nha Trang",  "Khánh Hòa");
         m.put("Tháp Chàm",  "Khánh Hòa");
         m.put("Bình Thuận", null);

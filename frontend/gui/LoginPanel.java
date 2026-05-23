@@ -8,8 +8,8 @@ import service.AuthService;
 
 public class LoginPanel extends JPanel {
     private AppFrame parent;
-	private JTextField txtUsername;
-	private JPasswordField txtPassword;
+    private JTextField txtUsername;
+    private JPasswordField txtPassword;
 
     public LoginPanel(AppFrame parent) {
         this.parent = parent;
@@ -21,22 +21,43 @@ public class LoginPanel extends JPanel {
         leftPanel.setBackground(GuiTheme.NAVY);
         leftPanel.setBorder(null);
 
-        leftPanel.setPreferredSize(new Dimension(670, 0));
-        leftPanel.setMaximumSize(new Dimension(670, Integer.MAX_VALUE));
-        JLabel bgLabel = new JLabel(GuiIcons.loadIcon(LoginPanel.class, "/Images/Ga.png", 700, 790));
+        leftPanel.setPreferredSize(new Dimension(750, 0));
+        leftPanel.setMaximumSize(new Dimension(750, Integer.MAX_VALUE));
+        JLabel bgLabel = new JLabel(GuiIcons.loadIcon(LoginPanel.class, "/Images/Ga.png", 780, 800));
 
         bgLabel.setBorder(null);
 
         leftPanel.add(bgLabel, BorderLayout.CENTER);
 
         // 2. PHẦN BÊN PHẢI: FORM ĐĂNG NHẬP
-        JPanel rightPanel = new JPanel(new GridBagLayout());
-        rightPanel.setBackground(GuiTheme.LIGHT_BG);
+        // Gradient siêu nhạt + decorative circles navy mờ
+        JPanel rightPanel = new JPanel(new GridBagLayout()) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                // Gradient từ trắng -> xanh nhạt
+                g2.setPaint(new GradientPaint(0, 0, Color.WHITE, getWidth(), getHeight(), new Color(0xF5, 0xF8, 0xFC)));
+                g2.fillRect(0, 0, getWidth(), getHeight());
+                // Decoration: 3 vòng tròn navy mờ
+                g2.setColor(new Color(GuiTheme.NAVY.getRed(), GuiTheme.NAVY.getGreen(), GuiTheme.NAVY.getBlue(), 12));
+                g2.fillOval(-120, -120, 360, 360);
+                g2.fillOval(getWidth() - 180, getHeight() - 180, 320, 320);
+                g2.setColor(new Color(GuiTheme.NAVY.getRed(), GuiTheme.NAVY.getGreen(), GuiTheme.NAVY.getBlue(), 8));
+                g2.fillOval(getWidth() - 80, 60, 180, 180);
+                g2.dispose();
+            }
+        };
+        rightPanel.setOpaque(false);
 
+        // --- ĐÃ CHỈNH SỬA Ở ĐÂY ---
+        // Thay vì vẽ Card trắng, chỉ dùng một JPanel trong suốt để căn giữa các component
         JPanel form = new JPanel();
         form.setLayout(new BoxLayout(form, BoxLayout.Y_AXIS));
-        form.setOpaque(false);
-        form.setBorder(new EmptyBorder(0, 40, 0, 40));
+        form.setOpaque(false); // Trong suốt hoàn toàn để lộ nền gradient
+        form.setPreferredSize(new Dimension(420, 620)); // Vẫn giữ nguyên kích thước để căn giữa chuẩn
+        form.setMaximumSize(new Dimension(420, 620));
+        form.setBorder(new EmptyBorder(40, 50, 40, 50));
 
         // --- Logo & Tiêu đề ---
         JLabel iconTrain = new JLabel(GuiIcons.loadIcon(LoginPanel.class, "/Images/logoTrain.png", 120, 120));
@@ -47,11 +68,33 @@ public class LoginPanel extends JPanel {
         title.setForeground(GuiTheme.NAVY_DARK);
         title.setAlignmentX(Component.CENTER_ALIGNMENT);
 
+        // Gạch ngang navy ngắn dưới tiêu đề
+        JPanel underline = new JPanel() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(GuiTheme.NAVY);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 4, 4);
+                g2.dispose();
+            }
+        };
+        underline.setOpaque(false);
+        underline.setPreferredSize(new Dimension(60, 4));
+        underline.setMaximumSize(new Dimension(60, 4));
+        underline.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+        // Dòng phụ
+        JLabel subtitle = new JLabel("Hệ thống quản lý vé tàu");
+        subtitle.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 13));
+        subtitle.setForeground(new Color(120, 130, 145));
+        subtitle.setAlignmentX(Component.CENTER_ALIGNMENT);
+
         // --- Ô nhập Tài khoản & Mật khẩu ---
-         txtUsername = new JTextField("Tài khoản");
+        txtUsername = new JTextField("Tài khoản");
         JPanel userWrapper = createInputWrapper(txtUsername, "Tài khoản", false);
 
-		txtPassword = new JPasswordField("Mật khẩu");
+        txtPassword = new JPasswordField("Mật khẩu");
         txtPassword.setEchoChar((char) 0); // Hiện chữ mờ lúc đầu
         JPanel passWrapper = createInputWrapper(txtPassword, "Mật khẩu", true);
 
@@ -65,7 +108,7 @@ public class LoginPanel extends JPanel {
         chkAdmin.setForeground(GuiTheme.NAVY);
         checkPanel.add(chkAdmin);
 
-        // --- Nút Đăng nhập bo tròn (Có Hover & Chiều sâu) ---
+        // --- Nút Đăng nhập bo tròn ---
         JButton btnLogin = new JButton("Đăng nhập") {
             @Override
             protected void paintComponent(Graphics g) {
@@ -75,18 +118,20 @@ public class LoginPanel extends JPanel {
                 boolean isPressed = getModel().isPressed();
                 boolean isHovered = getModel().isRollover();
 
-                // 1. Tạo bóng đổ (Drop Shadow) tạo chiều sâu (Chỉ hiện khi không nhấn)
+                // 1. Shadow navy đậm tạo chiều sâu
                 if (!isPressed) {
-                    g2.setColor(new Color(0, 0, 0, 40)); // Bóng xám mờ
-                    g2.fillRoundRect(0, 4, getWidth(), getHeight() - 4, 20, 20);
+                    for (int i = 0; i < 5; i++) {
+                        g2.setColor(new Color(GuiTheme.NAVY.getRed(), GuiTheme.NAVY.getGreen(), GuiTheme.NAVY.getBlue(), 40 - i * 6));
+                        g2.fillRoundRect(0, 4 + i, getWidth(), getHeight() - 4, 20, 20);
+                    }
                 }
 
-                // 2. Vẽ nền nút (Hiệu ứng Hover & Nhấn)
+                // 2. Vẽ nền nút
                 if (isPressed) {
                     g2.setColor(GuiTheme.NAVY.darker());
-                    g2.fillRoundRect(0, 3, getWidth(), getHeight() - 6, 20, 20); // Nút lún xuống
+                    g2.fillRoundRect(0, 3, getWidth(), getHeight() - 6, 20, 20);
                 } else if (isHovered) {
-                    g2.setColor(GuiTheme.NAVY.brighter()); // Sáng lên khi Hover
+                    g2.setColor(GuiTheme.NAVY.brighter());
                     g2.fillRoundRect(0, 0, getWidth(), getHeight() - 6, 20, 20);
                 } else {
                     g2.setColor(GuiTheme.NAVY);
@@ -106,36 +151,15 @@ public class LoginPanel extends JPanel {
             }
         };
 
-        txtUsername.addKeyListener(new java.awt.event.KeyAdapter() {
-            @Override
-            public void keyPressed(java.awt.event.KeyEvent e) {
-                if (e.getKeyCode() == java.awt.event.KeyEvent.VK_ENTER) {
-                    txtPassword.requestFocusInWindow();
-                }
-            }
-        });
-        txtPassword.addKeyListener(new java.awt.event.KeyAdapter() {
-            @Override
-            public void keyPressed(java.awt.event.KeyEvent e) {
-                if (e.getKeyCode() == java.awt.event.KeyEvent.VK_ENTER) {
-                    btnLogin.requestFocusInWindow();
-                }
-            }
-        });
-        btnLogin.addKeyListener(new java.awt.event.KeyAdapter() {
-            @Override
-            public void keyPressed(java.awt.event.KeyEvent e) {
-                if (e.getKeyCode() == java.awt.event.KeyEvent.VK_ENTER) {
-                    btnLogin.doClick();
-                }
-            }
-        });
+        // ENTER ở bất kỳ đâu cũng đăng nhập
+        txtUsername.addActionListener(e -> btnLogin.doClick());
+        txtPassword.addActionListener(e -> btnLogin.doClick());
 
         btnLogin.setContentAreaFilled(false);
         btnLogin.setBorderPainted(false);
         btnLogin.setFocusPainted(false);
         btnLogin.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        btnLogin.setPreferredSize(new Dimension(300, 50)); 
+        btnLogin.setPreferredSize(new Dimension(300, 50));
         btnLogin.setMaximumSize(new Dimension(300, 50));
         btnLogin.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 18));
         btnLogin.setAlignmentX(Component.CENTER_ALIGNMENT);
@@ -180,10 +204,11 @@ public class LoginPanel extends JPanel {
                 }
                 case WRONG_PASSWORD    -> showStatusPopup(false, "Mật khẩu không đúng!");
                 case ACCOUNT_NOT_FOUND -> showStatusPopup(false, "Tài khoản không tồn tại!");
+                case ACCOUNT_LOCKED    -> showStatusPopup(false, "Tài khoản đã bị vô hiệu hóa!");
             }
         });
 
-        // --- Quên mật khẩu (Có Hover) ---
+        // --- Quên mật khẩu ---
         JLabel lblForgot = new JLabel("Quên mật khẩu!");
         lblForgot.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 13));
         lblForgot.setForeground(GuiTheme.ACCENT);
@@ -199,7 +224,11 @@ public class LoginPanel extends JPanel {
         form.add(iconTrain);
         form.add(Box.createVerticalStrut(5));
         form.add(title);
-        form.add(Box.createVerticalStrut(20));
+        form.add(Box.createVerticalStrut(8));
+        form.add(underline);
+        form.add(Box.createVerticalStrut(8));
+        form.add(subtitle);
+        form.add(Box.createVerticalStrut(22));
         form.add(userWrapper);
         form.add(Box.createVerticalStrut(15));
         form.add(passWrapper);
@@ -213,6 +242,12 @@ public class LoginPanel extends JPanel {
         rightPanel.add(form);
         add(leftPanel, BorderLayout.WEST);
         add(rightPanel, BorderLayout.CENTER);
+
+        // Mặc định ENTER ở bất cứ đâu trong form đều đăng nhập
+        javax.swing.SwingUtilities.invokeLater(() -> {
+            javax.swing.JRootPane rp = SwingUtilities.getRootPane(this);
+            if (rp != null) rp.setDefaultButton(btnLogin);
+        });
     }
 
     // --- POPUP THÔNG BÁO CAO CẤP CHUNG (TỰ ĐỘNG ĐÓNG SAU 1.5 GIÂY) ---
@@ -231,7 +266,7 @@ public class LoginPanel extends JPanel {
                 g2.setColor(Color.WHITE);
                 g2.fillRoundRect(0, 0, getWidth(), getHeight(), 24, 24);
                 // Viền mảnh tinh tế bao quanh
-                g2.setColor(new Color(235, 235, 235));
+                g2.setColor(new Color(255, 255, 255));
                 g2.setStroke(new BasicStroke(1));
                 g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 24, 24);
                 g2.dispose();
@@ -300,6 +335,7 @@ public class LoginPanel extends JPanel {
 
         dialog.setVisible(true);
     }
+
     public void refresh() {
         if (txtUsername != null) txtUsername.setText("Tài khoản");
         if (txtPassword != null) {
@@ -307,6 +343,7 @@ public class LoginPanel extends JPanel {
             txtPassword.setEchoChar((char) 0); // hiện chữ như placeholder
         }
     }
+
     private JPanel createInputWrapper(JTextField textField, String placeholder, boolean isPassword) {
         final boolean[] isHovered = {false};
 
@@ -322,11 +359,19 @@ public class LoginPanel extends JPanel {
 
                 g2.setColor(Color.WHITE);
                 g2.fillRoundRect(0, 0, getWidth() - 2, getHeight() - 4, 20, 20);
+
+                // Viền navy khi focus
+                if (textField.hasFocus()) {
+                    g2.setColor(GuiTheme.NAVY);
+                    g2.setStroke(new BasicStroke(2f));
+                    g2.drawRoundRect(0, 0, getWidth() - 3, getHeight() - 5, 20, 20);
+                }
             }
         };
 
         wrapper.setOpaque(false);
-        wrapper.setMaximumSize(new Dimension(320, 52)); 
+        wrapper.setMaximumSize(new Dimension(300, 52));
+        wrapper.setPreferredSize(new Dimension(300, 52));
         wrapper.setBorder(new EmptyBorder(6, 15, 10, 15));
 
         textField.setBorder(null);
@@ -334,10 +379,12 @@ public class LoginPanel extends JPanel {
         textField.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 15));
         textField.setForeground(Color.GRAY);
 
+        final JPanel wrapperRef = wrapper;
         textField.addFocusListener(new FocusAdapter() {
             @Override
             public void focusGained(FocusEvent e) {
-                wrapper.repaint(); 
+                wrapperRef.repaint();
+                wrapper.repaint();
                 if (textField.getText().equals(placeholder)) {
                     textField.setText("");
                     textField.setForeground(Color.BLACK);
@@ -346,7 +393,8 @@ public class LoginPanel extends JPanel {
             }
             @Override
             public void focusLost(FocusEvent e) {
-                wrapper.repaint(); 
+                wrapperRef.repaint();
+                wrapper.repaint();
                 if (textField.getText().isEmpty()) {
                     textField.setForeground(Color.GRAY);
                     textField.setText(placeholder);
@@ -368,7 +416,7 @@ public class LoginPanel extends JPanel {
             }
         };
         wrapper.addMouseListener(hoverAdapter);
-        textField.addMouseListener(hoverAdapter); 
+        textField.addMouseListener(hoverAdapter);
 
         wrapper.add(textField, BorderLayout.CENTER);
 
@@ -378,7 +426,7 @@ public class LoginPanel extends JPanel {
 
             JLabel eyeLabel = new JLabel(iconClose);
             eyeLabel.setCursor(new Cursor(Cursor.HAND_CURSOR));
-            eyeLabel.addMouseListener(hoverAdapter); 
+            eyeLabel.addMouseListener(hoverAdapter);
 
             eyeLabel.addMouseListener(new MouseAdapter() {
                 boolean isHidden = true;
@@ -396,5 +444,4 @@ public class LoginPanel extends JPanel {
 
         return wrapper;
     }
-    
 }

@@ -894,9 +894,9 @@ public class DatVeGUI3 extends JPanel {
 	    public void cellLayout(PdfPCell cell, Rectangle position, PdfContentByte[] canvases) {
 	        PdfContentByte cb = canvases[PdfPTable.LINECANVAS];
 	        cb.setLineWidth(1.2f);
-	        cb.setRGBColorStroke(0, 0, 0); 
+	        cb.setRGBColorStroke(0, 0, 0);
 	        // Vẽ bo góc sát mép cell
-	        cb.roundRectangle(position.getLeft() + 1, position.getBottom() + 1, 
+	        cb.roundRectangle(position.getLeft() + 1, position.getBottom() + 1,
 	                          position.getWidth() - 2, position.getHeight() - 2, 10);
 	        cb.stroke();
 	    }
@@ -1106,7 +1106,7 @@ public class DatVeGUI3 extends JPanel {
 
 	                PdfPCell cR = new PdfPCell(new Phrase(d[1], fValue));
 	                cR.setBorder(Rectangle.NO_BORDER);
-	                cR.setPaddingLeft(30); 
+	                cR.setPaddingLeft(30);
 	                cR.setPaddingBottom(3);
 	                infoTable.addCell(cR);
 	            }

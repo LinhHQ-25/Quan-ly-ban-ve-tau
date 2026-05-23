@@ -140,25 +140,19 @@ public class DoiVeGUI1 extends JPanel {
         long   giaVeMoiKhongKM = Math.round(300_000.0 * heSoCuLyMoi * heSoLoaiToaMoi);
 
         // ── Tính tổng tiền theo nghiệp vụ ────────────────────────────────────
-        if (trungGaDen) {
-            // Ga đến trùng → chỉ thu đúng 30.000đ phụ phí
-            tongLePhi = phiDoiVe;
-            giaVeMoi  = giaVeCu + phiDoiVe;
-        } else {
-            // Ga đến khác → khách chỉ bù phần chênh lệch + phụ phí
-            // tongLePhi = (vé mới không KM) - (vé cũ đã KM) + 30.000
-            long tinhDuoc = giaVeMoiKhongKM - giaVeCu + phiDoiVe;
-            tongLePhi = Math.max(tinhDuoc, phiDoiVe); // tối thiểu 30.000đ
-            giaVeMoi  = giaVeCu + tongLePhi; // tổng tiền thực khách đã chi
-        }
+        // Cùng ga hay khác ga, gần hay xa: đều tính (giá mới không KM) - (giá cũ đã KM) + 30.000
+        // Tối thiểu 30.000đ (vé mới rẻ hơn cũng không hoàn tiền)
+        long tinhDuoc = giaVeMoiKhongKM - giaVeCu + phiDoiVe;
+        tongLePhi = Math.max(tinhDuoc, phiDoiVe);
+        giaVeMoi  = giaVeCu + tongLePhi; // tổng tiền thực khách đã chi
 
         // ── Hiển thị ─────────────────────────────────────────────────────────
-        String moTa = trungGaDen
-                ? "Cùng ga đến — phụ phí đổi vé"
-                : "Ga đến khác — chênh lệch: " + (giaVeMoiKhongKM >= giaVeCu ? "+" : "") + fmtTien(giaVeMoiKhongKM - giaVeCu);
+        long chenhLech = giaVeMoiKhongKM - giaVeCu;
+        String moTa = (chenhLech == 0 ? "Cùng mức giá" : (chenhLech > 0 ? "Nâng hạng" : "Hạ hạng"))
+                + " — chênh lệch: " + (chenhLech >= 0 ? "+" : "") + fmtTien(chenhLech);
         lbChenhLech.setText(moTa);
-        lbChenhLech.setForeground(trungGaDen ? GuiTheme.SUB_TEXT
-                : giaVeMoiKhongKM > giaVeCu ? new Color(180, 60, 0) : new Color(30, 120, 60));
+        lbChenhLech.setForeground(chenhLech > 0 ? new Color(180, 60, 0)
+                : chenhLech < 0 ? new Color(30, 120, 60) : GuiTheme.SUB_TEXT);
 
         lbTongThu.setText("Tổng tiền cần thanh toán: " + fmtTien(tongLePhi));
         lbTongThu.setForeground(tongLePhi > phiDoiVe ? new Color(180, 60, 0) : GuiTheme.TEXT);

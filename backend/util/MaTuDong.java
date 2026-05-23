@@ -29,7 +29,7 @@ public final class MaTuDong {
     }
 
     public static String taoMaDon(Connection con, LocalDate ngayLap) throws Exception {
-        return taoMaKhongTrung(con, "SELECT 1 FROM DonDoiTraVe WHERE maDon = ?", "DT-" + ngayLap.format(MMYY) + "-", 4);
+        return taoMaKhongTrung(con, "SELECT 1 FROM DonDoiTraVe WHERE maDon = ?", "DT" + ngayLap.format(MMYY) + "-", 4);
     }
 
     private static String taoMaKhongTrung(Connection con, String sqlKiemTra, String prefix, int soKyTu) throws Exception {
