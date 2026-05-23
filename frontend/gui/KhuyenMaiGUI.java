@@ -31,7 +31,11 @@ public class KhuyenMaiGUI extends JPanel {
     private static final Color TAG_SAP_BG = new Color(219, 234, 254);
     private static final Color TAG_SAP_FG = new Color(37, 99, 235);
     private static final int   BTN_H      = 38;
-
+    private JTextField tfMaKM, tfTenKM, tfTiLe, tfDieuKien;
+ // Thêm vào đầu class KhuyenMaiGUI
+    private static final java.util.Set<String> MA_KM_CO_DINH = new java.util.HashSet<>(
+        java.util.Arrays.asList("KM001", "KM002", "KM003", "KM208603")
+    );
     static final String[]        LOAI_KH_VIET = {
             "Tất cả", "Trẻ em (<6 tuổi)", "Trẻ em (6-10 tuổi)",
             "Người cao tuổi", "Sinh viên", "Người lớn"
@@ -95,10 +99,11 @@ public class KhuyenMaiGUI extends JPanel {
         loadData();
     }
 
+ // Thay toàn bộ initPopupMenu()
     private void initPopupMenu() {
         popupMenu = new JPopupMenu();
-        menuSua   = new JMenuItem("Sửa thông tin");
-        menuXoa   = new JMenuItem("Xóa khuyến mãi");
+        menuSua  = new JMenuItem("Sửa thông tin");
+        menuXoa  = new JMenuItem("Xóa khuyến mãi");
         menuSua.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
         menuXoa.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
         menuXoa.setForeground(RED_DEL);
@@ -106,6 +111,18 @@ public class KhuyenMaiGUI extends JPanel {
         menuXoa.addActionListener(e -> { if (popupRow >= 0) xoaKhuyenMai(popupRow); });
         popupMenu.add(menuSua);
         popupMenu.add(menuXoa);
+
+        // Ẩn/hiện Xóa tùy theo KM cố định hay không
+        popupMenu.addPopupMenuListener(new javax.swing.event.PopupMenuListener() {
+            public void popupMenuWillBecomeVisible(javax.swing.event.PopupMenuEvent e) {
+                if (popupRow >= 0) {
+                    String ma = tableModel.getValueAt(popupRow, 0).toString();
+                    menuXoa.setVisible(!MA_KM_CO_DINH.contains(ma));
+                }
+            }
+            public void popupMenuWillBecomeInvisible(javax.swing.event.PopupMenuEvent e) {}
+            public void popupMenuCanceled(javax.swing.event.PopupMenuEvent e) {}
+        });
     }
 
     private JPanel buildTopBar() {
@@ -403,6 +420,7 @@ public class KhuyenMaiGUI extends JPanel {
         private final KhuyenMaiDAO dao = new KhuyenMaiDAO();
 
         private JTextField        tfMaKM, tfTenKM, tfTiLe;
+        private JTextField tfDieuKien;
         private JTextArea         taMoTa;
         private JComboBox<String> cbLoaiKH, cbTrangThai;
         private JDateChooser      dcBatDau, dcKetThuc;
@@ -444,7 +462,6 @@ public class KhuyenMaiGUI extends JPanel {
         private JPanel buildForm() {
             JPanel p = new JPanel(new GridBagLayout());
             p.setBackground(Color.WHITE);
-            // Padding cân đối: trên/dưới bằng nhau
             p.setBorder(BorderFactory.createCompoundBorder(
                     new MatteBorder(0, 0, 1, 0, new Color(210, 215, 224)),
                     new EmptyBorder(16, 24, 16, 24)));
@@ -453,14 +470,15 @@ public class KhuyenMaiGUI extends JPanel {
             g.fill = GridBagConstraints.HORIZONTAL;
             g.insets = new Insets(5, 0, 5, 0);
 
+            // ── Khởi tạo các field ────────────────────────────────────────────────
             tfMaKM  = inputField();
             tfTenKM = inputField();
 
-            // Ô nhập tỉ lệ + ký hiệu %
+            // Tỉ lệ giảm + %
             tfTiLe = inputField();
-            tfTiLe.setToolTipText("Nhập số từ 1 đến 100");
+            tfTiLe.setToolTipText("Nhập số từ 0 đến 100");
             JLabel lblPct = new JLabel("%");
-            lblPct.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 14));
+            lblPct.setFont(GuiTheme.font("Segoe UI", java.awt.Font.BOLD, 14));
             lblPct.setBorder(new EmptyBorder(0, 6, 0, 0));
             JPanel pnlTiLe = new JPanel(new BorderLayout(4, 0));
             pnlTiLe.setOpaque(false);
@@ -471,40 +489,71 @@ public class KhuyenMaiGUI extends JPanel {
             dcKetThuc = buildDateChooser();
 
             taMoTa = new JTextArea(3, 20);
-            taMoTa.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
-            taMoTa.setLineWrap(true); taMoTa.setWrapStyleWord(true);
+            taMoTa.setFont(GuiTheme.font("Segoe UI", java.awt.Font.PLAIN, 14));
+            taMoTa.setLineWrap(true);
+            taMoTa.setWrapStyleWord(true);
             JScrollPane spMoTa = new JScrollPane(taMoTa);
             spMoTa.setBorder(new LineBorder(new Color(210, 215, 224), 1));
 
             cbLoaiKH    = new JComboBox<>(LOAI_KH_VIET);
             cbTrangThai = new JComboBox<>(new String[]{"Đang áp dụng", "Sắp áp dụng", "Ngừng áp dụng"});
-            cbLoaiKH.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
+            cbLoaiKH.setFont(GuiTheme.font("Segoe UI", java.awt.Font.PLAIN, 14));
             cbLoaiKH.setBackground(Color.WHITE);
-            cbTrangThai.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
+            cbTrangThai.setFont(GuiTheme.font("Segoe UI", java.awt.Font.PLAIN, 14));
             cbTrangThai.setBackground(Color.WHITE);
             cbTrangThai.setEnabled(false);
 
+            // ── Thêm các row vào form ─────────────────────────────────────────────
             int row = 0;
-            // Mã KM chỉ hiện khi chỉnh sửa (read-only)
+
+            // Mã KM — chỉ hiện khi Sửa (read-only)
             if (editMaKM != null) {
                 tfMaKM.setEditable(false);
                 tfMaKM.setBackground(new Color(245, 247, 250));
-                addRow(p, g, row++, "Mã KM",              tfMaKM);
+                addRow(p, g, row++, "Mã KM", tfMaKM);
             }
-            addRow(p, g, row++, "Tên khuyến mãi *",       tfTenKM);
-            addRow(p, g, row++, "Tỉ lệ giảm (1 - 100)",   pnlTiLe);
-            addRow(p, g, row++, "Loại khách hàng",         cbLoaiKH);
-            addRow(p, g, row++, "Ngày bắt đầu *",          dcBatDau);
-            addRow(p, g, row++, "Ngày kết thúc *",         dcKetThuc);
 
+            // 1. Tên khuyến mãi
+            addRow(p, g, row++, "Tên khuyến mãi *", tfTenKM);
+
+            // 2. Điều kiện tổng tiền — chỉ hiện khi THÊM MỚI
+            if (editMaKM == null) {
+                tfDieuKien = inputField();
+                tfDieuKien.setToolTipText("Để trống hoặc 0 = không có điều kiện");
+                JLabel lblVnd = new JLabel("VNĐ");
+                lblVnd.setFont(GuiTheme.font("Segoe UI", java.awt.Font.BOLD, 14));
+                lblVnd.setBorder(new EmptyBorder(0, 6, 0, 0));
+                JPanel pnlDieuKien = new JPanel(new BorderLayout(4, 0));
+                pnlDieuKien.setOpaque(false);
+                pnlDieuKien.add(tfDieuKien, BorderLayout.CENTER);
+                pnlDieuKien.add(lblVnd,     BorderLayout.EAST);
+                addRow(p, g, row++, "Điều kiện (tổng tiền ≥)", pnlDieuKien);
+            }
+
+            // 3. Tỉ lệ giảm
+            addRow(p, g, row++, "Tỉ lệ giảm (0 - 100)", pnlTiLe);
+
+            // 4. Loại KH — cố định "Tất cả", không cho chọn
+            cbLoaiKH.setSelectedIndex(0);
+            cbLoaiKH.setEnabled(false);
+            addRow(p, g, row++, "Loại khách hàng", cbLoaiKH);
+
+            // 5. Ngày bắt đầu / kết thúc
+            addRow(p, g, row++, "Ngày bắt đầu *",  dcBatDau);
+            addRow(p, g, row++, "Ngày kết thúc *", dcKetThuc);
+
+            // 6. Mô tả
             g.gridy = row++; g.gridx = 0; g.weightx = 0.35;
             JLabel lbMoTa = new JLabel("Mô tả");
-            lbMoTa.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 13));
+            lbMoTa.setFont(GuiTheme.font("Segoe UI", java.awt.Font.BOLD, 13));
             lbMoTa.setForeground(GuiTheme.SUB_TEXT);
             p.add(lbMoTa, g);
-            g.gridx = 1; g.weightx = 0.65; p.add(spMoTa, g);
+            g.gridx = 1; g.weightx = 0.65;
+            p.add(spMoTa, g);
 
+            // 7. Trạng thái
             addRow(p, g, row, "Trạng thái", cbTrangThai);
+
             return p;
         }
 
@@ -591,9 +640,9 @@ public class KhuyenMaiGUI extends JPanel {
             // Tỉ lệ nhập dạng số nguyên 1-100, lưu DB dạng thập phân 0.01-1.0
             int pctInput = 0;
             try { pctInput = Integer.parseInt(tfTiLe.getText().trim()); } catch (Exception ignored) {}
-            if (pctInput < 1 || pctInput > 100) {
+            if (pctInput < 0 || pctInput > 100) {
                 JOptionPane.showMessageDialog(this,
-                        "Tỉ lệ giảm phải là số nguyên từ 1 đến 100.\nVí dụ: nhập 20 tương đương giảm 20%.",
+                        "Tỉ lệ giảm phải là số nguyên từ 0 đến 100.\nVí dụ: nhập 20 tương đương giảm 20%.",
                         "Tỉ lệ không hợp lệ", JOptionPane.WARNING_MESSAGE);
                 return;
             }
@@ -619,8 +668,13 @@ public class KhuyenMaiGUI extends JPanel {
 
             boolean trangThai = "Đang áp dụng".equals(computeStatus(bd, kt));
             String  moTa      = taMoTa.getText().trim();
-
+            long dieuKien = 0;
+            if (editMaKM == null && tfDieuKien != null) {
+                try { dieuKien = Long.parseLong(tfDieuKien.getText().replaceAll("[^0-9]", "")); }
+                catch (Exception ignored) {}
+            }
             KhuyenMai km = new KhuyenMai(maKM, tenKM, trangThai, moTa, tiLe, loaiKH, bd, kt);
+            km.setDieuKienToiThieu(dieuKien);
             boolean ok = (editMaKM == null) ? dao.insert(km) : dao.update(km);
 
             if (ok) {

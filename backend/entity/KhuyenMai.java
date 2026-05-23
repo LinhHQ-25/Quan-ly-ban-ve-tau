@@ -3,95 +3,125 @@ package entity;
 import java.time.LocalDateTime;
 
 public class KhuyenMai {
-    private String maKhuyenMai;
-    private String tenKhuyenMai;
-    private Boolean trangThai;
-    private String moTaChiTiet;
-    private double tiLeGiamGia;
-    private LoaiKhachHang loaiKhachHang;
-    private LocalDateTime thoiGianBatDau;
-    private LocalDateTime thoiGianKetThuc;
+	private String maKhuyenMai;
+	private String tenKhuyenMai;
+	private Boolean trangThai;
+	private String moTaChiTiet;
+	private double tiLeGiamGia;
+	private LoaiKhachHang loaiKhachHang;
+	private LocalDateTime thoiGianBatDau;
+	private LocalDateTime thoiGianKetThuc;
+	private long dieuKienToiThieu; // 0 = không có điều kiện tổng tiền
 
-    public KhuyenMai() {
-    }
+	public KhuyenMai() {
+	}
 
-    public KhuyenMai(String maKhuyenMai, String tenKhuyenMai, Boolean trangThai, String moTaChiTiet, double tiLeGiamGia, LoaiKhachHang loaiKhachHang, LocalDateTime thoiGianBatDau, LocalDateTime thoiGianKetThuc) {
-        this.maKhuyenMai = maKhuyenMai;
-        this.tenKhuyenMai = tenKhuyenMai;
-        this.trangThai = trangThai;
-        this.moTaChiTiet = moTaChiTiet;
-        this.tiLeGiamGia = tiLeGiamGia;
-        this.loaiKhachHang = loaiKhachHang;
-        this.thoiGianBatDau = thoiGianBatDau;
-        this.thoiGianKetThuc = thoiGianKetThuc;
-    }
+	/** Constructor cũ — giữ nguyên để không break code hiện tại */
+	public KhuyenMai(String maKhuyenMai, String tenKhuyenMai, Boolean trangThai, String moTaChiTiet, double tiLeGiamGia,
+			LoaiKhachHang loaiKhachHang, LocalDateTime thoiGianBatDau, LocalDateTime thoiGianKetThuc) {
+		this.maKhuyenMai = maKhuyenMai;
+		this.tenKhuyenMai = tenKhuyenMai;
+		this.trangThai = trangThai;
+		this.moTaChiTiet = moTaChiTiet;
+		this.tiLeGiamGia = tiLeGiamGia;
+		this.loaiKhachHang = loaiKhachHang;
+		this.thoiGianBatDau = thoiGianBatDau;
+		this.thoiGianKetThuc = thoiGianKetThuc;
+		this.dieuKienToiThieu = 0;
+	}
 
-    public String getMaKhuyenMai() {
-        return maKhuyenMai;
-    }
+	/** Constructor mới — có thêm dieuKienToiThieu */
+	public KhuyenMai(String maKhuyenMai, String tenKhuyenMai, Boolean trangThai, String moTaChiTiet, double tiLeGiamGia,
+			LoaiKhachHang loaiKhachHang, LocalDateTime thoiGianBatDau, LocalDateTime thoiGianKetThuc,
+			long dieuKienToiThieu) {
+		this.maKhuyenMai = maKhuyenMai;
+		this.tenKhuyenMai = tenKhuyenMai;
+		this.trangThai = trangThai;
+		this.moTaChiTiet = moTaChiTiet;
+		this.tiLeGiamGia = tiLeGiamGia;
+		this.loaiKhachHang = loaiKhachHang;
+		this.thoiGianBatDau = thoiGianBatDau;
+		this.thoiGianKetThuc = thoiGianKetThuc;
+		this.dieuKienToiThieu = dieuKienToiThieu;
+	}
 
-    public void setMaKhuyenMai(String maKhuyenMai) {
-        this.maKhuyenMai = maKhuyenMai;
-    }
+	// ── Getters / Setters ──────────────────────────────────────────────────────
 
-    public String getTenKhuyenMai() {
-        return tenKhuyenMai;
-    }
+	public String getMaKhuyenMai() {
+		return maKhuyenMai;
+	}
 
-    public void setTenKhuyenMai(String tenKhuyenMai) {
-        this.tenKhuyenMai = tenKhuyenMai;
-    }
+	public void setMaKhuyenMai(String v) {
+		this.maKhuyenMai = v;
+	}
 
-    public Boolean getTrangThai() {
-        return trangThai;
-    }
+	public String getTenKhuyenMai() {
+		return tenKhuyenMai;
+	}
 
-    public void setTrangThai(Boolean trangThai) {
-        this.trangThai = trangThai;
-    }
+	public void setTenKhuyenMai(String v) {
+		this.tenKhuyenMai = v;
+	}
 
-    public String getMoTaChiTiet() {
-        return moTaChiTiet;
-    }
+	public Boolean getTrangThai() {
+		return trangThai;
+	}
 
-    public void setMoTaChiTiet(String moTaChiTiet) {
-        this.moTaChiTiet = moTaChiTiet;
-    }
+	public void setTrangThai(Boolean v) {
+		this.trangThai = v;
+	}
 
-    public double getTiLeGiamGia() {
-        return tiLeGiamGia;
-    }
+	public String getMoTaChiTiet() {
+		return moTaChiTiet;
+	}
 
-    public void setTiLeGiamGia(double tiLeGiamGia) {
-        this.tiLeGiamGia = tiLeGiamGia;
-    }
+	public void setMoTaChiTiet(String v) {
+		this.moTaChiTiet = v;
+	}
 
-    public LoaiKhachHang getLoaiKhachHang() {
-        return loaiKhachHang;
-    }
+	public double getTiLeGiamGia() {
+		return tiLeGiamGia;
+	}
 
-    public void setLoaiKhachHang(LoaiKhachHang loaiKhachHang) {
-        this.loaiKhachHang = loaiKhachHang;
-    }
+	public void setTiLeGiamGia(double v) {
+		this.tiLeGiamGia = v;
+	}
 
-    public LocalDateTime getThoiGianBatDau() {
-        return thoiGianBatDau;
-    }
+	public LoaiKhachHang getLoaiKhachHang() {
+		return loaiKhachHang;
+	}
 
-    public void setThoiGianBatDau(LocalDateTime thoiGianBatDau) {
-        this.thoiGianBatDau = thoiGianBatDau;
-    }
+	public void setLoaiKhachHang(LoaiKhachHang v) {
+		this.loaiKhachHang = v;
+	}
 
-    public LocalDateTime getThoiGianKetThuc() {
-        return thoiGianKetThuc;
-    }
+	public LocalDateTime getThoiGianBatDau() {
+		return thoiGianBatDau;
+	}
 
-    public void setThoiGianKetThuc(LocalDateTime thoiGianKetThuc) {
-        this.thoiGianKetThuc = thoiGianKetThuc;
-    }
+	public void setThoiGianBatDau(LocalDateTime v) {
+		this.thoiGianBatDau = v;
+	}
 
-    @Override
-    public String toString() {
-        return tenKhuyenMai;
-    }
+	public LocalDateTime getThoiGianKetThuc() {
+		return thoiGianKetThuc;
+	}
+
+	public void setThoiGianKetThuc(LocalDateTime v) {
+		this.thoiGianKetThuc = v;
+	}
+
+	/** Điều kiện tổng tiền vé tối thiểu (VNĐ). 0 = không có điều kiện. */
+	public long getDieuKienToiThieu() {
+		return dieuKienToiThieu;
+	}
+
+	public void setDieuKienToiThieu(long v) {
+		this.dieuKienToiThieu = v;
+	}
+
+	@Override
+	public String toString() {
+		return tenKhuyenMai;
+	}
 }

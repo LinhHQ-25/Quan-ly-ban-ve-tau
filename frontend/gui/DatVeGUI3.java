@@ -74,6 +74,8 @@ import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.JTableHeader;
 import javax.swing.table.TableCellRenderer;
+import java.util.stream.Collectors;
+import gui.KhuyenMaiGUI; // để dùng KhuyenMaiGUI.computeStatus(...)
 
 public class DatVeGUI3 extends JPanel {
 
@@ -105,7 +107,9 @@ public class DatVeGUI3 extends JPanel {
 	private javax.swing.Timer countdownTimer, bankCheckTimer;
 	private int secondsLeft;
 	private ImageIcon originalQRImageIcon = null;
-
+	private entity.KhuyenMai selectedVoucher = null;
+	private JPanel pnlBottomLeft;
+	private JPanel pnlBtns; // thêm vào đầu class
 	public DatVeGUI3(DefaultTableModel modelFromGUI2, int secondsLeft, java.util.function.Consumer<Integer> onQuayLai,
 			Runnable onHuyVe) {
 		this.modelFromGUI2 = modelFromGUI2;
@@ -292,9 +296,12 @@ public class DatVeGUI3 extends JPanel {
 		scroll.getViewport().setBackground(Color.WHITE);
 		pnlTableWrapper.add(scroll, BorderLayout.CENTER);
 
-		JPanel pnlBottomLeft = new JPanel(new BorderLayout(0, 10));
+		pnlBottomLeft = new JPanel(new BorderLayout(0, 6));
 		pnlBottomLeft.setOpaque(false);
-		JPanel pnlBtns = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
+
+	
+
+		pnlBtns = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
 		pnlBtns.setOpaque(false);
 		JButton btnKhuyenMai = makeNavyBtn("Thêm khuyến mãi", null);
 		btnKhuyenMai.addActionListener(e -> nhapKhuyenMai());
@@ -302,7 +309,6 @@ public class DatVeGUI3 extends JPanel {
 		btnGhiChu.addActionListener(e -> JOptionPane.showInputDialog(this, "Nhập ghi chú cho hóa đơn:"));
 		pnlBtns.add(btnKhuyenMai);
 		pnlBtns.add(btnGhiChu);
-		pnlBottomLeft.add(pnlBtns, BorderLayout.NORTH);
 
 		JPanel pnlTotals = new JPanel(new FlowLayout(FlowLayout.RIGHT, 20, 5));
 		pnlTotals.setOpaque(false);
@@ -315,7 +321,14 @@ public class DatVeGUI3 extends JPanel {
 		pnlTotals.add(lblTongTien);
 		pnlTotals.add(lblTongKhuyenMai);
 		pnlTotals.add(lblThanhToanConLai);
-		pnlBottomLeft.add(pnlTotals, BorderLayout.CENTER);
+
+		JPanel pnlBtnTotals = new JPanel(new BorderLayout());
+		pnlBtnTotals.setOpaque(false);
+		pnlBtnTotals.add(pnlBtns, BorderLayout.NORTH);
+		pnlBtnTotals.add(pnlTotals, BorderLayout.SOUTH);
+
+		pnlBottomLeft.add(pnlBtnTotals, BorderLayout.SOUTH);
+
 		pnlLeft.add(pnlTableWrapper, BorderLayout.CENTER);
 		pnlLeft.add(pnlBottomLeft, BorderLayout.SOUTH);
 		return pnlLeft;
@@ -810,9 +823,9 @@ public class DatVeGUI3 extends JPanel {
 		btnClose.addActionListener(e -> dialog.dispose());
 		pnlHeader.add(lblTitle, BorderLayout.WEST);
 		pnlHeader.add(btnClose, BorderLayout.EAST);
-		java.awt.Image scaleImg = originalQRImageIcon.getImage()
-			    .getScaledInstance(350, 350, java.awt.Image.SCALE_SMOOTH);
-			JLabel lblBigQR = new JLabel(new ImageIcon(scaleImg));
+		java.awt.Image scaleImg = originalQRImageIcon.getImage().getScaledInstance(350, 350,
+				java.awt.Image.SCALE_SMOOTH);
+		JLabel lblBigQR = new JLabel(new ImageIcon(scaleImg));
 		lblBigQR.setHorizontalAlignment(SwingConstants.CENTER);
 		JLabel lblFoot = new JLabel("Mở ứng dụng ngân hàng/ví điện tử để quét mã", SwingConstants.CENTER);
 		lblFoot.setFont(new java.awt.Font("Segoe UI", java.awt.Font.ITALIC, 11));
@@ -829,9 +842,8 @@ public class DatVeGUI3 extends JPanel {
 			return;
 		int size = pnlQR.getWidth() > 40 ? pnlQR.getWidth() - 20 : 160;
 		size = Math.min(size, pnlQR.getHeight() > 40 ? pnlQR.getHeight() - 20 : size);
-		java.awt.Image img = originalQRImageIcon.getImage()
-			    .getScaledInstance(size, size, java.awt.Image.SCALE_SMOOTH);
-			lblQR.setIcon(new ImageIcon(img));
+		java.awt.Image img = originalQRImageIcon.getImage().getScaledInstance(size, size, java.awt.Image.SCALE_SMOOTH);
+		lblQR.setIcon(new ImageIcon(img));
 		lblQR.setText("");
 	}
 
@@ -847,31 +859,32 @@ public class DatVeGUI3 extends JPanel {
 	}
 
 	private boolean checkBankReceived() {
-	    if (CASSO_API_KEY.equals("YOUR_CASSO_API_KEY"))
-	        return false;
-	    try {
-	        URL url = new URL("https://oauth.casso.vn/v2/transactions?page=1&pageSize=20&sort=DESC");
-	        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-	        conn.setRequestMethod("GET");
-	        conn.setRequestProperty("Authorization", "apikey " + CASSO_API_KEY);
-	        conn.setConnectTimeout(5000);
-	        conn.setReadTimeout(5000);
-	        int code = conn.getResponseCode();
-	        if (code != 200) return false;
+		if (CASSO_API_KEY.equals("YOUR_CASSO_API_KEY"))
+			return false;
+		try {
+			URL url = new URL("https://oauth.casso.vn/v2/transactions?page=1&pageSize=20&sort=DESC");
+			HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+			conn.setRequestMethod("GET");
+			conn.setRequestProperty("Authorization", "apikey " + CASSO_API_KEY);
+			conn.setConnectTimeout(5000);
+			conn.setReadTimeout(5000);
+			int code = conn.getResponseCode();
+			if (code != 200)
+				return false;
 
-	        BufferedReader br = new BufferedReader(new InputStreamReader(
-	                conn.getInputStream(), StandardCharsets.UTF_8));
-	        StringBuilder sb = new StringBuilder();
-	        String line;
-	        while ((line = br.readLine()) != null) sb.append(line);
-	        br.close();
-	        String jsonLower = sb.toString().toLowerCase();
-	        String maHDNoDash = maHD.replace("-", "").toLowerCase();
-	        return jsonLower.contains(maHDNoDash)
-	            && jsonLower.contains(String.valueOf((long) tongThanhToan));
-	    } catch (Exception e) {
-	        return false;
-	    }
+			BufferedReader br = new BufferedReader(
+					new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8));
+			StringBuilder sb = new StringBuilder();
+			String line;
+			while ((line = br.readLine()) != null)
+				sb.append(line);
+			br.close();
+			String jsonLower = sb.toString().toLowerCase();
+			String maHDNoDash = maHD.replace("-", "").toLowerCase();
+			return jsonLower.contains(maHDNoDash) && jsonLower.contains(String.valueOf((long) tongThanhToan));
+		} catch (Exception e) {
+			return false;
+		}
 	}
 
 	private void stopBankChecking() {
@@ -880,275 +893,271 @@ public class DatVeGUI3 extends JPanel {
 	}
 
 	private void xuLyHoanTatThanhToan(String hinhThuc) {
-	    stopAllTimers();
-	    if (luuDuLieuVaoDatabase(hinhThuc)) {
-	        showThanhCongPopup(() -> {
-	            taoVePDF();              // xuất vé lên tàu
-	            taoHoaDonPDF(hinhThuc); // xuất hóa đơn
-	            quayVeTrangDau();
-	        });
-	    }
+		stopAllTimers();
+		if (luuDuLieuVaoDatabase(hinhThuc)) {
+			showThanhCongPopup(() -> {
+				taoVePDF(); // xuất vé lên tàu
+				taoHoaDonPDF(hinhThuc); // xuất hóa đơn
+				quayVeTrangDau();
+			});
+		}
 	}
+
 	// Đặt class này ngoài class DatVeGUI3 hoặc để là static bên trong
 	static class RoundBorder implements PdfPCellEvent {
-	    public void cellLayout(PdfPCell cell, Rectangle position, PdfContentByte[] canvases) {
-	        PdfContentByte cb = canvases[PdfPTable.LINECANVAS];
-	        cb.setLineWidth(1.2f);
-	        cb.setRGBColorStroke(0, 0, 0);
-	        // Vẽ bo góc sát mép cell
-	        cb.roundRectangle(position.getLeft() + 1, position.getBottom() + 1,
-	                          position.getWidth() - 2, position.getHeight() - 2, 10);
-	        cb.stroke();
-	    }
+		public void cellLayout(PdfPCell cell, Rectangle position, PdfContentByte[] canvases) {
+			PdfContentByte cb = canvases[PdfPTable.LINECANVAS];
+			cb.setLineWidth(1.2f);
+			cb.setRGBColorStroke(0, 0, 0);
+			// Vẽ bo góc sát mép cell
+			cb.roundRectangle(position.getLeft() + 1, position.getBottom() + 1, position.getWidth() - 2,
+					position.getHeight() - 2, 10);
+			cb.stroke();
+		}
 	}
+
 	private void taoVePDF() {
-	    try {
-	        File folder = new File("Ve");
-	        if (!folder.exists()) folder.mkdir();
+		try {
+			File folder = new File("Ve");
+			if (!folder.exists())
+				folder.mkdir();
 
-	        BaseFont bf = BaseFont.createFont("c:/windows/fonts/arial.ttf", BaseFont.IDENTITY_H, BaseFont.EMBEDDED);
-	        Font fCongTy  = new Font(bf, 10, Font.BOLD);
-	        Font fGaTen   = new Font(bf, 11, Font.BOLD);
-	        Font fTieuDe  = new Font(bf, 12, Font.BOLD);
-	        Font fSub     = new Font(bf,  8, Font.NORMAL);
-	        Font fGaLabel = new Font(bf,  8, Font.NORMAL, BaseColor.GRAY);
-	        Font fGaValue = new Font(bf, 11, Font.BOLD);
-	        Font fLabel   = new Font(bf,  9, Font.NORMAL);
-	        Font fValue   = new Font(bf,  9, Font.BOLD);
-	        Font fMaVe    = new Font(bf,  8, Font.NORMAL, BaseColor.GRAY);
+			BaseFont bf = BaseFont.createFont("c:/windows/fonts/arial.ttf", BaseFont.IDENTITY_H, BaseFont.EMBEDDED);
+			Font fCongTy = new Font(bf, 10, Font.BOLD);
+			Font fGaTen = new Font(bf, 11, Font.BOLD);
+			Font fTieuDe = new Font(bf, 12, Font.BOLD);
+			Font fSub = new Font(bf, 8, Font.NORMAL);
+			Font fGaLabel = new Font(bf, 8, Font.NORMAL, BaseColor.GRAY);
+			Font fGaValue = new Font(bf, 11, Font.BOLD);
+			Font fLabel = new Font(bf, 9, Font.NORMAL);
+			Font fValue = new Font(bf, 9, Font.BOLD);
+			Font fMaVe = new Font(bf, 8, Font.NORMAL, BaseColor.GRAY);
 
-	        for (int i = 0; i < modelChiTiet.getRowCount(); i++) {
-	            String maVeStr  = modelChiTiet.getValueAt(i, 1).toString();
-	            String loaiVe   = modelFromGUI2.getValueAt(i, 2).toString();
-	            String maGhe    = modelFromGUI2.getValueAt(i, 4).toString();
-	            String tenKH    = modelFromGUI2.getValueAt(i, 5).toString();
-	            String cccd     = cheCCCD(modelFromGUI2.getValueAt(i, 6).toString());
-	            String loaiCho  = modelChiTiet.getValueAt(i, 3).toString();
-	            String hangVe   = loaiCho.equals("Giường nằm") ? "VIP" : "Thường";
-	            String maChuyen = modelFromGUI2.getValueAt(i, 12).toString();
+			for (int i = 0; i < modelChiTiet.getRowCount(); i++) {
+				String maVeStr = modelChiTiet.getValueAt(i, 1).toString();
+				String loaiVe = modelFromGUI2.getValueAt(i, 2).toString();
+				String maGhe = modelFromGUI2.getValueAt(i, 4).toString();
+				String tenKH = modelFromGUI2.getValueAt(i, 5).toString();
+				String cccd = cheCCCD(modelFromGUI2.getValueAt(i, 6).toString());
+				String loaiCho = modelChiTiet.getValueAt(i, 3).toString();
+				String hangVe = loaiCho.equals("Giường nằm") ? "VIP" : "Thường";
+				String maChuyen = modelFromGUI2.getValueAt(i, 12).toString();
 
-	            String tenTau = "", ngayDi = "", gioDi = "";
-	            String gaDi = "", gaDen = "", maToaTau = "", soGhe = "";
+				String tenTau = "", ngayDi = "", gioDi = "";
+				String gaDi = "", gaDen = "", maToaTau = "", soGhe = "";
 
-	            try (java.sql.Connection con = connect_DB.Connect_DB.getInstance().getConnection()) {
-	                String sqlCT = "SELECT t.tenTau, ct.thoiGianKhoiHanh, "
-	                        + "g1.tenGa AS GaDi, g2.tenGa AS GaDen "
-	                        + "FROM ChuyenTau c JOIN Tau t ON c.maTau = t.maTau "
-	                        + "JOIN ChiTietChuyenTau ct ON c.maChuyenTau = ct.maChuyenTau "
-	                        + "JOIN Ga g1 ON ct.maGaDi = g1.maGa "
-	                        + "JOIN Ga g2 ON ct.maGaDen = g2.maGa "
-	                        + "WHERE c.maChuyenTau = ?";
-	                try (java.sql.PreparedStatement ps = con.prepareStatement(sqlCT)) {
-	                    ps.setString(1, maChuyen);
-	                    try (java.sql.ResultSet rs = ps.executeQuery()) {
-	                        if (rs.next()) {
-	                            tenTau = rs.getString("tenTau");
-	                            gaDi   = rs.getString("GaDi");
-	                            gaDen  = rs.getString("GaDen");
-	                            java.sql.Timestamp ts = rs.getTimestamp("thoiGianKhoiHanh");
-	                            if (ts != null) {
-	                                ngayDi = new SimpleDateFormat("dd/MM/yyyy").format(ts);
-	                                gioDi  = new SimpleDateFormat("HH:mm").format(ts);
-	                            }
-	                        }
-	                    }
-	                }
-	                String sqlGhe = "SELECT g.soGhe, t.soToa "
-	                        + "FROM Ghe g JOIN ToaTau t ON g.maToaTau = t.maToaTau "
-	                        + "WHERE g.maGhe = ?";
-	                try (java.sql.PreparedStatement ps = con.prepareStatement(sqlGhe)) {
-	                    ps.setString(1, maGhe);
-	                    try (java.sql.ResultSet rs = ps.executeQuery()) {
-	                        if (rs.next()) {
-	                            soGhe    = rs.getString("soGhe");
-	                            maToaTau = String.valueOf(rs.getInt("soToa"));
-	                        }
-	                    }
-	                }
-	            } catch (Exception ignored) {}
+				try (java.sql.Connection con = connect_DB.Connect_DB.getInstance().getConnection()) {
+					String sqlCT = "SELECT t.tenTau, ct.thoiGianKhoiHanh, " + "g1.tenGa AS GaDi, g2.tenGa AS GaDen "
+							+ "FROM ChuyenTau c JOIN Tau t ON c.maTau = t.maTau "
+							+ "JOIN ChiTietChuyenTau ct ON c.maChuyenTau = ct.maChuyenTau "
+							+ "JOIN Ga g1 ON ct.maGaDi = g1.maGa " + "JOIN Ga g2 ON ct.maGaDen = g2.maGa "
+							+ "WHERE c.maChuyenTau = ?";
+					try (java.sql.PreparedStatement ps = con.prepareStatement(sqlCT)) {
+						ps.setString(1, maChuyen);
+						try (java.sql.ResultSet rs = ps.executeQuery()) {
+							if (rs.next()) {
+								tenTau = rs.getString("tenTau");
+								gaDi = rs.getString("GaDi");
+								gaDen = rs.getString("GaDen");
+								java.sql.Timestamp ts = rs.getTimestamp("thoiGianKhoiHanh");
+								if (ts != null) {
+									ngayDi = new SimpleDateFormat("dd/MM/yyyy").format(ts);
+									gioDi = new SimpleDateFormat("HH:mm").format(ts);
+								}
+							}
+						}
+					}
+					String sqlGhe = "SELECT g.soGhe, t.soToa " + "FROM Ghe g JOIN ToaTau t ON g.maToaTau = t.maToaTau "
+							+ "WHERE g.maGhe = ?";
+					try (java.sql.PreparedStatement ps = con.prepareStatement(sqlGhe)) {
+						ps.setString(1, maGhe);
+						try (java.sql.ResultSet rs = ps.executeQuery()) {
+							if (rs.next()) {
+								soGhe = rs.getString("soGhe");
+								maToaTau = String.valueOf(rs.getInt("soToa"));
+							}
+						}
+					}
+				} catch (Exception ignored) {
+				}
 
-	            // Khổ trang vừa đủ nội dung, không bị cắt
-	            Rectangle pageSize = new Rectangle(240, 580);
-	            File pdfFile = new File(folder, "Ve_" + maVeStr + ".pdf");
-	            Document doc = new Document(pageSize, 10, 10, 12, 12);
-	            PdfWriter writer = PdfWriter.getInstance(doc, new FileOutputStream(pdfFile));
-	            doc.open();
+				// Khổ trang vừa đủ nội dung, không bị cắt
+				Rectangle pageSize = new Rectangle(240, 580);
+				File pdfFile = new File(folder, "Ve_" + maVeStr + ".pdf");
+				Document doc = new Document(pageSize, 10, 10, 12, 12);
+				PdfWriter writer = PdfWriter.getInstance(doc, new FileOutputStream(pdfFile));
+				doc.open();
 
-	            // ── WRAPPER ────────────────────────────────────────────────────
-	            PdfPTable wrap = new PdfPTable(1);
-	            wrap.setWidthPercentage(100);
-	            PdfPCell wc = new PdfPCell();
-	            wc.setBorder(Rectangle.BOX);
-	            wc.setBorderWidth(0.8f);
-	            wc.setPaddingLeft(10);
-	            wc.setPaddingRight(10);
-	            wc.setPaddingTop(10);
-	            wc.setPaddingBottom(10);
+				// ── WRAPPER ────────────────────────────────────────────────────
+				PdfPTable wrap = new PdfPTable(1);
+				wrap.setWidthPercentage(100);
+				PdfPCell wc = new PdfPCell();
+				wc.setBorder(Rectangle.BOX);
+				wc.setBorderWidth(0.8f);
+				wc.setPaddingLeft(10);
+				wc.setPaddingRight(10);
+				wc.setPaddingTop(10);
+				wc.setPaddingBottom(10);
 
-	            // ── 1. HEADER ──────────────────────────────────────────────────
-	            Paragraph pCty = new Paragraph("TỔNG CÔNG TY ĐƯỜNG SẮT VIỆT NAM", fCongTy);
-	            pCty.setAlignment(Element.ALIGN_CENTER);
-	            wc.addElement(pCty);
+				// ── 1. HEADER ──────────────────────────────────────────────────
+				Paragraph pCty = new Paragraph("TỔNG CÔNG TY ĐƯỜNG SẮT VIỆT NAM", fCongTy);
+				pCty.setAlignment(Element.ALIGN_CENTER);
+				wc.addElement(pCty);
 
-	            Paragraph pGaTen = new Paragraph("GA DIÊU TRÌ", fGaTen);
-	            pGaTen.setAlignment(Element.ALIGN_CENTER);
-	            wc.addElement(pGaTen);
+				Paragraph pGaTen = new Paragraph("GA DIÊU TRÌ", fGaTen);
+				pGaTen.setAlignment(Element.ALIGN_CENTER);
+				wc.addElement(pGaTen);
 
-	            // Đường kẻ ngang mỏng
-	            PdfPTable lineTable = new PdfPTable(1);
-	            lineTable.setWidthPercentage(100);
-	            lineTable.setSpacingBefore(4);
-	            lineTable.setSpacingAfter(4);
-	            PdfPCell lineCell = new PdfPCell(new Phrase(""));
-	            lineCell.setBorder(Rectangle.BOTTOM);
-	            lineCell.setBorderWidth(0.5f);
-	            lineCell.setBorderColor(BaseColor.GRAY);
-	            lineCell.setPaddingBottom(0);
-	            lineTable.addCell(lineCell);
-	            wc.addElement(lineTable);
+				// Đường kẻ ngang mỏng
+				PdfPTable lineTable = new PdfPTable(1);
+				lineTable.setWidthPercentage(100);
+				lineTable.setSpacingBefore(4);
+				lineTable.setSpacingAfter(4);
+				PdfPCell lineCell = new PdfPCell(new Phrase(""));
+				lineCell.setBorder(Rectangle.BOTTOM);
+				lineCell.setBorderWidth(0.5f);
+				lineCell.setBorderColor(BaseColor.GRAY);
+				lineCell.setPaddingBottom(0);
+				lineTable.addCell(lineCell);
+				wc.addElement(lineTable);
 
-	            Paragraph pTieuDe = new Paragraph("VÉ LÊN TÀU HỎA", fTieuDe);
-	            pTieuDe.setAlignment(Element.ALIGN_CENTER);
-	            wc.addElement(pTieuDe);
+				Paragraph pTieuDe = new Paragraph("VÉ LÊN TÀU HỎA", fTieuDe);
+				pTieuDe.setAlignment(Element.ALIGN_CENTER);
+				wc.addElement(pTieuDe);
 
-	            Paragraph pBoarding = new Paragraph("BOARDING TICKET", fSub);
-	            pBoarding.setAlignment(Element.ALIGN_CENTER);
-	            pBoarding.setSpacingAfter(5);
-	            wc.addElement(pBoarding);
+				Paragraph pBoarding = new Paragraph("BOARDING TICKET", fSub);
+				pBoarding.setAlignment(Element.ALIGN_CENTER);
+				pBoarding.setSpacingAfter(5);
+				wc.addElement(pBoarding);
 
-	            // ── 2. BARCODE ─────────────────────────────────────────────────
-	            com.itextpdf.text.pdf.Barcode128 barcode = new com.itextpdf.text.pdf.Barcode128();
-	            barcode.setCode(maVeStr);
-	            barcode.setBarHeight(32f);
-	            barcode.setX(1.0f);
-	            barcode.setBaseline(0f);
-	            barcode.setAltText("");
-	            java.awt.Image awtImg = barcode.createAwtImage(java.awt.Color.BLACK, java.awt.Color.WHITE);
-	            com.itextpdf.text.Image imgBar = com.itextpdf.text.Image.getInstance(awtImg, null);
-	            imgBar.setAlignment(Element.ALIGN_CENTER);
-	            imgBar.scaleToFit(240f, 38f);
-	            wc.addElement(imgBar);
+				// ── 2. BARCODE ─────────────────────────────────────────────────
+				com.itextpdf.text.pdf.Barcode128 barcode = new com.itextpdf.text.pdf.Barcode128();
+				barcode.setCode(maVeStr);
+				barcode.setBarHeight(32f);
+				barcode.setX(1.0f);
+				barcode.setBaseline(0f);
+				barcode.setAltText("");
+				java.awt.Image awtImg = barcode.createAwtImage(java.awt.Color.BLACK, java.awt.Color.WHITE);
+				com.itextpdf.text.Image imgBar = com.itextpdf.text.Image.getInstance(awtImg, null);
+				imgBar.setAlignment(Element.ALIGN_CENTER);
+				imgBar.scaleToFit(240f, 38f);
+				wc.addElement(imgBar);
 
-	            // Mã vé dưới barcode
-	            Paragraph pMaVe = new Paragraph("Mã vé/TicketID: " + maVeStr, fMaVe);
-	            pMaVe.setAlignment(Element.ALIGN_CENTER);
-	            pMaVe.setSpacingAfter(6);
-	            wc.addElement(pMaVe);
+				// Mã vé dưới barcode
+				Paragraph pMaVe = new Paragraph("Mã vé/TicketID: " + maVeStr, fMaVe);
+				pMaVe.setAlignment(Element.ALIGN_CENTER);
+				pMaVe.setSpacingAfter(6);
+				wc.addElement(pMaVe);
 
-	            // ── 3. GA ĐI / GA ĐẾN ─────────────────────────────────────────
-	            PdfPTable gaTable = new PdfPTable(2);
-	            gaTable.setWidthPercentage(100);
-	            gaTable.setSpacingBefore(2);
-	            gaTable.setSpacingAfter(2);
+				// ── 3. GA ĐI / GA ĐẾN ─────────────────────────────────────────
+				PdfPTable gaTable = new PdfPTable(2);
+				gaTable.setWidthPercentage(100);
+				gaTable.setSpacingBefore(2);
+				gaTable.setSpacingAfter(2);
 
-	            // Ga đi — căn trái, padding trái
-	            PdfPCell cGaDi = new PdfPCell();
-	            cGaDi.setBorder(Rectangle.NO_BORDER);
-	            cGaDi.setPaddingLeft(16);
-	            cGaDi.setPaddingBottom(2);
-	            Paragraph pDiLbl = new Paragraph("Ga đi", fGaLabel);
-	            pDiLbl.setAlignment(Element.ALIGN_LEFT);
-	            cGaDi.addElement(pDiLbl);
-	            Paragraph pDiVal = new Paragraph(gaDi.toUpperCase(), fGaValue);
-	            pDiVal.setAlignment(Element.ALIGN_LEFT);
-	            cGaDi.addElement(pDiVal);
-	            gaTable.addCell(cGaDi);
+				// Ga đi — căn trái, padding trái
+				PdfPCell cGaDi = new PdfPCell();
+				cGaDi.setBorder(Rectangle.NO_BORDER);
+				cGaDi.setPaddingLeft(16);
+				cGaDi.setPaddingBottom(2);
+				Paragraph pDiLbl = new Paragraph("Ga đi", fGaLabel);
+				pDiLbl.setAlignment(Element.ALIGN_LEFT);
+				cGaDi.addElement(pDiLbl);
+				Paragraph pDiVal = new Paragraph(gaDi.toUpperCase(), fGaValue);
+				pDiVal.setAlignment(Element.ALIGN_LEFT);
+				cGaDi.addElement(pDiVal);
+				gaTable.addCell(cGaDi);
 
-	            // Ga đến — căn phải, padding phải
-	            PdfPCell cGaDen = new PdfPCell();
-	            cGaDen.setBorder(Rectangle.NO_BORDER);
-	            cGaDen.setPaddingRight(16);
-	            cGaDen.setPaddingBottom(2);
-	            Paragraph pDenLbl = new Paragraph("Ga đến", fGaLabel);
-	            pDenLbl.setAlignment(Element.ALIGN_RIGHT);
-	            cGaDen.addElement(pDenLbl);
-	            Paragraph pDenVal = new Paragraph(gaDen.toUpperCase(), fGaValue);
-	            pDenVal.setAlignment(Element.ALIGN_RIGHT);
-	            cGaDen.addElement(pDenVal);
-	            gaTable.addCell(cGaDen);
+				// Ga đến — căn phải, padding phải
+				PdfPCell cGaDen = new PdfPCell();
+				cGaDen.setBorder(Rectangle.NO_BORDER);
+				cGaDen.setPaddingRight(16);
+				cGaDen.setPaddingBottom(2);
+				Paragraph pDenLbl = new Paragraph("Ga đến", fGaLabel);
+				pDenLbl.setAlignment(Element.ALIGN_RIGHT);
+				cGaDen.addElement(pDenLbl);
+				Paragraph pDenVal = new Paragraph(gaDen.toUpperCase(), fGaValue);
+				pDenVal.setAlignment(Element.ALIGN_RIGHT);
+				cGaDen.addElement(pDenVal);
+				gaTable.addCell(cGaDen);
 
-	            // Đường kẻ dưới ga đi/đến
-	            PdfPCell cSep = new PdfPCell(new Phrase(""));
-	            cSep.setColspan(2);
-	            cSep.setBorder(Rectangle.BOTTOM);
-	            cSep.setBorderWidth(0.5f);
-	            cSep.setBorderColor(BaseColor.LIGHT_GRAY);
-	            cSep.setPaddingBottom(3);
-	            gaTable.addCell(cSep);
+				// Đường kẻ dưới ga đi/đến
+				PdfPCell cSep = new PdfPCell(new Phrase(""));
+				cSep.setColspan(2);
+				cSep.setBorder(Rectangle.BOTTOM);
+				cSep.setBorderWidth(0.5f);
+				cSep.setBorderColor(BaseColor.LIGHT_GRAY);
+				cSep.setPaddingBottom(3);
+				gaTable.addCell(cSep);
 
-	            wc.addElement(gaTable);
+				wc.addElement(gaTable);
 
-	            // ── 4. THÔNG TIN CHI TIẾT ──────────────────────────────────────
-	            PdfPTable infoTable = new PdfPTable(2);
-	            infoTable.setWidthPercentage(100);
-	            infoTable.setWidths(new float[]{1.35f, 1.65f});
-	            infoTable.setSpacingBefore(3);
+				// ── 4. THÔNG TIN CHI TIẾT ──────────────────────────────────────
+				PdfPTable infoTable = new PdfPTable(2);
+				infoTable.setWidthPercentage(100);
+				infoTable.setWidths(new float[] { 1.35f, 1.65f });
+				infoTable.setSpacingBefore(3);
 
-	            String[][] details = {
-	                {"Số hiệu tàu/Train ID:", tenTau},
-	                {"Ngày khởi hành/Date:", ngayDi},
-	                {"Giờ khởi hành/Time:", gioDi},
-	                {"Số Toa/Coach:", maToaTau},
-	                {"Loại Toa/Type:", loaiCho},
-	                {"Số ghế/Seat:", soGhe},
-	                {"Loại vé/Ticket:", loaiVe},
-	                {"Hạng vé/Class:", hangVe},
-	                {"Họ Tên/Name:", tenKH.toUpperCase()},
-	                {"Giấy tờ/Passport:", cccd},
-	            };
+				String[][] details = { { "Số hiệu tàu/Train ID:", tenTau }, { "Ngày khởi hành/Date:", ngayDi },
+						{ "Giờ khởi hành/Time:", gioDi }, { "Số Toa/Coach:", maToaTau }, { "Loại Toa/Type:", loaiCho },
+						{ "Số ghế/Seat:", soGhe }, { "Loại vé/Ticket:", loaiVe }, { "Hạng vé/Class:", hangVe },
+						{ "Họ Tên/Name:", tenKH.toUpperCase() }, { "Giấy tờ/Passport:", cccd }, };
 
-	            for (String[] d : details) {
-	                PdfPCell cL = new PdfPCell(new Phrase(d[0], fLabel));
-	                cL.setBorder(Rectangle.NO_BORDER);
-	                cL.setPaddingLeft(14);
-	                cL.setPaddingBottom(3);
-	                infoTable.addCell(cL);
+				for (String[] d : details) {
+					PdfPCell cL = new PdfPCell(new Phrase(d[0], fLabel));
+					cL.setBorder(Rectangle.NO_BORDER);
+					cL.setPaddingLeft(14);
+					cL.setPaddingBottom(3);
+					infoTable.addCell(cL);
 
-	                PdfPCell cR = new PdfPCell(new Phrase(d[1], fValue));
-	                cR.setBorder(Rectangle.NO_BORDER);
-	                cR.setPaddingLeft(30);
-	                cR.setPaddingBottom(3);
-	                infoTable.addCell(cR);
-	            }
-	            wc.addElement(infoTable);
+					PdfPCell cR = new PdfPCell(new Phrase(d[1], fValue));
+					cR.setBorder(Rectangle.NO_BORDER);
+					cR.setPaddingLeft(30);
+					cR.setPaddingBottom(3);
+					infoTable.addCell(cR);
+				}
+				wc.addElement(infoTable);
 
-	            wrap.addCell(wc);
-	            doc.add(wrap);
-	            doc.close();
+				wrap.addCell(wc);
+				doc.add(wrap);
+				doc.close();
 
-	            if (Desktop.isDesktopSupported())
-	                Desktop.getDesktop().open(pdfFile);
-	        }
-	    } catch (Exception e) {
-	        e.printStackTrace();
-	    }
+				if (Desktop.isDesktopSupported())
+					Desktop.getDesktop().open(pdfFile);
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 	}
-	private PdfPCell createLabelCell(String text, Font font) {
-        PdfPCell cell = new PdfPCell(new Phrase(text, font));
-        cell.setBorder(PdfPCell.NO_BORDER);
-        cell.setPaddingBottom(3);
-        return cell;
-    }
 
-    private PdfPCell createValueCell(String text, Font font) {
-        PdfPCell cell = new PdfPCell(new Phrase(text, font));
-        cell.setBorder(PdfPCell.NO_BORDER);
-        cell.setPaddingBottom(3);
-        cell.setHorizontalAlignment(Element.ALIGN_LEFT);
-        return cell;
-    }
+	private PdfPCell createLabelCell(String text, Font font) {
+		PdfPCell cell = new PdfPCell(new Phrase(text, font));
+		cell.setBorder(PdfPCell.NO_BORDER);
+		cell.setPaddingBottom(3);
+		return cell;
+	}
+
+	private PdfPCell createValueCell(String text, Font font) {
+		PdfPCell cell = new PdfPCell(new Phrase(text, font));
+		cell.setBorder(PdfPCell.NO_BORDER);
+		cell.setPaddingBottom(3);
+		cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+		return cell;
+	}
+
 	private String cheCCCD(String cccd) {
-        if (cccd != null && cccd.length() > 4) {
-            int length = cccd.length();
-            if (length == 12) { // Định dạng CCCD thông thường
-                return cccd.substring(0, 4) + "****" + cccd.substring(8);
-            } else if (length > 6) { // Handling other typical lengths
-                int visible = (length - 4) / 2;
-                return cccd.substring(0, visible) + "****" + cccd.substring(visible + 4);
-            }
-        }
-        return cccd; // Return as is if too short
-    }
+		if (cccd != null && cccd.length() > 4) {
+			int length = cccd.length();
+			if (length == 12) { // Định dạng CCCD thông thường
+				return cccd.substring(0, 4) + "****" + cccd.substring(8);
+			} else if (length > 6) { // Handling other typical lengths
+				int visible = (length - 4) / 2;
+				return cccd.substring(0, visible) + "****" + cccd.substring(visible + 4);
+			}
+		}
+		return cccd; // Return as is if too short
+	}
+
 	private String docBaSo(int n, boolean hasPrefix) {
 		String[] digits = { "không", "một", "hai", "ba", "bốn", "năm", "sáu", "bảy", "tám", "chín" };
 		int t = n / 100, c = (n % 100) / 10, d = n % 10;
@@ -1471,17 +1480,23 @@ public class DatVeGUI3 extends JPanel {
 		tongGiaGoc = 0;
 		tongGiamDoiTuong = 0;
 		for (int i = 0; i < modelChiTiet.getRowCount(); i++) {
-			tongGiaGoc += parseMoney(modelChiTiet.getValueAt(i, 4).toString());
-			tongGiamDoiTuong += parseMoney(modelChiTiet.getValueAt(i, 6).toString());
+			tongGiaGoc += parseMoney(modelChiTiet.getValueAt(i, 4).toString()); // Đơn giá gốc
+			tongGiamDoiTuong += parseMoney(modelChiTiet.getValueAt(i, 6).toString()); // Giảm đối tượng
 		}
+
+		// Tính lại giamVoucher theo tongGiaGoc (tổng đơn giá, chưa trừ đối tượng)
+		giamVoucher = (selectedVoucher != null) ? selectedVoucher.getTiLeGiamGia() * tongGiaGoc : 0;
+
 		double tongKM = tongGiamDoiTuong + giamVoucher;
 		tongThanhToan = Math.max(0, tongGiaGoc - tongKM);
+
 		lblTongTien.setText(
 				"<html><font color='#505050'>Tổng tiền: </font><b>" + DF.format(tongGiaGoc) + " VNĐ</b></html>");
 		lblTongKhuyenMai
 				.setText("<html><font color='#505050'>Tổng KM: </font><b>" + DF.format(tongKM) + " VNĐ</b></html>");
 		lblThanhToanConLai.setText("<html><font color='#505050'>Còn lại: </font><b><font color='#C82020'>"
 				+ DF.format(tongThanhToan) + " VNĐ</font></b></html>");
+
 		if (btnChuyenKhoan != null && btnChuyenKhoan.isSelected())
 			toggleQRCode();
 		else
@@ -1506,15 +1521,79 @@ public class DatVeGUI3 extends JPanel {
 	}
 
 	private void nhapKhuyenMai() {
-		String ma = JOptionPane.showInputDialog(this, "Nhập mã khuyến mãi:");
-		if (ma != null && ma.trim().equalsIgnoreCase("SALE100")) {
-			giamVoucher = 100000;
-		} else if (ma != null && !ma.trim().isEmpty()) {
-			giamVoucher = 0;
-		} else {
-			giamVoucher = 0;
-		}
-		tinhToanTaiChinh();
+	    java.util.Set<String> MA_CO_DINH = new java.util.HashSet<>(
+	            java.util.Arrays.asList("KM001","KM002","KM003","KM208603"));
+
+	    java.util.List<entity.KhuyenMai> dsKM = new dao.KhuyenMaiDAO().selectAll()
+	            .stream()
+	            .filter(km ->
+	                !MA_CO_DINH.contains(km.getMaKhuyenMai())
+	                && km.getLoaiKhachHang() == null
+	                && "Đang áp dụng".equals(KhuyenMaiGUI.computeStatus(
+	                        km.getThoiGianBatDau(), km.getThoiGianKetThuc()))
+	                && tongGiaGoc >= km.getDieuKienToiThieu()
+	            )
+	            .collect(java.util.stream.Collectors.toList());
+
+	    // Build JPopupMenu
+	    JPopupMenu popup = new JPopupMenu();
+	    popup.setBorder(BorderFactory.createCompoundBorder(
+	            new LineBorder(new Color(180, 205, 230), 1),
+	            new EmptyBorder(4, 0, 4, 0)));
+
+	    ButtonGroup bg = new ButtonGroup();
+
+	    // Dòng "Không áp dụng"
+	    JRadioButtonMenuItem rbNone = new JRadioButtonMenuItem("Không áp dụng khuyến mãi");
+	    rbNone.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 14));
+	    rbNone.setSelected(selectedVoucher == null);
+	    rbNone.addActionListener(e -> {
+	        selectedVoucher = null;
+	        giamVoucher = 0;
+	        tinhToanTaiChinh();
+	    });
+	    bg.add(rbNone);
+	    popup.add(rbNone);
+
+	    if (dsKM.isEmpty()) {
+	        popup.addSeparator();
+	        JMenuItem lblEmpty = new JMenuItem("Không có khuyến mãi phù hợp");
+	        lblEmpty.setFont(new java.awt.Font("Segoe UI", java.awt.Font.ITALIC, 14));
+	        lblEmpty.setForeground(Color.GRAY);
+	        lblEmpty.setEnabled(false);
+	        popup.add(lblEmpty);
+	    } else {
+	        popup.addSeparator();
+	        for (entity.KhuyenMai km : dsKM) {
+	            int pct = (int) Math.round(km.getTiLeGiamGia() * 100);
+	            String label = String.format("[%s] %s — giảm %d%%",
+	                    km.getMaKhuyenMai(), km.getTenKhuyenMai(), pct);
+	            JRadioButtonMenuItem rb = new JRadioButtonMenuItem(label);
+	            rb.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 14));
+	            if (selectedVoucher != null
+	                    && km.getMaKhuyenMai().equals(selectedVoucher.getMaKhuyenMai()))
+	                rb.setSelected(true);
+	            final entity.KhuyenMai kmFinal = km;
+	            rb.addActionListener(e -> {
+	                selectedVoucher = kmFinal;
+	                giamVoucher = kmFinal.getTiLeGiamGia() * tongGiaGoc;
+	                tinhToanTaiChinh();
+	            });
+	            bg.add(rb);
+	            popup.add(rb);
+	        }
+	    }
+
+	    // Tìm nút "Thêm khuyến mãi" để hiện popup ngay phía trên nút
+	    Component source = null;
+	    for (Component c : pnlBtns.getComponents()) {
+	        if (c instanceof JButton && ((JButton)c).getText().contains("khuyến mãi")) {
+	            source = c;
+	            break;
+	        }
+	    }
+	    if (source != null)
+	        popup.show(source, 0, -popup.getPreferredSize().height - 2);
 	}
 
 	private void toggleQRCode() {
@@ -1683,7 +1762,8 @@ public class DatVeGUI3 extends JPanel {
 		try {
 			java.net.URL url = getClass().getResource(path);
 			if (url != null)
-				return new ImageIcon(new ImageIcon(url).getImage().getScaledInstance(w, h, java.awt.Image.SCALE_SMOOTH));
+				return new ImageIcon(
+						new ImageIcon(url).getImage().getScaledInstance(w, h, java.awt.Image.SCALE_SMOOTH));
 		} catch (Exception ignored) {
 		}
 		return null;

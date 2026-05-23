@@ -98,15 +98,7 @@ public class LoginPanel extends JPanel {
         txtPassword.setEchoChar((char) 0); // Hiện chữ mờ lúc đầu
         JPanel passWrapper = createInputWrapper(txtPassword, "Mật khẩu", true);
 
-        // --- Checkbox Quản lý ---
-        JPanel checkPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
-        checkPanel.setOpaque(false);
-        checkPanel.setMaximumSize(new Dimension(300, 30));
-        JCheckBox chkAdmin = new JCheckBox("Quản lý");
-        chkAdmin.setOpaque(false);
-        chkAdmin.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 13));
-        chkAdmin.setForeground(GuiTheme.NAVY);
-        checkPanel.add(chkAdmin);
+    
 
         // --- Nút Đăng nhập bo tròn ---
         JButton btnLogin = new JButton("Đăng nhập") {
@@ -178,25 +170,16 @@ public class LoginPanel extends JPanel {
                 return;
             }
 
-            boolean isAdminChecked = chkAdmin.isSelected();
             AuthService.LoginResult result = AuthService.login(username, password);
 
             switch (result) {
                 case SUCCESS_QUAN_LY -> {
-                    if (!isAdminChecked) {
-                        showStatusPopup(false, "Tài khoản này là Quản lý!<br>Vui lòng tích vào ô 'Quản lý'.");
-                        return;
-                    }
                     showStatusPopup(true, "Đăng nhập thành công!");
                     Timer timer = new Timer(1500, ev -> parent.onLoginSuccess(true));
                     timer.setRepeats(false);
                     timer.start();
                 }
                 case SUCCESS_BAN_VE -> {
-                    if (isAdminChecked) {
-                        showStatusPopup(false, "Tài khoản này không có quyền Quản lý!");
-                        return;
-                    }
                     showStatusPopup(true, "Đăng nhập thành công!");
                     Timer timer = new Timer(1500, ev -> parent.onLoginSuccess(false));
                     timer.setRepeats(false);
@@ -232,8 +215,6 @@ public class LoginPanel extends JPanel {
         form.add(userWrapper);
         form.add(Box.createVerticalStrut(15));
         form.add(passWrapper);
-        form.add(Box.createVerticalStrut(5));
-        form.add(checkPanel);
         form.add(Box.createVerticalStrut(15));
         form.add(btnLogin);
         form.add(Box.createVerticalStrut(15));
