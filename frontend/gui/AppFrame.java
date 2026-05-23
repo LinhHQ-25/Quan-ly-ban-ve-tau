@@ -303,20 +303,20 @@ public class AppFrame extends JFrame {
 
     private void updateTitle(String card) {
         switch (card) {
-            case "home":           headerTitle.setText("THÔNG TIN CÁ NHÂN");      break;
-            case "tra-cuu-chuyen": headerTitle.setText("DANH SÁCH CHUYẾN ĐI");    break;
-            case "tra-cuu-tau":    headerTitle.setText("TRA CỨU TÀU");             break;
-            case "tra-cuu-ve":     headerTitle.setText("TRA CỨU VÉ");              break;
-            case "tra-cuu-khach":  headerTitle.setText("TRA CỨU KHÁCH HÀNG");     break;
-            case "dat-ve":         headerTitle.setText("ĐẶT VÉ TÀU");              break;
-            case "doi-tra":        headerTitle.setText("ĐỔI/TRẢ VÉ");              break;
-            case "thong-ke":       headerTitle.setText("THỐNG KÊ CA LÀM");         break;
-            case "ho-tro":         headerTitle.setText("HỖ TRỢ");                  break;
+            case "home":           headerTitle.setText("");      break;
+            case "tra-cuu-chuyen": headerTitle.setText("");    break;
+            case "tra-cuu-tau":    headerTitle.setText("");             break;
+            case "tra-cuu-ve":     headerTitle.setText("");              break;
+            case "tra-cuu-khach":  headerTitle.setText("");     break;
+            case "dat-ve":         headerTitle.setText("");              break;
+            case "doi-tra":        headerTitle.setText("");              break;
+            case "thong-ke":       headerTitle.setText("");         break;
+            case "ho-tro":         headerTitle.setText("");                  break;
             case "tra-ve":
-            case "tra-ve-step-2":  headerTitle.setText("TRẢ VÉ");                  break;
+            case "tra-ve-step-2":  headerTitle.setText("");                  break;
             case "doi-ve":
-            case "doi-ve-step-2":  headerTitle.setText("ĐỔI VÉ");                  break;
-            default:               headerTitle.setText("THÔNG TIN CÁ NHÂN");
+            case "doi-ve-step-2":  headerTitle.setText("");                  break;
+            default:               headerTitle.setText("");
         }
     }
 

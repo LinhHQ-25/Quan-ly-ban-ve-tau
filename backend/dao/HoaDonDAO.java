@@ -263,4 +263,105 @@ public class HoaDonDAO implements DAO<HoaDon, String> {
         }
         return rows;
     }
+ // ── QUẢN LÝ: danh sách HĐ bán theo khoảng thời gian (tất cả NV) ──
+    public static List<Object[]> getDanhSachHoaDonTheoKhoang(java.time.LocalDate from, java.time.LocalDate to) throws java.sql.SQLException {
+        String sql = "SELECT h.maHoaDon, " +
+        		"       CONVERT(varchar, h.ngayLapHD, 103) + ' ' + CONVERT(varchar, h.ngayLapHD, 108) AS gioBan, " +
+                "       k.hoTenKH, " +
+                "       (SELECT TOP 1 g.loaiGhe FROM Ve v JOIN Ghe g ON v.maGhe = g.maGhe WHERE v.maHoaDon = h.maHoaDon AND v.trangThaiVe = N'Đã thanh toán') AS loaiGhe, " +
+                "       (SELECT COUNT(*) FROM Ve v WHERE v.maHoaDon = h.maHoaDon AND v.trangThaiVe = N'Đã thanh toán') AS soGhe, " +
+                "       h.tongTien AS tongTien, " +
+                "       ISNULL(h.phuongThucThanhToan, '') AS phuongThuc " +
+                "FROM HoaDon h " +
+                "JOIN KhachHang k ON h.maKH = k.maKH " +
+                "WHERE CAST(h.ngayLapHD AS DATE) BETWEEN ? AND ? " +
+                " AND EXISTS (SELECT 1 FROM Ve v WHERE v.maHoaDon = h.maHoaDon AND v.trangThaiVe = N'Đã thanh toán')" +
+                " ORDER BY h.ngayLapHD DESC";
+        List<Object[]> rows = new ArrayList<>();
+        try (Connection con = Connect_DB.getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setDate(1, java.sql.Date.valueOf(from));
+            ps.setDate(2, java.sql.Date.valueOf(to));
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    rows.add(new Object[]{
+                            rs.getString("maHoaDon"),
+                            rs.getString("gioBan"),
+                            rs.getString("hoTenKH"),
+                            rs.getString("loaiGhe"),
+                            rs.getInt("soGhe"),
+                            rs.getDouble("tongTien"),
+                            rs.getString("phuongThuc")
+                    });
+                }
+            }
+        }
+        return rows;
+    }
+
+    // ── QUẢN LÝ: danh sách HĐ hủy theo khoảng thời gian (tất cả NV) ──
+    public static List<Object[]> getDanhSachHoaDonHuyTheoKhoang(java.time.LocalDate from, java.time.LocalDate to) throws java.sql.SQLException {
+        String sql = "SELECT h.maHoaDon, " +
+        		"       CONVERT(varchar, h.ngayLapHD, 103) + ' ' + CONVERT(varchar, h.ngayLapHD, 108) AS gioBan, " +
+                "       k.hoTenKH, " +
+                "       (SELECT TOP 1 g.loaiGhe FROM Ve v JOIN Ghe g ON v.maGhe = g.maGhe WHERE v.maHoaDon = h.maHoaDon AND v.trangThaiVe IN (N'Đã hủy', 'DA_HUY')) AS loaiGhe, " +
+                "       (SELECT COUNT(*) FROM Ve v WHERE v.maHoaDon = h.maHoaDon AND v.trangThaiVe IN (N'Đã hủy', 'DA_HUY')) AS soGhe, " +
+                "       h.tongTien AS tongTien, " +
+                "       ISNULL(h.phuongThucThanhToan, '') AS phuongThuc " +
+                "FROM HoaDon h " +
+                "JOIN KhachHang k ON h.maKH = k.maKH " +
+                "WHERE CAST(h.ngayLapHD AS DATE) BETWEEN ? AND ? " +
+                " AND ISNULL(h.phuongThucThanhToan,'') <> 'LUU_TAM' " +
+                " AND EXISTS (SELECT 1 FROM Ve v WHERE v.maHoaDon = h.maHoaDon AND v.trangThaiVe IN (N'Đã hủy', 'DA_HUY'))" +
+                " ORDER BY h.ngayLapHD DESC";
+        List<Object[]> rows = new ArrayList<>();
+        try (Connection con = Connect_DB.getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setDate(1, java.sql.Date.valueOf(from));
+            ps.setDate(2, java.sql.Date.valueOf(to));
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    rows.add(new Object[]{
+                            rs.getString("maHoaDon"),
+                            rs.getString("gioBan"),
+                            rs.getString("hoTenKH"),
+                            rs.getString("loaiGhe"),
+                            rs.getInt("soGhe"),
+                            rs.getDouble("tongTien"),
+                            rs.getString("phuongThuc")
+                    });
+                }
+            }
+        }
+        return rows;
+    }
+
+    // ── QUẢN LÝ: doanh thu theo từng NV theo khoảng thời gian ──
+    public static List<Object[]> getDoanhThuNhanVienTheoKhoang(java.time.LocalDate from, java.time.LocalDate to) throws java.sql.SQLException {
+        String sql = "SELECT nv.maNV, nv.hoTenNV, COUNT(v.maVe) AS soBan, ISNULL(SUM(v.giaVe), 0) AS doanhThu " +
+                "FROM NhanVien nv " +
+                "JOIN HoaDon h ON nv.maNV = h.maNV " +
+                "JOIN Ve v ON h.maHoaDon = v.maHoaDon " +
+                "WHERE v.trangThaiVe = N'Đã thanh toán' " +
+                "AND CAST(h.ngayLapHD AS DATE) BETWEEN ? AND ? " +
+                "GROUP BY nv.maNV, nv.hoTenNV " +
+                "ORDER BY doanhThu DESC";
+        List<Object[]> rows = new ArrayList<>();
+        try (Connection con = Connect_DB.getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setDate(1, java.sql.Date.valueOf(from));
+            ps.setDate(2, java.sql.Date.valueOf(to));
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    rows.add(new Object[]{
+                            rs.getString("maNV"),
+                            rs.getString("hoTenNV"),
+                            rs.getInt("soBan"),
+                            rs.getLong("doanhThu")
+                    });
+                }
+            }
+        }
+        return rows;
+    }
 }

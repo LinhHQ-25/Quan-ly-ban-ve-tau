@@ -158,15 +158,15 @@ public class AppFrameManager extends JFrame {
 
 	private void updateTitle(String card) {
 		switch (card) {
-			case "dashboard":    headerTitle.setText("TỔNG QUAN HỆ THỐNG"); break;
-			case "ql-nhanvien":  headerTitle.setText("QUẢN LÝ NHÂN VIÊN"); break;
-			case "ql-calam":     headerTitle.setText("QUẢN LÝ CA LÀM VIỆC"); break;
-			case "ql-tau":       headerTitle.setText("QUẢN LÝ THÔNG TIN TÀU"); break;
-			case "ql-chuyentau": headerTitle.setText("QUẢN LÝ CHUYẾN TÀU"); break;
-			case "ql-khuyenmai": headerTitle.setText("QUẢN LÝ KHUYẾN MÃI"); break;
-			case "thong-ke":     headerTitle.setText("THỐNG KÊ DOANH THU"); break;
-			case "ho-tro":       headerTitle.setText("HỖ TRỢ"); break;
-			case "ho-so":        headerTitle.setText("HỒ SƠ QUẢN LÝ"); break;
+			case "dashboard":    headerTitle.setText(""); break;
+			case "ql-nhanvien":  headerTitle.setText(""); break;
+			case "ql-calam":     headerTitle.setText(""); break;
+			case "ql-tau":       headerTitle.setText(""); break;
+			case "ql-chuyentau": headerTitle.setText(""); break;
+			case "ql-khuyenmai": headerTitle.setText(""); break;
+			case "thong-ke":     headerTitle.setText(""); break;
+			case "ho-tro":       headerTitle.setText(""); break;
+			case "ho-so":        headerTitle.setText(""); break;
 		}
 	}
 

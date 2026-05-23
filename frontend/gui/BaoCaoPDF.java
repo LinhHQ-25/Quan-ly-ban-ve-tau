@@ -13,6 +13,7 @@ import java.io.IOException;
 import java.text.NumberFormat;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 import java.util.Locale;
 
 public class BaoCaoPDF {
@@ -29,7 +30,110 @@ public class BaoCaoPDF {
     private static final float[] MGRAY  = {0.80f, 0.82f, 0.86f};
     private static final float[] DTEXT  = {0.10f, 0.12f, 0.18f};
     private static final float[] MTEXT  = {0.45f, 0.47f, 0.54f};
+ // Thêm import ở đầu file BaoCaoPDF.java:
+ // import java.util.List;
 
+ public static void exportManager(String tenQL, String fromDate, String toDate,
+                                   long loiNhuan, int veBan, int veHuy,
+                                   long tienMat, long ck,
+                                   int soGiuong, int soGheMem, int soGheCung,
+                                   List<Object[]> staffRows) {
+     try (PDDocument doc = new PDDocument()) {
+         PDPage page = new PDPage(PDRectangle.A4);
+         doc.addPage(page);
+         PDType0Font fReg  = loadFont(doc, false);
+         PDType0Font fBold = loadFont(doc, true);
+
+         try (PDPageContentStream cs = new PDPageContentStream(doc, page)) {
+             LocalDateTime now = LocalDateTime.now();
+             String strDate = now.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+             String strTime = now.format(DateTimeFormatter.ofPattern("HH:mm:ss"));
+             NumberFormat nf = NumberFormat.getInstance(new Locale("vi","VN"));
+             float y = H;
+
+             // HEADER
+             float hdrH=72f;
+             fillRect(cs,0,H-hdrH,W,hdrH,NAVY);
+             fillRect(cs,0,H-5,W,5,NAVY_L);
+             drawTextCentered(cs,fBold,17f,W,H-30f,WHITE,"HỆ THỐNG QUẢN LÝ BÁN VÉ TÀU HỎA");
+             drawTextCentered(cs,fReg,11f,W,H-52f,new float[]{0.72f,0.80f,1.0f},"GA DIÊU TRÌ");
+             y=H-hdrH-22f;
+
+             drawTextCentered(cs,fBold,13.5f,W,y,NAVY,"BÁO CÁO THỐNG KÊ DOANH THU");
+             y-=9f; drawHLine(cs,M,y,CW,MGRAY,0.6f); y-=18f;
+
+             // INFO ROW: QL | Từ ngày | Đến ngày | Xuất lúc
+             fillRect(cs,M,y-9f,CW,27f,LGRAY);
+             drawRect(cs,M,y-9f,CW,27f,MGRAY,0.5f);
+             float c4=CW/4f;
+             drawLabelValue(cs,fReg,fBold,M+8f,     y+4f,10f,"Quản lý: ",  tenQL);
+             drawLabelValue(cs,fReg,fBold,M+c4+8f,  y+4f,10f,"Từ ngày: ",  fromDate);
+             drawLabelValue(cs,fReg,fBold,M+c4*2+8f,y+4f,10f,"Đến ngày: ", toDate);
+             drawLabelValue(cs,fReg,fBold,M+c4*3+8f,y+4f,10f,"Xuất lúc: ", strDate+" "+strTime);
+             y-=28f;
+
+             // SECTION 1
+             y=drawSectionHeader(cs,fBold,M,y,CW,"TỔNG QUAN DOANH THU"); y-=10f;
+             float bw=CW/4f-6f,bh=70f,gap=8f;
+             drawStatCard(cs,fReg,fBold,M,            y-bh,bw,bh,"TỔNG LỢI NHUẬN",nf.format(loiNhuan)+" đ",new float[]{0.10f,0.13f,0.50f},new float[]{0.93f,0.94f,0.99f});
+             drawStatCard(cs,fReg,fBold,M+bw+gap,     y-bh,bw,bh,"TIỀN MẶT",      nf.format(tienMat)+" đ", new float[]{0.55f,0.35f,0.05f},new float[]{0.99f,0.96f,0.90f});
+             drawStatCard(cs,fReg,fBold,M+(bw+gap)*2, y-bh,bw,bh,"VÉ ĐÃ BÁN",     veBan+" vé",             new float[]{0.08f,0.48f,0.20f},new float[]{0.92f,0.98f,0.93f});
+             drawStatCard(cs,fReg,fBold,M+(bw+gap)*3, y-bh,bw,bh,"VÉ ĐÃ HỦY",     veHuy+" vé",             new float[]{0.70f,0.14f,0.14f},new float[]{0.99f,0.92f,0.92f});
+             y-=bh+22f;
+
+             // SECTION 2
+             y=drawSectionHeader(cs,fBold,M,y,CW,"PHÂN LOẠI VÉ THEO LOẠI GHẾ"); y-=10f;
+             float bw2=CW/3f-7f,bh2=65f;
+             drawStatCard(cs,fReg,fBold,M,              y-bh2,bw2,bh2,"GIƯỜNG NẰM",soGiuong+" vé",new float[]{0.25f,0.45f,0.78f},new float[]{0.92f,0.95f,0.99f});
+             drawStatCard(cs,fReg,fBold,M+bw2+10.5f,    y-bh2,bw2,bh2,"GHẾ MỀM",  soGheMem+" vé", new float[]{0.84f,0.50f,0.06f},new float[]{0.99f,0.96f,0.90f});
+             drawStatCard(cs,fReg,fBold,M+(bw2+10.5f)*2,y-bh2,bw2,bh2,"GHẾ CỨNG", soGheCung+" vé",new float[]{0.12f,0.56f,0.33f},new float[]{0.91f,0.98f,0.93f});
+             y-=bh2+22f;
+
+             // SECTION 3: BẢNG NHÂN VIÊN
+             if(staffRows!=null&&!staffRows.isEmpty()){
+                 y=drawSectionHeader(cs,fBold,M,y,CW,"DOANH THU THEO NHÂN VIÊN"); y-=10f;
+                 float[] colX={M,M+72,M+260,M+370};
+                 float rH=20f;
+                 // Header
+                 fillRect(cs,M,y-rH,CW,rH,new float[]{0.93f,0.94f,0.99f});
+                 drawRect(cs,M,y-rH,CW,rH,MGRAY,0.5f);
+                 String[] hdrs={"Mã NV","Họ tên","Vé đã bán","Doanh thu"};
+                 for(int i=0;i<4;i++) drawText(cs,fBold,9f,colX[i]+4,y-13f,NAVY,hdrs[i]);
+                 y-=rH;
+                 // Rows
+                 for(int ri=0;ri<staffRows.size();ri++){
+                     if(y<70) break;
+                     Object[] row=staffRows.get(ri);
+                     float[] bg=ri%2==0?WHITE:LGRAY;
+                     fillRect(cs,M,y-rH,CW,rH,bg);
+                     drawRect(cs,M,y-rH,CW,rH,MGRAY,0.3f);
+                     for(int ci=0;ci<4;ci++)
+                         drawText(cs,fReg,9f,colX[ci]+4,y-13f,DTEXT,row[ci]!=null?row[ci].toString():"");
+                     y-=rH;
+                 }
+             }
+
+             // FOOTER
+             drawHLine(cs,M,58f,CW,MGRAY,0.5f);
+             drawTextCentered(cs,fReg,8f,W,43f,new float[]{0.58f,0.58f,0.62f},
+                 "Xuất lúc: "+strDate+" "+strTime
+                 +" • Hệ thống quản lý vé tàu hỏa ga Diêu Trì • Tài liệu nội bộ");
+         }
+
+         LocalDateTime tn=LocalDateTime.now();
+         String stamp=tn.format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmm"));
+         File outFile = new File("BaoCao/BaoCaoQL_" + stamp + ".pdf");
+         doc.save(outFile);
+         JOptionPane.showMessageDialog(null,
+             "<html><b>Xuất PDF thành công!</b><br>"+outFile.getAbsolutePath()+"</html>",
+             "Thành công",JOptionPane.INFORMATION_MESSAGE);
+         if(Desktop.isDesktopSupported()) Desktop.getDesktop().open(outFile);
+
+     } catch(Exception ex){
+         JOptionPane.showMessageDialog(null,"Lỗi xuất PDF:\n"+ex.getMessage(),"Lỗi",JOptionPane.ERROR_MESSAGE);
+         ex.printStackTrace();
+     }
+ }
     // THÊM tham số loiNhuan vào đây
     public static void export(String tenNhanVien,
                                long doanhThu, long loiNhuan,
@@ -164,8 +268,7 @@ public class BaoCaoPDF {
             // ── Lưu & mở file ────────────────────────────────────────────────
             LocalDateTime timeNow = LocalDateTime.now();
             String stamp = timeNow.format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmm"));
-            File outFile = new File(
-                System.getProperty("user.home") + "/Desktop/ThongKe_" + stamp + ".pdf");
+            File outFile = new File("BaoCao/ThongKe_" + stamp + ".pdf");
             doc.save(outFile);
 
             JOptionPane.showMessageDialog(null,

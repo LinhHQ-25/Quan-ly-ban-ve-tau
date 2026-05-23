@@ -181,9 +181,8 @@ public class TraVeGUI1 extends JPanel {
         // tongTien trong HoaDon = phiHuyVe (tiền mình giữ lại)
         // ThongKeGUI sẽ hiện số này là doanh thu từ đơn trả
         String sqlInsertHD = "INSERT INTO HoaDon (maHoaDon, ngayLapHD, maNV, maKH, tongTien, tienNhan, phuongThucThanhToan) " +
-                "SELECT ?, GETDATE(), hd.maNV, hd.maKH, ?, 0, N'Hoàn tiền' " +
+                "SELECT ?, GETDATE(), ?, hd.maKH, ?, 0, N'Hoàn tiền' " +
                 "FROM HoaDon hd JOIN Ve v ON v.maHoaDon = hd.maHoaDon WHERE v.maVe = ?";
-
         String sqlUpdateVe  = "UPDATE Ve SET trangThaiVe = N'Đã hủy', maHoaDon = ? WHERE maVe = ?";
         String sqlInsertDon = "INSERT INTO DonDoiTraVe (maDon, tienBu, ngayLap, tienHoanTra, loaiDon, maVe) VALUES (?, ?, GETDATE(), ?, 'DON_TRA', ?)";
 
@@ -193,9 +192,10 @@ public class TraVeGUI1 extends JPanel {
                  PreparedStatement psVe  = conn.prepareStatement(sqlUpdateVe);
                  PreparedStatement psDon = conn.prepareStatement(sqlInsertDon)) {
 
-                psHD.setString(1, maDon);
-                psHD.setLong  (2, phiHuyVe);  // phí giữ lại = doanh thu từ đơn trả
-                psHD.setString(3, s_maVe);
+            	psHD.setString(1, maDon);
+            	psHD.setString(2, service.AuthService.getCurrentMaNV());
+            	psHD.setLong  (3, phiHuyVe);
+            	psHD.setString(4, s_maVe);
                 int hdRows = psHD.executeUpdate();
                 if (hdRows == 0) throw new Exception("Không tìm được hóa đơn gốc của vé " + s_maVe);
 

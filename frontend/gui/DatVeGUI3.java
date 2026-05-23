@@ -1390,12 +1390,7 @@ public class DatVeGUI3 extends JPanel {
 		try {
 			con = connect_DB.Connect_DB.getInstance().getConnection();
 			con.setAutoCommit(false);
-			String maNV = "NV001";
-			try (java.sql.Statement st = con.createStatement();
-					java.sql.ResultSet rsNV = st.executeQuery("SELECT TOP 1 maNV FROM NhanVien")) {
-				if (rsNV.next())
-					maNV = rsNV.getString(1);
-			}
+			String maNV = service.AuthService.getCurrentMaNV();
 			String maKH = null;
 			String sdtKhach = modelFromGUI2.getRowCount() > 0 ? modelFromGUI2.getValueAt(0, 7).toString() : "";
 			try {

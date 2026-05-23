@@ -198,4 +198,88 @@ public class VeDAO {
         } catch (Exception e) { e.printStackTrace(); }
         return false;
     }
+ // ── QUẢN LÝ: đếm vé theo trạng thái trong khoảng thời gian ──
+    public static int getSoVeTheoKhoang(java.time.LocalDate from, java.time.LocalDate to, String trangThai) throws java.sql.SQLException {
+        String sql = "SELECT COUNT(*) FROM Ve v " +
+                "JOIN HoaDon h ON v.maHoaDon = h.maHoaDon " +
+                "WHERE v.trangThaiVe = ? " +
+                "AND CAST(h.ngayLapHD AS DATE) BETWEEN ? AND ?";
+        try (Connection con = Connect_DB.getInstance().getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setString(1, trangThai);
+            ps.setDate(2, java.sql.Date.valueOf(from));
+            ps.setDate(3, java.sql.Date.valueOf(to));
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? rs.getInt(1) : 0;
+            }
+        }
+    }
+
+    // ── QUẢN LÝ: đếm vé hủy trong khoảng thời gian ──
+    public static int getSoVeHuyTheoKhoang(java.time.LocalDate from, java.time.LocalDate to) throws java.sql.SQLException {
+        String sql = "SELECT COUNT(*) FROM Ve v " +
+                "JOIN HoaDon h ON v.maHoaDon = h.maHoaDon " +
+                "WHERE v.trangThaiVe IN (N'Đã hủy', 'DA_HUY') " +
+                "AND ISNULL(h.phuongThucThanhToan,'') <> 'LUU_TAM' " +
+                "AND CAST(h.ngayLapHD AS DATE) BETWEEN ? AND ?";
+        try (Connection con = Connect_DB.getInstance().getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setDate(1, java.sql.Date.valueOf(from));
+            ps.setDate(2, java.sql.Date.valueOf(to));
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? rs.getInt(1) : 0;
+            }
+        }
+    }
+
+    // ── QUẢN LÝ: đếm ghế theo loại trong khoảng thời gian ──
+    public static int[] getSoGheTheoLoaiTheoKhoang(java.time.LocalDate from, java.time.LocalDate to) throws java.sql.SQLException {
+        int[] result = {0, 0, 0};
+        String sql = "SELECT g.loaiGhe, COUNT(*) as sl FROM Ve v " +
+                "JOIN HoaDon h ON v.maHoaDon = h.maHoaDon " +
+                "JOIN Ghe g ON v.maGhe = g.maGhe " +
+                "WHERE v.trangThaiVe = N'Đã thanh toán' " +
+                "AND CAST(h.ngayLapHD AS DATE) BETWEEN ? AND ? " +
+                "GROUP BY g.loaiGhe";
+        try (Connection con = Connect_DB.getInstance().getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setDate(1, java.sql.Date.valueOf(from));
+            ps.setDate(2, java.sql.Date.valueOf(to));
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    String loai = rs.getString("loaiGhe");
+                    if ("GHE_CUNG".equalsIgnoreCase(loai) || "Ghế cứng".equalsIgnoreCase(loai))       result[0] = rs.getInt("sl");
+                    else if ("GIUONG_NAM".equalsIgnoreCase(loai) || "Giường nằm".equalsIgnoreCase(loai)) result[1] = rs.getInt("sl");
+                    else if ("GHE_MEM".equalsIgnoreCase(loai) || "Ghế mềm".equalsIgnoreCase(loai))     result[2] = rs.getInt("sl");
+                }
+            }
+        }
+        return result;
+    }
+
+    // ── QUẢN LÝ: tổng tiền mặt và chuyển khoản theo khoảng thời gian ──
+    public static long[] getDoanhThuPTTTTheoKhoang(java.time.LocalDate from, java.time.LocalDate to) throws java.sql.SQLException {
+        long[] res = {0L, 0L}; // [0]=tiền mặt, [1]=chuyển khoản
+        String sql = "SELECT h.phuongThucThanhToan, ISNULL(SUM(h.tongTien), 0) " +
+                "FROM HoaDon h " +
+                "WHERE ISNULL(h.phuongThucThanhToan,'') <> 'LUU_TAM' " +
+                "AND CAST(h.ngayLapHD AS DATE) BETWEEN ? AND ? " +
+                "AND EXISTS (SELECT 1 FROM Ve v WHERE v.maHoaDon = h.maHoaDon AND v.trangThaiVe = N'Đã thanh toán') " +
+                "GROUP BY h.phuongThucThanhToan";
+        try (Connection con = Connect_DB.getInstance().getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setDate(1, java.sql.Date.valueOf(from));
+            ps.setDate(2, java.sql.Date.valueOf(to));
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    String p = rs.getString(1);
+                    long   v = rs.getLong(2);
+                    if (p != null && (p.toLowerCase().contains("chuyen_khoan") ||
+                            p.toLowerCase().contains("vietqr"))) res[1] += v;
+                    else res[0] += v;
+                }
+            }
+        }
+        return res;
+    }
 }

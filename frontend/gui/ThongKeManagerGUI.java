@@ -1,8 +1,8 @@
 package gui;
 
 import connect_DB.Connect_DB;
-import service.AuthService;
-
+import dao.HoaDonDAO;
+import dao.VeDAO;
 import java.awt.*;
 import java.awt.event.*;
 import java.sql.*;
@@ -14,879 +14,657 @@ import javax.swing.*;
 import javax.swing.border.*;
 import javax.swing.table.*;
 
-/**
- * ThongKeManagerGUI — Thống kê doanh thu cho Quản lý.
- *
- * Bố cục:
- *  - TopBar  : bộ lọc thời gian (Hôm nay | Tuần này | Tháng | Năm | Khác)
- *              + nút "Xuất báo cáo" + nút "Dashboard →"
- *  - KPI row : 6 card (Doanh thu · Lợi nhuận · Vé bán · Vé hủy · Tiền mặt · CK)
- *  - Middle  : bảng giao dịch (trái) + biểu đồ donut ghế (phải)
- *  - Bottom  : bảng Top nhân viên
- *
- * Nút "Dashboard" gọi AppFrameManager.getInstance().showCard("dashboard").
- */
 public class ThongKeManagerGUI extends JPanel {
 
-    // ── Màu sắc ───────────────────────────────────────────────────────────────
-    private static final Color BORDER_C  = new Color(210, 215, 224);
-    private static final Color NAVY      = new Color(37,  69, 121);
-    private static final Color LIGHT_BG  = new Color(245, 247, 251);
+    private static final Color BORDER_C = new Color(210, 215, 224);
+    private static final Color PRIMARY  = new Color(71, 71, 156);
+    private static final Color LIGHT_BG = new Color(245, 247, 251);
 
-    private static final Color[] KPI_ACCENTS = {
-        new Color(34, 120, 180),   // lợi nhuận
-        new Color(34, 139,  87),   // vé bán
-        new Color(210,  50,  50),  // vé hủy
-        new Color(180, 120,  30),  // tiền mặt
-        new Color( 30, 140, 160),  // chuyển khoản
-    };
+    // ── KPI ──────────────────────────────────────────────────────────────────
+    // [0]=Tổng lợi nhuận [1]=Vé đã bán [2]=Vé đã hủy [3]=Tiền mặt [4]=Chuyển khoản
+    private final JLabel[] lblKpi = new JLabel[5];
+    private JPanel cardVeBan, cardVeHuy;
+    private String currentFilter = null;
 
-    // ── Bộ lọc ────────────────────────────────────────────────────────────────
-    private static final String[] PERIOD_LABELS = {"Hôm nay","Tuần này","Tháng","Năm","Khác"};
-    private JToggleButton[] periodBtns;
-    private ButtonGroup     periodGroup;
-    private JPanel          extraFilterPanel;  // chứa combo tháng/năm hoặc date picker
-    private JComboBox<Integer> cboThang, cboNam, cboNamYear;
-    private JSpinner        spFrom, spTo;      // cho "Khác"
-
-    // ── KPI ───────────────────────────────────────────────────────────────────
-    private final JLabel[] kpiValues = new JLabel[5];
-    private JPanel kpiVeBan, kpiVeHuy;
-    private String currentTableFilter = null;  // null / "ban" / "huy"
-
-    // ── Bảng giao dịch ────────────────────────────────────────────────────────
-    private DefaultTableModel tblModel;
-    private List<Object[]>    hdBanList = new ArrayList<>();
-    private List<Object[]>    hdHuyList = new ArrayList<>();
-
-    // ── Biểu đồ donut ─────────────────────────────────────────────────────────
-    private DonutChartMgr donutChart;
-
-    // ── Bảng top NV ───────────────────────────────────────────────────────────
-    private DefaultTableModel staffModel;
-
-    // ── Giá trị KPI (lưu để xuất BC) ─────────────────────────────────────────
+    // ── Dữ liệu ──────────────────────────────────────────────────────────────
+    private List<Object[]> hdBanList = new ArrayList<>();
+    private List<Object[]> hdHuyList = new ArrayList<>();
     private long kLoiNhuan, kTienMat, kCK;
     private int  kVeBan, kVeHuy;
+    private LocalDate filterFrom, filterTo;
 
-    // ── Reference về AppFrameManager để gọi showCard ─────────────────────────
-    private AppFrameManager appFrame;
+    // ── Bộ lọc ───────────────────────────────────────────────────────────────
+    private JComboBox<String> cboPeriod;
+    // Spinner tháng/năm cho "Tháng" và "Năm"
+    private JPanel extraPanel;
+    private JComboBox<Integer> cboThang, cboNam, cboNamYear;
+
+    // ── Bảng + Donut ─────────────────────────────────────────────────────────
+    private DefaultTableModel tblModel;
+    private DonutChartMgr     donutChart;
+
+    // ── Bảng NV ──────────────────────────────────────────────────────────────
+    private DefaultTableModel staffModel;
 
     // =========================================================================
-    public ThongKeManagerGUI() {
-        this(null);
-    }
+    public ThongKeManagerGUI() { this(null); }
 
     public ThongKeManagerGUI(AppFrameManager appFrame) {
-        this.appFrame = appFrame;
         setBackground(LIGHT_BG);
         setLayout(new BorderLayout());
 
+        // Wrap toàn bộ vào scroll
         JPanel page = new JPanel();
         page.setOpaque(false);
         page.setLayout(new BoxLayout(page, BoxLayout.Y_AXIS));
-        page.setBorder(new EmptyBorder(14, GuiTheme.PAGE_PAD_LEFT,
-                                        GuiTheme.PAGE_PAD_BOTTOM, GuiTheme.PAGE_PAD_LEFT));
+        page.setBorder(new EmptyBorder(0, 0, 0, 0));
 
-        page.add(buildTopBar());
-        page.add(Box.createVerticalStrut(12));
-        page.add(buildKpiRow());
-        page.add(Box.createVerticalStrut(12));
+        JPanel pnlTop = new JPanel();
+        pnlTop.setOpaque(false);
+        pnlTop.setLayout(new BoxLayout(pnlTop, BoxLayout.Y_AXIS));
+        pnlTop.add(buildFilterBar());
+        pnlTop.add(Box.createVerticalStrut(8));
+        pnlTop.add(buildSummaryBar());
+        pnlTop.add(Box.createVerticalStrut(8));
+
+        page.add(pnlTop);
         page.add(buildMiddleRow());
-        page.add(Box.createVerticalStrut(12));
+        page.add(Box.createVerticalStrut(8));
         page.add(buildStaffCard());
-        page.add(Box.createVerticalStrut(14));
+        page.add(Box.createVerticalStrut(8));
+        page.add(buildBottomBar(appFrame));
 
-        JScrollPane scroll = new JScrollPane(page);
+     // Wrap page trong 1 panel fit-width để tránh scroll ngang
+        JPanel wrapper = new JPanel(new BorderLayout()) {
+            @Override public boolean isOptimizedDrawingEnabled() { return false; }
+        };
+        wrapper.setOpaque(false);
+        wrapper.add(page, BorderLayout.NORTH);
+
+        JScrollPane scroll = new JScrollPane(wrapper);
         scroll.setBorder(null);
         scroll.setOpaque(false);
         scroll.getViewport().setOpaque(false);
-        scroll.getVerticalScrollBar().setUnitIncrement(16);
-        add(scroll, BorderLayout.CENTER);
+        scroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+        scroll.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_NEVER);
 
-        SwingUtilities.invokeLater(() -> selectPeriod(0)); // mặc định "Hôm nay"
+        // Ẩn thanh cuộn, scroll mượt bằng chuột
+        JScrollBar vBar = scroll.getVerticalScrollBar();
+        vBar.setUnitIncrement(20);
+        vBar.setBlockIncrement(80);
+        vBar.setPreferredSize(new Dimension(0, 0));
+        vBar.setMaximumSize(new Dimension(0, 0));
+        vBar.setMinimumSize(new Dimension(0, 0));
+
+        // Scroll mượt bằng trackpad / chuột
+        scroll.addMouseWheelListener(e -> {
+            int notches = e.getWheelRotation();
+            int val = vBar.getValue() + notches * 30;
+            val = Math.max(vBar.getMinimum(), Math.min(val, vBar.getMaximum()));
+            vBar.setValue(val);
+        });
+
+        add(scroll, BorderLayout.CENTER);
+        SwingUtilities.invokeLater(this::applyPeriod);
     }
 
     // =========================================================================
-    // TOP BAR
+    // BỘ LỌC
     // =========================================================================
-    private JPanel buildTopBar() {
-        JPanel bar = new JPanel(new BorderLayout(8, 0));
+    private JPanel buildFilterBar() {
+        JPanel bar = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
         bar.setOpaque(false);
-        bar.setMaximumSize(new Dimension(Integer.MAX_VALUE, 44));
+        bar.setMaximumSize(new Dimension(Integer.MAX_VALUE, 38));
 
-        // ── Trái: pill group + extra filter ──────────────────────────────────
-        JPanel left = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
-        left.setOpaque(false);
+        JLabel lbl = new JLabel("Thống kê:");
+        lbl.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 13));
+        lbl.setForeground(new Color(60, 65, 90));
 
-        // Pill group (rounded toggle buttons)
-        JPanel pillGroup = new JPanel(new GridLayout(1, PERIOD_LABELS.length));
-        pillGroup.setOpaque(false);
-        pillGroup.setBorder(BorderFactory.createCompoundBorder(
-            new LineBorder(BORDER_C, 1, true),
-            null));
-        pillGroup.setBackground(Color.WHITE);
-        pillGroup.setOpaque(true);
-        pillGroup.setPreferredSize(new Dimension(330, 34));
+        cboPeriod = new JComboBox<>(new String[]{"Hôm nay","Tuần này","Tháng","Năm","Tùy chọn"});
+        cboPeriod.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 13));
+        cboPeriod.setBackground(Color.WHITE);
+        cboPeriod.setPreferredSize(new Dimension(120, 32));
 
-        periodBtns = new JToggleButton[PERIOD_LABELS.length];
-        periodGroup = new ButtonGroup();
-        for (int i = 0; i < PERIOD_LABELS.length; i++) {
-            final int idx = i;
-            JToggleButton btn = new JToggleButton(PERIOD_LABELS[i]) {
-                @Override protected void paintComponent(Graphics g) {
-                    Graphics2D g2 = (Graphics2D) g.create();
-                    g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                    if (isSelected()) {
-                        g2.setColor(NAVY);
-                        g2.fillRoundRect(1, 1, getWidth()-2, getHeight()-2, 14, 14);
-                        g2.setColor(Color.WHITE);
-                    } else {
-                        g2.setColor(Color.WHITE);
-                        g2.fillRect(0, 0, getWidth(), getHeight());
-                        g2.setColor(new Color(80, 90, 120));
-                    }
-                    g2.setFont(getFont());
-                    FontMetrics fm = g2.getFontMetrics();
-                    g2.drawString(getText(),
-                        (getWidth() - fm.stringWidth(getText())) / 2,
-                        (getHeight() + fm.getAscent() - fm.getDescent()) / 2);
-                    g2.dispose();
-                }
-            };
-            btn.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 12));
-            btn.setContentAreaFilled(false);
-            btn.setBorderPainted(false);
-            btn.setFocusPainted(false);
-            btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-            btn.addActionListener(e -> selectPeriod(idx));
-            periodBtns[i] = btn;
-            periodGroup.add(btn);
-            pillGroup.add(btn);
-        }
-        pillGroup.setPreferredSize(new Dimension(330, 34));
+        // Panel phụ: hiện thêm combo tháng/năm tùy loại chọn
+        extraPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
+        extraPanel.setOpaque(false);
+        extraPanel.setVisible(false);
 
-        // Extra filter (combo tháng/năm hoặc date range)
-        extraFilterPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
-        extraFilterPanel.setOpaque(false);
-        extraFilterPanel.setVisible(false);
+        cboPeriod.addActionListener(e -> onPeriodChange());
 
-        left.add(pillGroup);
-        left.add(Box.createHorizontalStrut(10));
-        left.add(extraFilterPanel);
+        JButton btnLoc = buildNavyButton("  Lọc  ");
+        btnLoc.addActionListener(e -> applyPeriod());
 
-        // ── Phải: nút Xuất báo cáo + Dashboard ──────────────────────────────
-        JPanel right = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
-        right.setOpaque(false);
-        right.add(buildNavyButton("  Xuất báo cáo  ", true,  this::doExport));
-        right.add(buildOutlineButton("Dashboard  →",         this::goDashboard));
-
-        bar.add(left,  BorderLayout.CENTER);
-        bar.add(right, BorderLayout.EAST);
+        bar.add(lbl);
+        bar.add(cboPeriod);
+        bar.add(extraPanel);
+        bar.add(btnLoc);
         return bar;
     }
 
-    private void selectPeriod(int idx) {
-        periodBtns[idx].setSelected(true);
-        extraFilterPanel.removeAll();
-        extraFilterPanel.setVisible(false);
+    private void onPeriodChange() {
+        String sel = (String) cboPeriod.getSelectedItem();
+        extraPanel.removeAll();
+        extraPanel.setVisible(false);
 
-        int thisYear  = LocalDate.now().getYear();
-        int thisMonth = LocalDate.now().getMonthValue();
+        int now = LocalDate.now().getYear();
+        int nowM = LocalDate.now().getMonthValue();
 
-        switch (idx) {
-            case 2 -> { // Tháng
-                cboThang = comboOf(java.util.stream.IntStream.rangeClosed(1,12).boxed().toArray(Integer[]::new));
-                cboThang.setSelectedItem(thisMonth);
-                cboNam   = comboOf(yearArray());
-                extraFilterPanel.add(label("Tháng:")); extraFilterPanel.add(cboThang);
-                extraFilterPanel.add(label("Năm:"));   extraFilterPanel.add(cboNam);
-                extraFilterPanel.setVisible(true);
+        switch (sel) {
+            case "Tháng" -> {
+                cboThang = makeIntCombo(new Integer[]{1,2,3,4,5,6,7,8,9,10,11,12}, 80);
+                cboThang.setSelectedItem(nowM);
+                cboNam = makeIntCombo(yearArray(), 90);
+                extraPanel.add(makeLabel("Tháng:")); extraPanel.add(cboThang);
+                extraPanel.add(makeLabel("Năm:"));   extraPanel.add(cboNam);
+                extraPanel.setVisible(true);
             }
-            case 3 -> { // Năm
-                cboNamYear = comboOf(yearArray());
-                extraFilterPanel.add(label("Năm:")); extraFilterPanel.add(cboNamYear);
-                extraFilterPanel.setVisible(true);
+            case "Năm" -> {
+                cboNamYear = makeIntCombo(yearArray(), 90);
+                extraPanel.add(makeLabel("Năm:")); extraPanel.add(cboNamYear);
+                extraPanel.setVisible(true);
             }
-            case 4 -> { // Khác — date spinner
-                spFrom = dateSpinner(LocalDate.now().withDayOfMonth(1));
-                spTo   = dateSpinner(LocalDate.now());
-                extraFilterPanel.add(label("Từ:"));  extraFilterPanel.add(spFrom);
-                extraFilterPanel.add(label("đến:")); extraFilterPanel.add(spTo);
-                extraFilterPanel.setVisible(true);
+            case "Tùy chọn" -> {
+                JSpinner spFrom = makeDateSpinner(LocalDate.now().withDayOfMonth(1));
+                JSpinner spTo   = makeDateSpinner(LocalDate.now());
+                extraPanel.putClientProperty("spFrom", spFrom);
+                extraPanel.putClientProperty("spTo",   spTo);
+                extraPanel.add(makeLabel("Từ:"));  extraPanel.add(spFrom);
+                extraPanel.add(makeLabel("đến:")); extraPanel.add(spTo);
+                extraPanel.setVisible(true);
             }
         }
+        extraPanel.revalidate();
+        extraPanel.repaint();
+    }
 
-        extraFilterPanel.revalidate();
-        extraFilterPanel.repaint();
-        loadAll(idx);
+    private void applyPeriod() {
+        String sel = (String) cboPeriod.getSelectedItem();
+        LocalDate now = LocalDate.now();
+        switch (sel) {
+            case "Hôm nay"  -> { filterFrom = now; filterTo = now; }
+            case "Tuần này" -> { filterFrom = now.minusDays(now.getDayOfWeek().getValue()-1); filterTo = now; }
+            case "Tháng"    -> {
+                int m = cboThang!=null ? (Integer)cboThang.getSelectedItem() : now.getMonthValue();
+                int y = cboNam!=null   ? (Integer)cboNam.getSelectedItem()   : now.getYear();
+                filterFrom = LocalDate.of(y,m,1);
+                filterTo   = filterFrom.withDayOfMonth(filterFrom.lengthOfMonth());
+            }
+            case "Năm"      -> {
+                int y = cboNamYear!=null ? (Integer)cboNamYear.getSelectedItem() : now.getYear();
+                filterFrom = LocalDate.of(y,1,1); filterTo = LocalDate.of(y,12,31);
+            }
+            case "Tùy chọn" -> {
+                JSpinner spFrom = (JSpinner) extraPanel.getClientProperty("spFrom");
+                JSpinner spTo   = (JSpinner) extraPanel.getClientProperty("spTo");
+                if (spFrom!=null) filterFrom = toLD(spFrom); else filterFrom = now;
+                if (spTo!=null)   filterTo   = toLD(spTo);   else filterTo   = now;
+            }
+            default -> { filterFrom = now; filterTo = now; }
+        }
+        loadAll();
+    }
+
+    private LocalDate toLD(JSpinner sp) {
+        return ((java.util.Date)sp.getValue()).toInstant()
+                .atZone(java.time.ZoneId.systemDefault()).toLocalDate();
     }
 
     // =========================================================================
-    // KPI ROW
-    // =========================================================================
-    private JPanel buildKpiRow() {
-        JPanel row = new JPanel(new GridLayout(1, 5, 10, 0));
+    private JPanel buildSummaryBar() {
+        JPanel row = new JPanel(new GridLayout(1, 5, 12, 0));
         row.setOpaque(false);
-        row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 82));
+        row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 78));
 
-        String[] labels = {"Tổng lợi nhuận","Vé đã bán","Vé đã hủy","Tiền mặt","Chuyển khoản"};
-        String[] inits  = {"0 đ","0 vé","0 vé","0 đ","0 đ"};
+        row.add(buildStatCard("Tổng lợi nhuận", "0 đ", new Color(71, 71, 156), 0, false));
+        cardVeBan = buildStatCard("Vé đã bán", "0 vé", new Color(34, 139, 87), 1, true);
+        row.add(cardVeBan);
+        cardVeHuy = buildStatCard("Vé đã hủy (đã hoàn tiền)", "0 vé", new Color(210, 50, 50), 2, true);
+        row.add(cardVeHuy);
+        row.add(buildStatCard("Tiền mặt", "0 đ", new Color(180, 120, 30), 3, false));
+        row.add(buildStatCard("Chuyển khoản", "0 đ", new Color(30, 140, 160), 4, false));
 
-        for (int i = 0; i < 5; i++) {
-            JPanel card = buildKpiCard(labels[i], inits[i], KPI_ACCENTS[i], i);
-            if (i == 1) kpiVeBan = card;
-            if (i == 2) kpiVeHuy = card;
-            row.add(card);
-        }
-        return row;
+        JPanel pnl = new JPanel();
+        pnl.setLayout(new BoxLayout(pnl, BoxLayout.Y_AXIS));
+        pnl.setOpaque(false);
+        pnl.add(row);
+        return pnl;
     }
 
-    private JPanel buildKpiCard(String label, String initVal, Color accent, int idx) {
-        boolean clickable = (idx == 1 || idx == 2);
+    private JPanel buildStatCard(String label, String value, Color accent, int idx, boolean clickable) {
         JPanel card = new JPanel() {
             @Override protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                 g2.setColor(Color.WHITE);
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 12, 12);
-
-                boolean sel = (idx==1 && "ban".equals(currentTableFilter))
-                           || (idx==2 && "huy".equals(currentTableFilter));
-                g2.setColor(sel ? accent : BORDER_C);
-                g2.setStroke(new BasicStroke(sel ? 1.8f : 0.5f));
-                g2.drawRoundRect(0, 0, getWidth()-1, getHeight()-1, 12, 12);
-
-                g2.setColor(accent);
-                g2.setStroke(new BasicStroke(1f));
-                g2.fillRect(0, 0, 5, getHeight());
+                g2.fillRoundRect(0,0,getWidth(),getHeight(),10,10);
+                boolean sel = (idx==1 && "ban".equals(currentFilter))
+                           || (idx==2 && "huy".equals(currentFilter));
+                g2.setColor(sel ? accent : new Color(220,224,232));
+                g2.setStroke(new BasicStroke(sel ? 2f : 1f));
+                g2.drawRoundRect(0,0,getWidth()-1,getHeight()-1,10,10);
+                g2.setColor(accent); g2.setStroke(new BasicStroke(1f));
+                g2.fillRect(0,0,5,getHeight());
                 g2.dispose();
             }
         };
         card.setOpaque(false);
-        card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
-        card.setBorder(new EmptyBorder(10, 16, 10, 10));
+        card.setLayout(new BoxLayout(card,BoxLayout.Y_AXIS));
+        card.setBorder(new EmptyBorder(10,18,10,22));
+        card.setPreferredSize(new Dimension(220,78));
+        card.setMaximumSize(new Dimension(Integer.MAX_VALUE,78));
         if (clickable) card.setCursor(new Cursor(Cursor.HAND_CURSOR));
 
-        JLabel lbLabel = new JLabel(label.toUpperCase());
-        lbLabel.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 10));
-        lbLabel.setForeground(new Color(130, 135, 155));
+        JLabel lbLbl = new JLabel(label.toUpperCase());
+        lbLbl.setFont(GuiTheme.font("Segoe UI",Font.BOLD,12));
+        lbLbl.setForeground(new Color(130,135,155));
 
-        JLabel lbVal = new JLabel(initVal);
-        lbVal.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 20));
-        lbVal.setForeground(new Color(28, 32, 52));
-        kpiValues[idx] = lbVal;
+        JLabel lbVal = new JLabel(value);
+        lbVal.setFont(GuiTheme.font("Segoe UI",Font.BOLD,23));
+        lbVal.setForeground(new Color(28,32,52));
+        lblKpi[idx] = lbVal;
 
-        card.add(lbLabel);
-        card.add(Box.createVerticalStrut(3));
-        card.add(lbVal);
-
-        if (idx == 2) {
-            JLabel hint = new JLabel("Nhấn để lọc");
-            hint.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 10));
-            hint.setForeground(new Color(160, 165, 185));
-            card.add(hint);
-        }
-        if (idx == 2) {
-            JLabel hint = new JLabel("Nhấn để lọc");
-            hint.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 10));
-            hint.setForeground(new Color(160, 165, 185));
-            card.add(hint);
-        }
+        card.add(lbLbl); card.add(Box.createVerticalStrut(2)); card.add(lbVal);
 
         if (clickable) {
             card.addMouseListener(new MouseAdapter() {
                 @Override public void mouseClicked(MouseEvent e) {
-                    if (idx == 1) {
-                        currentTableFilter = "ban".equals(currentTableFilter) ? null : "ban";
-                        renderTable("ban".equals(currentTableFilter) ? hdBanList : hdBanList);
+                    if (idx==1) {
+                        currentFilter = "ban".equals(currentFilter) ? null : "ban";
+                        renderTable("ban".equals(currentFilter) ? hdBanList : hdBanList);
                     } else {
-                        if ("huy".equals(currentTableFilter)) {
-                            currentTableFilter = null;
-                            renderTable(hdBanList);
-                        } else {
-                            currentTableFilter = "huy";
-                            renderTable(hdHuyList);
-                        }
+                        if ("huy".equals(currentFilter)) { currentFilter=null; renderTable(hdBanList); }
+                        else { currentFilter="huy"; renderTable(hdHuyList); }
                     }
-                    if (kpiVeBan != null) kpiVeBan.repaint();
-                    if (kpiVeHuy != null) kpiVeHuy.repaint();
+                    if (cardVeBan!=null) cardVeBan.repaint();
+                    if (cardVeHuy!=null) cardVeHuy.repaint();
                 }
             });
         }
         return card;
     }
 
-    // =========================================================================
-    // MIDDLE ROW: bảng giao dịch + donut
-    // =========================================================================
     private JPanel buildMiddleRow() {
-        JPanel pnl = new JPanel(new BorderLayout(12, 0));
+        JPanel pnl = new JPanel(new BorderLayout(10, 0));
         pnl.setOpaque(false);
-        pnl.setMaximumSize(new Dimension(Integer.MAX_VALUE, 280));
+        pnl.setMaximumSize(new Dimension(Integer.MAX_VALUE, 395));
 
         pnl.add(buildTransactionTable(), BorderLayout.CENTER);
 
         donutChart = new DonutChartMgr();
         JPanel donutCard = wrapCard(donutChart, "Phân loại vé theo ghế");
-        donutCard.setPreferredSize(new Dimension(268, 280));
+        donutCard.setPreferredSize(new Dimension(300, 395));
+        donutCard.setMinimumSize(new Dimension(300, 395));
         pnl.add(donutCard, BorderLayout.EAST);
         return pnl;
     }
 
     private JPanel buildTransactionTable() {
         tblModel = new DefaultTableModel(
-            new Object[]{"Mã HĐ","Giờ bán","Khách hàng","Hình thức TT","Số vé","Tổng tiền"}, 0) {
-            @Override public boolean isCellEditable(int r, int c) { return false; }
+            new Object[]{"Mã HĐ","Ngày giờ bán","Khách hàng","Hình thức TT","Số vé","Tổng tiền"},0) {
+            @Override public boolean isCellEditable(int r,int c){return false;}
         };
-
         JTable tbl = new JTable(tblModel);
-        tbl.setRowHeight(34);
-        tbl.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 13));
-        tbl.getTableHeader().setFont(GuiTheme.font("Segoe UI", Font.BOLD, 13));
-        tbl.getTableHeader().setBackground(new Color(248, 249, 252));
-        tbl.getTableHeader().setForeground(new Color(90, 95, 120));
+        tbl.setRowHeight(36);
+        tbl.setFont(GuiTheme.font("Segoe UI",Font.PLAIN,14));
+        tbl.getTableHeader().setFont(GuiTheme.font("Segoe UI",Font.BOLD,14));
         tbl.setShowVerticalLines(false);
-        tbl.setGridColor(new Color(242, 244, 248));
-        tbl.setSelectionBackground(NAVY);
-        tbl.setSelectionForeground(Color.WHITE);
+        tbl.setSelectionBackground(PRIMARY); tbl.setSelectionForeground(Color.WHITE);
         tbl.getTableHeader().setReorderingAllowed(false);
         tbl.getTableHeader().setResizingAllowed(false);
 
-        DefaultTableCellRenderer zebraR = new DefaultTableCellRenderer() {
+        DefaultTableCellRenderer zebra = new DefaultTableCellRenderer(){
             @Override public Component getTableCellRendererComponent(
-                    JTable t, Object v, boolean sel, boolean foc, int row, int col) {
-                super.getTableCellRendererComponent(t, v, sel, foc, row, col);
-                setHorizontalAlignment(col == 2 ? SwingConstants.LEFT : SwingConstants.CENTER);
-                if (!sel) setBackground(row % 2 == 0 ? Color.WHITE : new Color(250, 251, 253));
-                return this;
+                    JTable t,Object v,boolean s,boolean f,int row,int col){
+                Component c=super.getTableCellRendererComponent(t,v,s,f,row,col);
+                if(!s) c.setBackground(row%2==0?Color.WHITE:new Color(250,250,250));
+                setHorizontalAlignment(SwingConstants.CENTER);
+                return c;
             }
         };
-        for (int i = 0; i < tbl.getColumnCount(); i++)
-            tbl.getColumnModel().getColumn(i).setCellRenderer(zebraR);
-        ((DefaultTableCellRenderer) tbl.getTableHeader().getDefaultRenderer())
-            .setHorizontalAlignment(SwingConstants.CENTER);
+        for(int i=0;i<tbl.getColumnCount();i++)
+            tbl.getColumnModel().getColumn(i).setCellRenderer(zebra);
+        ((DefaultTableCellRenderer)tbl.getTableHeader().getDefaultRenderer())
+                .setHorizontalAlignment(SwingConstants.CENTER);
 
-        // Độ rộng cột
-        int[] colW = {120, 70, 150, 110, 55, 110};
-        for (int i = 0; i < colW.length; i++)
-            tbl.getColumnModel().getColumn(i).setPreferredWidth(colW[i]);
+        int[] colW={120,130,130,110,55,110};
+        for(int i=0;i<colW.length;i++) tbl.getColumnModel().getColumn(i).setPreferredWidth(colW[i]);
 
-        JScrollPane sp = new JScrollPane(tbl);
-        sp.setBorder(null);
-        sp.getViewport().setBackground(Color.WHITE);
-
-        return wrapCard(sp, "Danh sách giao dịch");
+        JScrollPane sp=new JScrollPane(tbl);
+        sp.setBorder(null); sp.getViewport().setBackground(Color.WHITE);
+        return wrapCard(sp,"Danh sách giao dịch");
     }
 
-    private void renderTable(List<Object[]> list) {
+    private void renderTable(List<Object[]> list){
         tblModel.setRowCount(0);
-        for (Object[] row : list) {
-            String tiền = row[5] instanceof Double
-                ? formatMoney(((Double) row[5]).longValue())
-                : String.valueOf(row[5]);
-            String pttt = normalizePTTT(row[6] != null ? row[6].toString() : "");
-            tblModel.addRow(new Object[]{row[0], row[1], row[2], pttt, row[4], tiền});
+        for(Object[] row:list){
+            String tien=row[5] instanceof Double ? fmtMoney(((Double)row[5]).longValue()) : String.valueOf(row[5]);
+            String pttt="huy".equals(currentFilter) ? "Hoàn tiền" : normPTTT(row[6]!=null?row[6].toString():"");
+            tblModel.addRow(new Object[]{row[0],row[1],row[2],pttt,row[4],tien});
         }
     }
-
-    private static String normalizePTTT(String s) {
-        if (s.equalsIgnoreCase("TIEN_MAT"))    return "Tiền mặt";
-        if (s.equalsIgnoreCase("CHUYEN_KHOAN") || s.toLowerCase().contains("vietqr")) return "Chuyển khoản";
-        if (s.toLowerCase().contains("hoàn tiền")) return "Hoàn tiền";
-        return s;
-    }
-
     // =========================================================================
-    // BẢNG TOP NHÂN VIÊN
+    // BẢNG NHÂN VIÊN
     // =========================================================================
-    private JPanel buildStaffCard() {
-        staffModel = new DefaultTableModel(
-            new Object[]{"Mã NV","Họ tên","Vé đã bán","Doanh thu"}, 0) {
-            @Override public boolean isCellEditable(int r, int c) { return false; }
+    private JPanel buildStaffCard(){
+        staffModel=new DefaultTableModel(
+            new Object[]{"Mã NV","Họ tên","Vé đã bán","Doanh thu"},0){
+            @Override public boolean isCellEditable(int r,int c){return false;}
         };
-
-        JTable tbl = new JTable(staffModel);
+        JTable tbl=new JTable(staffModel);
         tbl.setRowHeight(34);
-        tbl.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 13));
-        tbl.getTableHeader().setFont(GuiTheme.font("Segoe UI", Font.BOLD, 13));
-        tbl.getTableHeader().setBackground(new Color(248, 249, 252));
-        tbl.getTableHeader().setForeground(new Color(90, 95, 120));
-        tbl.setShowVerticalLines(false);
-        tbl.setGridColor(new Color(242, 244, 248));
-        tbl.setSelectionBackground(new Color(37, 69, 121, 40));
-        tbl.setSelectionForeground(GuiTheme.TEXT);
+        tbl.setFont(GuiTheme.font("Segoe UI",Font.PLAIN,13));
+        tbl.getTableHeader().setFont(GuiTheme.font("Segoe UI",Font.BOLD,13));
+        tbl.setShowVerticalLines(false); tbl.setGridColor(new Color(242,244,248));
         tbl.getTableHeader().setReorderingAllowed(false);
         tbl.getTableHeader().setResizingAllowed(false);
 
-        DefaultTableCellRenderer r = new DefaultTableCellRenderer() {
+        DefaultTableCellRenderer r=new DefaultTableCellRenderer(){
             @Override public Component getTableCellRendererComponent(
-                    JTable t, Object v, boolean sel, boolean foc, int row, int col) {
-                super.getTableCellRendererComponent(t, v, sel, foc, row, col);
-                setHorizontalAlignment(col == 1 ? SwingConstants.LEFT : SwingConstants.CENTER);
-                boolean isTong = row == t.getRowCount() - 1;
-                if (!sel) {
-                    setBackground(isTong ? new Color(235, 240, 252) : row % 2 == 0 ? Color.WHITE : new Color(250, 251, 253));
-                }
-                setFont(isTong
-                    ? GuiTheme.font("Segoe UI", Font.BOLD, 13)
-                    : GuiTheme.font("Segoe UI", Font.PLAIN, 13));
-                setForeground(isTong ? new Color(37, 69, 121) : new Color(42, 45, 66));
+                    JTable t,Object v,boolean sel,boolean foc,int row,int col){
+                super.getTableCellRendererComponent(t,v,sel,foc,row,col);
+                setHorizontalAlignment(col==1?SwingConstants.LEFT:SwingConstants.CENTER);
+                boolean isTong=row==t.getRowCount()-1;
+                if(!sel) setBackground(isTong?new Color(235,240,252):row%2==0?Color.WHITE:new Color(250,251,253));
+                setFont(isTong?GuiTheme.font("Segoe UI",Font.BOLD,13):GuiTheme.font("Segoe UI",Font.PLAIN,13));
+                setForeground(isTong?PRIMARY:new Color(42,45,66));
                 return this;
             }
         };
-        for (int i = 0; i < tbl.getColumnCount(); i++)
-            tbl.getColumnModel().getColumn(i).setCellRenderer(r);
-        ((DefaultTableCellRenderer) tbl.getTableHeader().getDefaultRenderer())
-            .setHorizontalAlignment(SwingConstants.CENTER);
-
+        for(int i=0;i<tbl.getColumnCount();i++) tbl.getColumnModel().getColumn(i).setCellRenderer(r);
+        ((DefaultTableCellRenderer)tbl.getTableHeader().getDefaultRenderer())
+                .setHorizontalAlignment(SwingConstants.CENTER);
         tbl.getColumnModel().getColumn(0).setMaxWidth(100);
 
-        JScrollPane sp = new JScrollPane(tbl);
-        sp.setBorder(null);
-        sp.getViewport().setBackground(Color.WHITE);
-        sp.setPreferredSize(new Dimension(0, 200));
+        JScrollPane sp=new JScrollPane(tbl);
+        sp.setBorder(null); sp.getViewport().setBackground(Color.WHITE);
+        sp.setPreferredSize(new Dimension(0,180));
 
-        JPanel card = wrapCard(sp, "Doanh thu theo nhân viên");
-        card.setMaximumSize(new Dimension(Integer.MAX_VALUE, 260));
+        JPanel card=wrapCard(sp,"Doanh thu theo nhân viên");
+        card.setMaximumSize(new Dimension(Integer.MAX_VALUE,240));
         return card;
+    }
+
+    // =========================================================================
+    // BOTTOM BAR
+    // =========================================================================
+    private JPanel buildBottomBar(AppFrameManager appFrame){
+        JPanel bar=new JPanel(new BorderLayout());
+        bar.setOpaque(false);
+        bar.setMaximumSize(new Dimension(Integer.MAX_VALUE,50));
+        bar.setBorder(new EmptyBorder(8,0,0,16));
+
+        JPanel right=new JPanel(new FlowLayout(FlowLayout.RIGHT,8,0));
+        right.setOpaque(false);
+
+        JButton btnExport=buildNavyButton("Xuất báo cáo kết ca");
+        btnExport.addActionListener(e->doExport());
+
+        JButton btnDash=buildOutlineButton("Dashboard →");
+        btnDash.addActionListener(e->{
+            Window w=SwingUtilities.getWindowAncestor(this);
+            if(w instanceof AppFrameManager) ((AppFrameManager)w).showCard("dashboard");
+            else if(appFrame!=null) appFrame.showCard("dashboard");
+        });
+
+        right.add(btnExport); right.add(btnDash);
+        bar.add(right,BorderLayout.EAST);
+        return bar;
     }
 
     // =========================================================================
     // LOAD DATA
     // =========================================================================
-    private void loadAll(int periodIdx) {
+    private void loadAll() {
+        LocalDate from = filterFrom != null ? filterFrom : LocalDate.now();
+        LocalDate to   = filterTo   != null ? filterTo   : LocalDate.now();
+
         new Thread(() -> {
             try {
-                LocalDate[] range = getRange(periodIdx);
-                LocalDate from = range[0], to = range[1];
-                int soNgay = (int)(to.toEpochDay() - from.toEpochDay()) + 1;
+                // Dùng đúng DAO như nhân viên
+                List<Object[]> banList  = HoaDonDAO.getDanhSachHoaDonTheoKhoang(from, to);
+                List<Object[]> huyList  = HoaDonDAO.getDanhSachHoaDonHuyTheoKhoang(from, to);
+                List<Object[]> staffList= HoaDonDAO.getDoanhThuNhanVienTheoKhoang(from, to);
 
-                long loiNhuan   = queryDoanhThu(from, to);
-                int  veBan      = queryVeTheoTrangThai(from, to, "Đã thanh toán");
-                int  veHuy      = queryVeHuy(from, to);
-                long[] pttt     = queryDoanhThuPTTT(from, to);
-                long tienMat    = pttt[0], ck = pttt[1];
-                int[] gheData   = queryGheTheoLoai(from, to);
+                int    vb   = VeDAO.getSoVeTheoKhoang(from, to, "Đã thanh toán");
+                int    vh   = VeDAO.getSoVeHuyTheoKhoang(from, to);
+                int[]  ghe  = VeDAO.getSoGheTheoLoaiTheoKhoang(from, to);
+                long[] pttt = VeDAO.getDoanhThuPTTTTheoKhoang(from, to);
 
-                List<Object[]> banList  = queryHoaDonDetail(from, to, false);
-                List<Object[]> huyList  = queryHoaDonDetail(from, to, true);
-                List<Object[]> allStaff = queryAllStaff(from, to);
+                // Lợi nhuận = tổng HĐ bán + phí phạt HĐ hủy (hoàn tiền)
+                long ln = 0;
+                for (Object[] row : banList) ln += ((Double) row[5]).longValue();
+                long phiPhat = 0;
+                for (Object[] row : huyList) phiPhat += ((Double) row[5]).longValue();
+                final long loiFinal = ln + phiPhat;
+                final long tmF = pttt[0], ckF = pttt[1];
+                final int vbF = vb, vhF = vh;
 
                 SwingUtilities.invokeLater(() -> {
-                    kLoiNhuan = loiNhuan;
-                    kVeBan = veBan; kVeHuy = veHuy;
-                    kTienMat = tienMat; kCK = ck;
+                    kLoiNhuan = loiFinal; kVeBan = vbF; kVeHuy = vhF;
+                    kTienMat  = tmF;      kCK    = ckF;
 
-                    kpiValues[0].setText(formatMoney(loiNhuan));
-                    kpiValues[1].setText(veBan + " vé");
-                    kpiValues[2].setText(veHuy + " vé");
-                    kpiValues[3].setText(formatMoney(tienMat));
-                    kpiValues[4].setText(formatMoney(ck));
+                    lblKpi[0].setText(fmtMoney(loiFinal));
+                    lblKpi[1].setText(vbF + " vé");
+                    lblKpi[2].setText(vhF + " vé");
+                    if (lblKpi[3] != null) lblKpi[3].setText(fmtMoney(tmF));
+                    if (lblKpi[4] != null) lblKpi[4].setText(fmtMoney(ckF));
 
-                    hdBanList = banList;
-                    hdHuyList = huyList;
-                    currentTableFilter = null;
-                    if (kpiVeBan != null) kpiVeBan.repaint();
-                    if (kpiVeHuy != null) kpiVeHuy.repaint();
+                    hdBanList = banList; hdHuyList = huyList;
+                    currentFilter = null;
+                    if (cardVeBan != null) cardVeBan.repaint();
+                    if (cardVeHuy != null) cardVeHuy.repaint();
                     renderTable(hdBanList);
 
-                    donutChart.setData(gheData[0], gheData[1], gheData[2]);
+                    donutChart.setData(ghe[0], ghe[1], ghe[2]);
 
                     staffModel.setRowCount(0);
-                    for (Object[] row : allStaff) {
+                    long tongDoanhThuNV = 0;
+                    for (Object[] row : staffList) {
+                        long dt = ((Number) row[3]).longValue();
+                        tongDoanhThuNV += dt;
                         staffModel.addRow(new Object[]{
                             row[0], row[1], row[2] + " vé",
-                            formatMoney(((Number) row[3]).longValue())
+                            fmtMoney(dt)
                         });
                     }
-                    // Dòng tổng cộng
-                    staffModel.addRow(new Object[]{
-                        "", "TỔNG CỘNG", veBan + " vé", formatMoney(loiNhuan)
-                    });
+                    staffModel.addRow(new Object[]{"", "TỔNG CỘNG", vbF + " vé", fmtMoney(tongDoanhThuNV)});
                 });
-            } catch (SQLException ex) { ex.printStackTrace(); }
+            } catch (Exception ex) { ex.printStackTrace(); }
         }).start();
     }
 
-    private LocalDate[] getRange(int periodIdx) {
-        LocalDate now = LocalDate.now();
-        return switch (periodIdx) {
-            case 0 -> new LocalDate[]{now, now};
-            case 1 -> new LocalDate[]{now.minusDays(now.getDayOfWeek().getValue()-1), now};
-            case 2 -> {
-                int m = cboThang!=null ? (Integer)cboThang.getSelectedItem() : now.getMonthValue();
-                int y = cboNam!=null   ? (Integer)cboNam.getSelectedItem()   : now.getYear();
-                LocalDate f = LocalDate.of(y, m, 1);
-                yield new LocalDate[]{f, f.withDayOfMonth(f.lengthOfMonth())};
-            }
-            case 3 -> {
-                int y = cboNamYear!=null ? (Integer)cboNamYear.getSelectedItem() : now.getYear();
-                yield new LocalDate[]{LocalDate.of(y,1,1), LocalDate.of(y,12,31)};
-            }
-            case 4 -> {
-                LocalDate f = spFrom!=null ? ((java.util.Date)spFrom.getValue()).toInstant()
-                    .atZone(java.time.ZoneId.systemDefault()).toLocalDate() : now.withDayOfMonth(1);
-                LocalDate t = spTo!=null   ? ((java.util.Date)spTo.getValue()).toInstant()
-                    .atZone(java.time.ZoneId.systemDefault()).toLocalDate() : now;
-                yield new LocalDate[]{f, t};
-            }
-            default -> new LocalDate[]{now, now};
-        };
-    }
+ 
 
-    // =========================================================================
-    // SQL QUERIES
-    // =========================================================================
-    private long queryDoanhThu(LocalDate from, LocalDate to) throws SQLException {
-        String sql = "SELECT ISNULL(SUM(v.giaVe),0) FROM Ve v " +
-                     "JOIN HoaDon h ON v.maHoaDon=h.maHoaDon " +
-                     "WHERE v.trangThaiVe=N'Đã thanh toán' " +
-                     "AND CAST(h.ngayLapHD AS DATE) BETWEEN ? AND ?";
-        try (Connection con = Connect_DB.getInstance().getConnection();
-             PreparedStatement ps = con.prepareStatement(sql)) {
-            ps.setDate(1, java.sql.Date.valueOf(from));
-            ps.setDate(2, java.sql.Date.valueOf(to));
-            try (ResultSet rs = ps.executeQuery()) { return rs.next() ? rs.getLong(1) : 0L; }
-        }
-    }
 
-    private long[] queryDoanhThuPTTT(LocalDate from, LocalDate to) throws SQLException {
-        // [0]=tiền mặt, [1]=chuyển khoản
-        long[] res = {0L, 0L};
-        String sql = "SELECT h.phuongThucThanhToan, ISNULL(SUM(v.giaVe),0) " +
-                     "FROM Ve v JOIN HoaDon h ON v.maHoaDon=h.maHoaDon " +
-                     "WHERE v.trangThaiVe=N'Đã thanh toán' " +
-                     "AND CAST(h.ngayLapHD AS DATE) BETWEEN ? AND ? " +
-                     "GROUP BY h.phuongThucThanhToan";
-        try (Connection con = Connect_DB.getInstance().getConnection();
-             PreparedStatement ps = con.prepareStatement(sql)) {
-            ps.setDate(1, java.sql.Date.valueOf(from));
-            ps.setDate(2, java.sql.Date.valueOf(to));
-            try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) {
-                    String p = rs.getString(1);
-                    long   v = rs.getLong(2);
-                    if (isCK(p)) res[1] += v;
-                    else         res[0] += v;
-                }
-            }
-        }
-        return res;
-    }
 
-    private int queryVeTheoTrangThai(LocalDate from, LocalDate to, String tt) throws SQLException {
-        String sql = "SELECT COUNT(*) FROM Ve v JOIN HoaDon h ON v.maHoaDon=h.maHoaDon " +
-                     "WHERE v.trangThaiVe=? AND CAST(h.ngayLapHD AS DATE) BETWEEN ? AND ?";
-        try (Connection con = Connect_DB.getInstance().getConnection();
-             PreparedStatement ps = con.prepareStatement(sql)) {
-            ps.setString(1, tt);
-            ps.setDate(2, java.sql.Date.valueOf(from));
-            ps.setDate(3, java.sql.Date.valueOf(to));
-            try (ResultSet rs = ps.executeQuery()) { return rs.next() ? rs.getInt(1) : 0; }
-        }
-    }
-
-    private int queryVeHuy(LocalDate from, LocalDate to) throws SQLException {
-        String sql = "SELECT COUNT(*) FROM Ve v JOIN HoaDon h ON v.maHoaDon=h.maHoaDon " +
-                     "WHERE v.trangThaiVe IN (N'Đã hủy','DA_HUY') " +
-                     "AND CAST(h.ngayLapHD AS DATE) BETWEEN ? AND ?";
-        try (Connection con = Connect_DB.getInstance().getConnection();
-             PreparedStatement ps = con.prepareStatement(sql)) {
-            ps.setDate(1, java.sql.Date.valueOf(from));
-            ps.setDate(2, java.sql.Date.valueOf(to));
-            try (ResultSet rs = ps.executeQuery()) { return rs.next() ? rs.getInt(1) : 0; }
-        }
-    }
-
-    private int[] queryGheTheoLoai(LocalDate from, LocalDate to) throws SQLException {
-        int[] res = {0,0,0};
-        String sql = "SELECT g.loaiGhe, COUNT(*) FROM Ve v " +
-                     "JOIN HoaDon h ON v.maHoaDon=h.maHoaDon " +
-                     "JOIN Ghe g ON v.maGhe=g.maGhe " +
-                     "WHERE v.trangThaiVe=N'Đã thanh toán' " +
-                     "AND CAST(h.ngayLapHD AS DATE) BETWEEN ? AND ? " +
-                     "GROUP BY g.loaiGhe";
-        try (Connection con = Connect_DB.getInstance().getConnection();
-             PreparedStatement ps = con.prepareStatement(sql)) {
-            ps.setDate(1, java.sql.Date.valueOf(from));
-            ps.setDate(2, java.sql.Date.valueOf(to));
-            try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) {
-                    String l = rs.getString(1);
-                    int    c = rs.getInt(2);
-                    if (l.equalsIgnoreCase("Ghế cứng"))    res[0]=c;
-                    else if (l.equalsIgnoreCase("Giường nằm")) res[1]=c;
-                    else if (l.equalsIgnoreCase("Ghế mềm"))   res[2]=c;
-                }
-            }
-        }
-        return res;
-    }
 
     /**
-     * Trả về danh sách hóa đơn dạng Object[]:
-     * [0]=maHD [1]=gioBan [2]=tenKH [3]=loaiGhe [4]=soVe [5]=tongTien(Double) [6]=phuongThucTT
+     * [0]=maHD [1]=gioBan [2]=tenKH [3]=loaiGhe/note [4]=soVe [5]=tongTien(Double) [6]=pttt
+     * Nếu huy=true: tongTien = phiPhat từ cột HoaDon.phiPhat
+     * (đổi tên cột nếu DB của bạn khác)
      */
-    private List<Object[]> queryHoaDonDetail(LocalDate from, LocalDate to, boolean huy) throws SQLException {
-        String trangThai = huy ? "IN (N'Đã hủy','DA_HUY')" : "= N'Đã thanh toán'";
-        String sql = "SELECT h.maHoaDon, " +
-                     "  CONVERT(varchar,h.ngayLapHD,108) AS gioBan, " +
-                     "  ISNULL(kh.hoTenKH, N'Khách lẻ') AS tenKH, " +
-                     "  (SELECT TOP 1 g.loaiGhe FROM Ve vv JOIN Ghe g ON vv.maGhe=g.maGhe " +
-                     "   WHERE vv.maHoaDon=h.maHoaDon AND vv.trangThaiVe " + trangThai + ") AS loaiGhe, " +
-                     "  (SELECT COUNT(*) FROM Ve vv WHERE vv.maHoaDon=h.maHoaDon AND vv.trangThaiVe " + trangThai + ") AS soVe, " +
-                     "  ISNULL(SUM(v.giaVe),0) AS tongTien, " +
-                     "  h.phuongThucThanhToan " +
-                     "FROM HoaDon h " +
-                     "LEFT JOIN KhachHang kh ON h.maKH=kh.maKH " +
-                     "JOIN Ve v ON h.maHoaDon=v.maHoaDon AND v.trangThaiVe " + trangThai +
-                     " WHERE CAST(h.ngayLapHD AS DATE) BETWEEN ? AND ? " +
-                     "GROUP BY h.maHoaDon,h.ngayLapHD,kh.hoTenKH,h.phuongThucThanhToan " +
-                     "ORDER BY h.ngayLapHD DESC";
-        List<Object[]> list = new ArrayList<>();
-        try (Connection con = Connect_DB.getInstance().getConnection();
-             PreparedStatement ps = con.prepareStatement(sql)) {
-            ps.setDate(1, java.sql.Date.valueOf(from));
-            ps.setDate(2, java.sql.Date.valueOf(to));
-            try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) {
-                    list.add(new Object[]{
-                        rs.getString("maHoaDon"),
-                        rs.getString("gioBan"),
-                        rs.getString("tenKH"),
-                        rs.getString("loaiGhe"),
-                        rs.getInt("soVe"),
-                        rs.getDouble("tongTien"),
-                        rs.getString("phuongThucThanhToan")
-                    });
-                }
-            }
-        }
-        return list;
-    }
 
-    private List<Object[]> queryAllStaff(LocalDate from, LocalDate to) throws SQLException {
-        List<Object[]> list = new ArrayList<>();
-        String sql = "SELECT nv.maNV, nv.hoTenNV, COUNT(v.maVe) AS soBan, " +
-                     "  ISNULL(SUM(v.giaVe),0) AS doanhThu " +
-                     "FROM NhanVien nv JOIN HoaDon h ON nv.maNV=h.maNV " +
-                     "JOIN Ve v ON h.maHoaDon=v.maHoaDon " +
-                     "WHERE v.trangThaiVe=N'Đã thanh toán' " +
-                     "AND CAST(h.ngayLapHD AS DATE) BETWEEN ? AND ? " +
-                     "GROUP BY nv.maNV,nv.hoTenNV ORDER BY nv.hoTenNV";
-        try (Connection con = Connect_DB.getInstance().getConnection();
-             PreparedStatement ps = con.prepareStatement(sql)) {
-            ps.setDate(1, java.sql.Date.valueOf(from));
-            ps.setDate(2, java.sql.Date.valueOf(to));
-            try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next())
-                    list.add(new Object[]{
-                        rs.getString("maNV"), rs.getString("hoTenNV"),
-                        rs.getInt("soBan"),   rs.getLong("doanhThu")
-                    });
-            }
-        }
-        return list;
-    }
+
+
 
     // =========================================================================
-    // ACTIONS
+    // EXPORT PDF
     // =========================================================================
-    private void doExport() {
-        int[] d = donutChart.getData(); // [gheCung, giuong, gheMem]
-        BaoCaoPDF.export("Quản lý", kLoiNhuan, kLoiNhuan, kVeBan, kVeHuy, d[1], d[2], d[0]);
-    }
+    private void doExport(){
+        int[] d=donutChart.getData();
+        String strFrom=filterFrom!=null?filterFrom.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")):"";
+        String strTo  =filterTo  !=null?filterTo  .format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")):"";
 
-    private void goDashboard() {
-        Window w = SwingUtilities.getWindowAncestor(this);
-        if (w instanceof AppFrameManager) { ((AppFrameManager) w).showCard("dashboard"); }
+        // Gom data nhân viên (bỏ dòng TỔNG CỘNG cuối)
+        List<Object[]> staffRows=new ArrayList<>();
+        for(int i=0;i<staffModel.getRowCount()-1;i++)
+            staffRows.add(new Object[]{
+                staffModel.getValueAt(i,0), staffModel.getValueAt(i,1),
+                staffModel.getValueAt(i,2), staffModel.getValueAt(i,3)
+            });
+
+        BaoCaoPDF.exportManager("Quản lý",strFrom,strTo,
+                kLoiNhuan,kVeBan,kVeHuy,kTienMat,kCK,
+                d[1],d[2],d[0],staffRows);
     }
 
     // =========================================================================
     // HELPERS UI
-    // =========================================================================
-    private JPanel wrapCard(Component inner, String title) {
-        JPanel card = new JPanel(new BorderLayout(0, 8));
+    private JPanel wrapCard(Component inner,String title){
+        JPanel card=new JPanel(new BorderLayout(0,8));
         card.setBackground(Color.WHITE);
         card.setBorder(BorderFactory.createCompoundBorder(
-            new LineBorder(BORDER_C, 1, true),
-            new EmptyBorder(12, 14, 10, 14)));
-        JLabel lbT = new JLabel(title);
-        lbT.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 13));
-        lbT.setForeground(new Color(60, 65, 90));
-        card.add(lbT,  BorderLayout.NORTH);
-        card.add(inner, BorderLayout.CENTER);
+            new LineBorder(BORDER_C,1,true),new EmptyBorder(12,14,10,14)));
+        if(title!=null && !title.isEmpty()){
+            JLabel lbT=new JLabel(title);
+            lbT.setFont(GuiTheme.font("Segoe UI",Font.BOLD,13));
+            lbT.setForeground(new Color(60,65,90));
+            card.add(lbT,BorderLayout.NORTH);
+        }
+        card.add(inner,BorderLayout.CENTER);
         return card;
     }
 
-    /** Nút nền navy — giống nút "Xuất báo cáo" bên ThongKeGUI */
-    private JButton buildNavyButton(String text, boolean withIcon, Runnable action) {
-        JButton btn = new JButton(text) {
-            @Override protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(getModel().isPressed() ? NAVY.darker() : NAVY);
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
-                g2.setColor(Color.WHITE);
-                g2.setFont(getFont());
-                FontMetrics fm = g2.getFontMetrics();
-                g2.drawString(getText(),
-                    (getWidth() - fm.stringWidth(getText())) / 2,
-                    (getHeight() + fm.getAscent() - fm.getDescent()) / 2);
+    private JButton buildNavyButton(String text){
+        JButton btn=new JButton(text){
+            @Override protected void paintComponent(Graphics g){
+                Graphics2D g2=(Graphics2D)g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(getModel().isPressed()?PRIMARY.darker():PRIMARY);
+                g2.fillRoundRect(0,0,getWidth(),getHeight(),15,15);
+                g2.setColor(Color.WHITE); g2.setFont(getFont());
+                FontMetrics fm=g2.getFontMetrics();
+                g2.drawString(getText(),(getWidth()-fm.stringWidth(getText()))/2,
+                    (getHeight()+fm.getAscent()-fm.getDescent())/2);
                 g2.dispose();
             }
         };
-        btn.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 12));
+        btn.setFont(GuiTheme.font("Segoe UI",Font.BOLD,13));
         btn.setForeground(Color.WHITE);
-        btn.setContentAreaFilled(false);
-        btn.setBorderPainted(false);
-        btn.setFocusPainted(false);
+        btn.setContentAreaFilled(false);btn.setBorderPainted(false);btn.setFocusPainted(false);
         btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        btn.setPreferredSize(new Dimension(140, 34));
-        btn.addActionListener(e -> action.run());
+        Dimension pref=btn.getPreferredSize();
+        btn.setPreferredSize(new Dimension(pref.width+30,34));
         return btn;
     }
 
-    /** Nút viền navy — dùng cho "Dashboard →" */
-    private JButton buildOutlineButton(String text, Runnable action) {
-        JButton btn = new JButton(text) {
-            @Override protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                if (getModel().isPressed() || getModel().isRollover()) {
-                    g2.setColor(getModel().isPressed() ? NAVY : new Color(240, 244, 252));
-                } else {
-                    g2.setColor(Color.WHITE);
-                }
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
-                g2.setColor(NAVY);
-                g2.setStroke(new BasicStroke(1.5f));
-                g2.drawRoundRect(0, 0, getWidth()-1, getHeight()-1, 10, 10);
-                g2.setColor(getModel().isPressed() ? Color.WHITE : NAVY);
-                g2.setFont(getFont());
-                FontMetrics fm = g2.getFontMetrics();
-                g2.drawString(getText(),
-                    (getWidth() - fm.stringWidth(getText())) / 2,
-                    (getHeight() + fm.getAscent() - fm.getDescent()) / 2);
+    private JButton buildOutlineButton(String text){
+        Color navy=new Color(37,69,121);
+        JButton btn=new JButton(text){
+            @Override protected void paintComponent(Graphics g){
+                Graphics2D g2=(Graphics2D)g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(getModel().isPressed()?navy:Color.WHITE);
+                g2.fillRoundRect(0,0,getWidth(),getHeight(),10,10);
+                g2.setColor(navy);g2.setStroke(new BasicStroke(1.5f));
+                g2.drawRoundRect(0,0,getWidth()-1,getHeight()-1,10,10);
+                g2.setColor(getModel().isPressed()?Color.WHITE:navy);
+                g2.setFont(getFont());FontMetrics fm=g2.getFontMetrics();
+                g2.drawString(getText(),(getWidth()-fm.stringWidth(getText()))/2,
+                    (getHeight()+fm.getAscent()-fm.getDescent())/2);
                 g2.dispose();
             }
         };
-        btn.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 12));
-        btn.setContentAreaFilled(false);
-        btn.setBorderPainted(false);
-        btn.setFocusPainted(false);
+        btn.setFont(GuiTheme.font("Segoe UI",Font.BOLD,12));
+        btn.setContentAreaFilled(false);btn.setBorderPainted(false);btn.setFocusPainted(false);
         btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        btn.setPreferredSize(new Dimension(130, 34));
-        btn.addActionListener(e -> action.run());
+        btn.setPreferredSize(new Dimension(130,34));
         return btn;
     }
 
-    private JLabel label(String text) {
-        JLabel l = new JLabel(text);
-        l.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 12));
-        l.setForeground(new Color(70, 75, 100));
+    private JLabel makeLabel(String text){
+        JLabel l=new JLabel(text);
+        l.setFont(GuiTheme.font("Segoe UI",Font.BOLD,12));
+        l.setForeground(new Color(70,75,100));
         return l;
     }
 
-    @SuppressWarnings("unchecked")
-    private <T> JComboBox<T> comboOf(T[] items) {
-        JComboBox<T> cb = new JComboBox<>(items);
-        cb.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 12));
+    private JComboBox<Integer> makeIntCombo(Integer[] items,int width){
+        JComboBox<Integer> cb=new JComboBox<>(items);
+        cb.setFont(GuiTheme.font("Segoe UI",Font.PLAIN,12));
         cb.setBackground(Color.WHITE);
-        cb.setPreferredSize(new Dimension(items instanceof Integer[] && items.length==6 ? 82 : 90, 30));
+        cb.setPreferredSize(new Dimension(width,30));
         return cb;
     }
 
-    private JSpinner dateSpinner(LocalDate init) {
-        java.util.Date d = java.util.Date.from(
-            init.atStartOfDay(java.time.ZoneId.systemDefault()).toInstant());
-        JSpinner sp = new JSpinner(new SpinnerDateModel(d, null, null, java.util.Calendar.DAY_OF_MONTH));
-        sp.setEditor(new JSpinner.DateEditor(sp, "dd/MM/yyyy"));
-        sp.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 12));
-        sp.setPreferredSize(new Dimension(110, 30));
+    private JSpinner makeDateSpinner(LocalDate init){
+        java.util.Date d=java.util.Date.from(init.atStartOfDay(java.time.ZoneId.systemDefault()).toInstant());
+        JSpinner sp=new JSpinner(new SpinnerDateModel(d,null,null,java.util.Calendar.DAY_OF_MONTH));
+        sp.setEditor(new JSpinner.DateEditor(sp,"dd/MM/yyyy"));
+        sp.setFont(GuiTheme.font("Segoe UI",Font.PLAIN,12));
+        sp.setPreferredSize(new Dimension(110,30));
         return sp;
     }
 
-    private Integer[] yearArray() {
-        int y = LocalDate.now().getYear();
-        return new Integer[]{y, y-1, y-2, y-3, y-4, y-5};
+    private Integer[] yearArray(){
+        int y=LocalDate.now().getYear();
+        return new Integer[]{y,y-1,y-2,y-3,y-4,y-5};
     }
 
-    private static String formatMoney(long v) {
-        return String.format("%,d đ", v).replace(",", ".");
+    private static String fmtMoney(long v){return String.format("%,d đ",v).replace(",",".");}
+    private static String normPTTT(String s){
+        if(s.equalsIgnoreCase("TIEN_MAT")) return "Tiền mặt";
+        if(s.equalsIgnoreCase("CHUYEN_KHOAN")||s.toLowerCase().contains("vietqr")) return "Chuyển khoản";
+        if(s.toLowerCase().contains("hoàn tiền")) return "Hoàn tiền";
+        if(s.equalsIgnoreCase("LUU_TAM")) return "Lưu tạm";
+        return s;
     }
-
-    private static boolean isCK(String s) {
-        if (s == null) return false;
-        String l = s.toLowerCase();
-        return l.contains("chuyen_khoan") || l.contains("chuyển khoản")
-            || l.contains("chuyen khoan") || l.contains("vietqr");
+    private static boolean isCK(String s){
+        if(s==null)return false;String l=s.toLowerCase();
+        return l.contains("chuyen_khoan")||l.contains("chuyển khoản")||l.contains("vietqr");
     }
 }
 
 // =============================================================================
-// DONUT CHART
+// DONUT CHART (copy từ ThongKeGUI, không đổi)
 // =============================================================================
 class DonutChartMgr extends JPanel {
-    private static final Color[] COLORS = {
-        new Color(88, 130, 210), new Color(60, 179, 113), new Color(255, 165, 50)
-    };
-    private static final String[] LABELS = {"Ghế cứng", "Giường nằm", "Ghế mềm"};
-    private int[] data = {0, 0, 0};
+    private static final Color[] COLORS={new Color(88,130,210),new Color(60,179,113),new Color(255,165,50)};
+    private static final String[] LABELS={"Ghế cứng","Giường nằm","Ghế mềm"};
+    private int[] data={0,0,0};
 
-    public DonutChartMgr() { setBackground(Color.WHITE); }
+    public DonutChartMgr(){setBackground(Color.WHITE);}
+    public void setData(int gc,int gn,int gm){data[0]=gc;data[1]=gn;data[2]=gm;repaint();}
+    public int[] getData(){return data;}
 
-    public void setData(int gc, int gn, int gm) {
-        data[0]=gc; data[1]=gn; data[2]=gm; repaint();
-    }
-
-    public int[] getData() { return data; }
-
-    @Override protected void paintComponent(Graphics g) {
+    @Override protected void paintComponent(Graphics g){
         super.paintComponent(g);
-        Graphics2D g2 = (Graphics2D) g.create();
-        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-
-        int W=getWidth(), H=getHeight();
-        int R=Math.min(W, H-90)/2-6;
-        int r=(int)(R*0.55);
-        int cx=W/2, cy=R+16;
+        Graphics2D g2=(Graphics2D)g.create();
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,RenderingHints.VALUE_ANTIALIAS_ON);
+        int W=getWidth(),H=getHeight();
+        int R=Math.min(W,H-140)/2-6,r=(int)(R*0.55);
+        int cx=W/2,cy=R+16;
         int total=data[0]+data[1]+data[2];
-
         int sa=90;
-        for (int i=0; i<3; i++) {
-            int arc=(total==0)?120:(i==2
-                ? 360-(int)Math.round(360.0*data[0]/total)-(int)Math.round(360.0*data[1]/total)
-                : (int)Math.round(360.0*data[i]/total));
+        for(int i=0;i<3;i++){
+            int arc=total==0?120:(i==2
+                ?360-(int)Math.round(360.0*data[0]/total)-(int)Math.round(360.0*data[1]/total)
+                :(int)Math.round(360.0*data[i]/total));
             g2.setColor(COLORS[i]);
             g2.fillArc(cx-R,cy-R,R*2,R*2,sa,arc);
             sa+=arc;
         }
-        g2.setColor(Color.WHITE);
-        g2.fillOval(cx-r,cy-r,r*2,r*2);
-
-        // Tổng ở giữa
-        g2.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 16));
-        g2.setColor(new Color(28,32,52));
+        g2.setColor(Color.WHITE); g2.fillOval(cx-r,cy-r,r*2,r*2);
+        // Tổng giữa donut
         String tot=String.valueOf(total);
-        g2.drawString(tot, cx - g2.getFontMetrics().stringWidth(tot)/2, cy+5);
-        g2.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 10));
+        g2.setFont(GuiTheme.font("Segoe UI",Font.BOLD,16));
+        g2.setColor(new Color(28,32,52));
+        g2.drawString(tot,cx-g2.getFontMetrics().stringWidth(tot)/2,cy+5);
+        g2.setFont(GuiTheme.font("Segoe UI",Font.PLAIN,10));
         g2.setColor(new Color(130,135,155));
-        g2.drawString("vé", cx-g2.getFontMetrics().stringWidth("vé")/2, cy+17);
-
+        g2.drawString("vé",cx-g2.getFontMetrics().stringWidth("vé")/2,cy+17);
         // Legend
-        int legendY=cy+R+18, step=28;
-        for (int i=0; i<3; i++) {
-            double pct=(total==0)?0:(data[i]*100.0/total);
+        int legendY=cy+R+18,step=30;
+        for(int i=0;i<3;i++){
+            double pct=total==0?0:data[i]*100.0/total;
             int ly=legendY+i*step;
-            g2.setColor(COLORS[i]);
-            g2.fillRoundRect(16,ly,12,12,4,4);
+            g2.setColor(COLORS[i]); g2.fillRoundRect(16,ly,12,12,4,4);
             g2.setColor(new Color(50,55,75));
-            g2.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 12));
+            g2.setFont(GuiTheme.font("Segoe UI",Font.BOLD,12));
             g2.drawString(LABELS[i],34,ly+11);
             g2.setColor(new Color(120,125,145));
-            g2.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 11));
+            g2.setFont(GuiTheme.font("Segoe UI",Font.PLAIN,11));
             g2.drawString(String.format("%.1f%% (%d vé)",pct,data[i]),34,ly+23);
         }
         g2.dispose();
