@@ -254,7 +254,11 @@ public class DoiVeGUI extends JPanel {
         // Auto select the new fields
         cbGaDi.setSelectedItem(s_data[1]);
         cbGaDen.setSelectedItem(s_data[2]);
-        cbLoaiVe.setSelectedItem(s_data[3]);
+        // Chuẩn hóa loaiVe: MOT_CHIEU -> Một chiều, KHU_HOI -> Khứ hồi
+        String loaiVeChuan = "MOT_CHIEU".equalsIgnoreCase(s_data[3]) ? "Một chiều"
+                : "KHU_HOI".equalsIgnoreCase(s_data[3])   ? "Khứ hồi"
+                  : s_data[3];
+        cbLoaiVe.setSelectedItem(loaiVeChuan);
         cbSoLuong.setSelectedItem(s_data[6]);
 
         boolean isKhuHoi = "KHU_HOI".equalsIgnoreCase(s_data[3]) || "Khứ hồi".equalsIgnoreCase(s_data[3]);

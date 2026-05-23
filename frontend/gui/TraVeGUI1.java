@@ -271,12 +271,13 @@ public class TraVeGUI1 extends JPanel {
 
     private void xuatHoaDonPDF(String maDon) {
         try (java.sql.Connection conn = connect_DB.Connect_DB.getConnection()) {
+
+            // Lấy thông tin hóa đơn + khách hàng
             String sqlHD = "SELECT h.tongTien, h.tienNhan, h.phuongThucThanhToan, " +
                     "k.hoTenKH, k.sdt " +
                     "FROM HoaDon h LEFT JOIN KhachHang k ON h.maKH = k.maKH " +
                     "WHERE h.maHoaDon = ?";
             String tenKH = "Khách vãng lai", sdtKH = "", hinhThuc = "";
-            double tongTien = 0;
             try (java.sql.PreparedStatement ps = conn.prepareStatement(sqlHD)) {
                 ps.setString(1, maDon);
                 try (java.sql.ResultSet rs = ps.executeQuery()) {
@@ -284,7 +285,21 @@ public class TraVeGUI1 extends JPanel {
                         tenKH    = rs.getString("hoTenKH")             != null ? rs.getString("hoTenKH")             : "Khách vãng lai";
                         sdtKH    = rs.getString("sdt")                 != null ? rs.getString("sdt")                 : "";
                         hinhThuc = rs.getString("phuongThucThanhToan") != null ? rs.getString("phuongThucThanhToan") : "";
-                        tongTien = rs.getDouble("tongTien");
+                    }
+                }
+            }
+
+            // Lấy phí trả từ DonDoiTraVe để tính đúng tiền hoàn trong PDF
+            // tienBu  = phí phạt giữ lại
+            // tienHoanTra = tiền hoàn thực tế cho khách
+            String sqlDon = "SELECT tienBu, tienHoanTra FROM DonDoiTraVe WHERE maDon = ?";
+            double phiTraVe = 0, tienHoanThucTe = 0;
+            try (java.sql.PreparedStatement ps = conn.prepareStatement(sqlDon)) {
+                ps.setString(1, maDon);
+                try (java.sql.ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        phiTraVe      = rs.getDouble("tienBu");
+                        tienHoanThucTe = rs.getDouble("tienHoanTra");
                     }
                 }
             }
@@ -292,10 +307,10 @@ public class TraVeGUI1 extends JPanel {
             String sqlVe = "SELECT v.maVe, v.loaiVe, v.giaVe, g.loaiGhe, " +
                     "gaDi.tenGa AS gaDi, gaDen.tenGa AS gaDen " +
                     "FROM Ve v " +
-                    "JOIN Ghe g              ON v.maGhe       = g.maGhe " +
-                    "JOIN ChiTietChuyenTau dt ON v.maChuyenTau = dt.maChuyenTau " +
-                    "JOIN Ga gaDi            ON dt.maGaDi      = gaDi.maGa " +
-                    "JOIN Ga gaDen           ON dt.maGaDen     = gaDen.maGa " +
+                    "JOIN Ghe g               ON v.maGhe       = g.maGhe " +
+                    "JOIN ChiTietChuyenTau dt  ON v.maChuyenTau = dt.maChuyenTau " +
+                    "JOIN Ga gaDi             ON dt.maGaDi      = gaDi.maGa " +
+                    "JOIN Ga gaDen            ON dt.maGaDen     = gaDen.maGa " +
                     "WHERE v.maHoaDon = ?";
 
             java.io.File folder = new java.io.File("HoaDon");
@@ -339,7 +354,8 @@ public class TraVeGUI1 extends JPanel {
             com.itextpdf.text.pdf.PdfPTable table = new com.itextpdf.text.pdf.PdfPTable(10);
             table.setWidthPercentage(100);
             table.setWidths(new float[]{1f, 3.5f, 2f, 2.3f, 1.8f, 2f, 1f, 1f, 2f, 2.2f});
-            for (String h : new String[]{"STT","Tên dịch vụ","Loại vé","Mã vé","Chiều","Giá vé","ĐVT","SL","Khuyến mãi","Thành tiền"}) {
+            // "Khuyến mãi" → đổi nhãn thành "Phụ phí" để phản ánh đúng là phí trả vé
+            for (String h : new String[]{"STT","Tên dịch vụ","Loại vé","Mã vé","Chiều","Giá vé","ĐVT","SL","Phụ phí","Thành tiền"}) {
                 com.itextpdf.text.pdf.PdfPCell cell = new com.itextpdf.text.pdf.PdfPCell(new com.itextpdf.text.Phrase(h, fontBold));
                 cell.setHorizontalAlignment(com.itextpdf.text.Element.ALIGN_CENTER);
                 cell.setVerticalAlignment(com.itextpdf.text.Element.ALIGN_MIDDLE);
@@ -350,36 +366,70 @@ public class TraVeGUI1 extends JPanel {
 
             java.text.DecimalFormat df = new java.text.DecimalFormat("#,###");
             int stt = 1;
+
+            // Tổng tiền hoàn = tổng (giaVe - phiTra) của từng vé
+            // Vì mỗi đơn trả chỉ có 1 vé, tienHoanThucTe đã lấy từ DB là chính xác.
+            // Nhưng ta vẫn tính lại từ bảng để hiển thị đúng từng dòng.
+            double tongTienVe = 0;  // tổng giá vé gốc
+            double tongPhuPhi = 0;  // tổng phí trả
+
             try (java.sql.PreparedStatement ps = conn.prepareStatement(sqlVe)) {
                 ps.setString(1, maDon);
                 try (java.sql.ResultSet rs = ps.executeQuery()) {
                     while (rs.next()) {
                         double giaVe = rs.getDouble("giaVe");
+                        // Phụ phí (phí trả) cho vé này — mỗi đơn 1 vé nên = phiTraVe
+                        double phuPhiDong = phiTraVe;
+                        // Thành tiền = tiền hoàn = giá vé − phụ phí
+                        double thanhTien  = giaVe - phuPhiDong;
+
+                        tongTienVe += giaVe;
+                        tongPhuPhi += phuPhiDong;
+
                         String lv = rs.getString("loaiVe");
                         String loaiVeHienThi = "MOT_CHIEU".equals(lv) ? "Một chiều"
-                                : "KHU_HOI".equals(lv)   ? "Khứ hồi"
+                                : "KHU_HOI".equals(lv) ? "Khứ hồi"
                                   : (lv != null ? lv : "");
-                        pdfAddCell(table, fontNormal, String.valueOf(stt++), com.itextpdf.text.Element.ALIGN_CENTER);
-                        pdfAddCell(table, fontNormal, "Vé HK trực tiếp tại nhà ga", com.itextpdf.text.Element.ALIGN_LEFT);
-                        pdfAddCell(table, fontNormal, loaiVeHienThi, com.itextpdf.text.Element.ALIGN_CENTER);
+
+                        pdfAddCell(table, fontNormal, String.valueOf(stt++),              com.itextpdf.text.Element.ALIGN_CENTER);
+                        pdfAddCell(table, fontNormal, "Vé HK trực tiếp tại nhà ga",      com.itextpdf.text.Element.ALIGN_LEFT);
+                        pdfAddCell(table, fontNormal, loaiVeHienThi,                      com.itextpdf.text.Element.ALIGN_CENTER);
                         pdfAddCell(table, fontNormal, rs.getString("maVe") != null ? rs.getString("maVe") : "", com.itextpdf.text.Element.ALIGN_CENTER);
                         pdfAddCell(table, fontNormal, rs.getString("gaDi") + " → " + rs.getString("gaDen"), com.itextpdf.text.Element.ALIGN_CENTER);
-                        pdfAddCell(table, fontNormal, df.format(giaVe), com.itextpdf.text.Element.ALIGN_RIGHT);
-                        pdfAddCell(table, fontNormal, "Vé", com.itextpdf.text.Element.ALIGN_CENTER);
-                        pdfAddCell(table, fontNormal, "1", com.itextpdf.text.Element.ALIGN_CENTER);
-                        pdfAddCell(table, fontNormal, "0", com.itextpdf.text.Element.ALIGN_RIGHT);
-                        pdfAddCell(table, fontNormal, df.format(giaVe), com.itextpdf.text.Element.ALIGN_RIGHT);
+                        pdfAddCell(table, fontNormal, df.format(giaVe),                   com.itextpdf.text.Element.ALIGN_RIGHT);
+                        pdfAddCell(table, fontNormal, "Vé",                               com.itextpdf.text.Element.ALIGN_CENTER);
+                        pdfAddCell(table, fontNormal, "1",                                com.itextpdf.text.Element.ALIGN_CENTER);
+                        // Phụ phí = phí trả vé (10% hoặc 20% giá vé)
+                        pdfAddCell(table, fontNormal, df.format(phuPhiDong),              com.itextpdf.text.Element.ALIGN_RIGHT);
+                        // Thành tiền = số tiền thực sự hoàn lại cho khách
+                        pdfAddCell(table, fontNormal, df.format(thanhTien),               com.itextpdf.text.Element.ALIGN_RIGHT);
                     }
                 }
             }
             document.add(table);
             document.add(new com.itextpdf.text.Paragraph(" ", fontNormal));
 
-            com.itextpdf.text.Paragraph pTong = new com.itextpdf.text.Paragraph("Tổng tiền hoàn: " + df.format(tongTien), fontBold);
+            // Tổng tiền hoàn = Tổng tiền vé − Tổng phụ phí (= tổng thành tiền các dòng)
+            double tongTienHoan = tongTienVe - tongPhuPhi;
+
+            // Dòng tóm tắt phía dưới bảng
+            com.itextpdf.text.Paragraph pGiaVe = new com.itextpdf.text.Paragraph(
+                    "Tiền vé: " + df.format(tongTienVe), fontNormal);
+            pGiaVe.setAlignment(com.itextpdf.text.Element.ALIGN_RIGHT);
+            document.add(pGiaVe);
+
+            com.itextpdf.text.Paragraph pPhi = new com.itextpdf.text.Paragraph(
+                    "Phụ phí (phí trả vé): " + df.format(tongPhuPhi), fontNormal);
+            pPhi.setAlignment(com.itextpdf.text.Element.ALIGN_RIGHT);
+            document.add(pPhi);
+
+            com.itextpdf.text.Paragraph pTong = new com.itextpdf.text.Paragraph(
+                    "Tổng tiền hoàn: " + df.format(tongTienHoan), fontBold);
             pTong.setAlignment(com.itextpdf.text.Element.ALIGN_RIGHT);
             document.add(pTong);
 
-            com.itextpdf.text.Paragraph pChu = new com.itextpdf.text.Paragraph("Bằng chữ: " + docSoThanh((long) tongTien), fontItalic);
+            com.itextpdf.text.Paragraph pChu = new com.itextpdf.text.Paragraph(
+                    "Bằng chữ: " + docSoThanh((long) tongTienHoan), fontItalic);
             pChu.setAlignment(com.itextpdf.text.Element.ALIGN_RIGHT);
             document.add(pChu);
 

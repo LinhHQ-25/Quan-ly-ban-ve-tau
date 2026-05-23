@@ -208,7 +208,10 @@ public class TraVeGUI extends JPanel {
         if (s_data.length < 9) { clearInfo(); return; }
         tfMaVe.setText(s_maVe.isEmpty() ? "—" : s_maVe);
         tfChuyen.setText(s_data[0]); tfGaDi.setText(s_data[1]); tfGaDen.setText(s_data[2]);
-        tfLoai.setText(s_data[3]); tfNgayGio.setText(s_data[5]);
+        String loaiVeChuan = "MOT_CHIEU".equalsIgnoreCase(s_data[3]) ? "Một chiều"
+                : "KHU_HOI".equalsIgnoreCase(s_data[3])   ? "Khứ hồi"
+                  : s_data[3];
+        tfLoai.setText(loaiVeChuan); tfNgayGio.setText(s_data[5]);
         tfMaGhe.setText(s_data[7]);
 
         // Đã sửa: Lấy Vị trí (Số ghế) ở index 9 và Khách hàng ở index 10 từ mảng s_data (được gửi từ DoiTraGUI)
