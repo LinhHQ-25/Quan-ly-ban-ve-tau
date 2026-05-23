@@ -249,13 +249,13 @@ public class AppFrameManager extends JFrame {
 	private void registerCards() {
 		// Đăng ký các khung trắng (Stub)
 		contentCards.setBackground(GuiTheme.LIGHT_BG);
-		contentCards.add(new ThongKeManagerGUI(), "dashboard"); 
+		contentCards.add(new DashboardManagerGUI(), "dashboard"); 
 		contentCards.add(new QLyNhanVienGUI(), "ql-nhanvien");
 		contentCards.add(new QuanLyCaLamGUI(), "ql-calam");
 		contentCards.add(new QuanLyTauGUI(), "ql-tau");
 		contentCards.add(new QuanLyChuyenTauGUI(), "ql-chuyentau");
 		contentCards.add(new KhuyenMaiGUI(), "ql-khuyenmai");
-		contentCards.add(createBlankPage("Giao diện Thống kê đang xây dựng..."), "thong-ke");
+		contentCards.add(new ThongKeManagerGUI(), "thong-ke");
 		contentCards.add(new HoTroManagerGUI(), "ho-tro");
 		contentCards.add(new HoSoQuanLyGUI(), "ho-so");
 	}
