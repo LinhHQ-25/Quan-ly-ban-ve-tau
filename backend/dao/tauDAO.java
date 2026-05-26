@@ -137,9 +137,6 @@ public class tauDAO implements DAO<Tau, String> {
         return list;
     }
 
-    /**
-     * Tàu rảnh mặc định — không có lịch khởi hành trong tương lai
-     */
     public List<Tau> getTauRanhMacDinh() {
         List<Tau> list = new ArrayList<>();
         String sql = "SELECT t.* FROM Tau t "
