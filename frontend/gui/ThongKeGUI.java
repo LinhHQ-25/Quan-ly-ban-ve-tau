@@ -133,7 +133,7 @@ public final class ThongKeGUI extends JPanel {
                     this.doanhThuCK       = ckFinal;
                     this.currentFilter    = null;
 
-                    lblStatValues[0].setText(String.format("%,.0f đ", (double) doanhThuFinal));
+                    lblStatValues[0].setText(String.format("%,.0f đ", (double) (tienMoCa + tmFinal)));
                     lblStatValues[1].setText(String.format("%,.0f đ", (double) loiNhuanFinal));
                     lblStatValues[2].setText(veBanFinal + " vé");
                     lblStatValues[3].setText(vh + " vé");
@@ -173,7 +173,7 @@ public final class ThongKeGUI extends JPanel {
         JPanel row1 = new JPanel(new GridLayout(1, 3, 12, 0));
         row1.setOpaque(false);
         row1.setMaximumSize(new Dimension(Integer.MAX_VALUE, 78));
-        row1.add(buildStatCard("Tổng doanh thu", "0 đ",  new Color(71,  71, 156), 0, false));
+        row1.add(buildStatCard("Số dư két", "0 đ",  new Color(71,  71, 156), 0, false));
         cardVeBan = buildStatCard("Vé đã bán", "0 vé", new Color(34, 139, 87), 2, true);
         row1.add(cardVeBan);
         row1.add(buildStatCard("Tiền mặt",      "0 đ", new Color(180, 120, 30), 4, false));
@@ -182,7 +182,7 @@ public final class ThongKeGUI extends JPanel {
         JPanel row2 = new JPanel(new GridLayout(1, 3, 12, 0));
         row2.setOpaque(false);
         row2.setMaximumSize(new Dimension(Integer.MAX_VALUE, 78));
-        row2.add(buildStatCard("Tổng lợi nhuận", "0 đ",  new Color(34, 120, 180), 1, false));
+        row2.add(buildStatCard("Tổng doanh thu", "0 đ",  new Color(34, 120, 180), 1, false));
         cardVeHuy = buildStatCard("Vé đã hủy", "0 vé", new Color(210, 50, 50), 3, true);
         row2.add(cardVeHuy);
         row2.add(buildStatCard("Chuyển khoản",   "0 đ", new Color(30, 140, 160), 5, false));
@@ -634,14 +634,14 @@ class ChartPanel extends JPanel {
     private static final String[] LABELS = {"Ghế cứng", "Giường nằm", "Ghế mềm"};
     private static final int LEGEND_STEP = 38;
     private int[] data = {0, 0, 0};
-    private static final int OUTER_R = 100, INNER_R = 62;
+    private static final int OUTER_R = 75, INNER_R = 46;
     private int selectedIdx = -1;
 
     public interface FilterListener { void onFilter(String type); }
     private FilterListener listener;
 
     public ChartPanel() {
-        setPreferredSize(new Dimension(320, 420));
+    	setPreferredSize(new Dimension(260, 380));
         setBackground(Color.WHITE);
         setBorder(new LineBorder(new Color(210, 215, 224), 1, true));
     }
@@ -698,9 +698,9 @@ class ChartPanel extends JPanel {
             if(selectedIdx!=-1 && selectedIdx!=i) c = new Color(c.getRed(), c.getGreen(), c.getBlue(), 60);
             int itemY = legendY + i * LEGEND_STEP;
             g2.setColor(c); g2.fillRoundRect(22, itemY, 14, 14, 4, 4);
-            g2.setColor(new Color(50, 55, 75)); g2.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 14));
+            g2.setColor(new Color(50, 55, 75)); g2.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 12));
             g2.drawString(LABELS[i], 44, itemY + 12);
-            g2.setColor(new Color(120, 125, 145)); g2.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 13));
+            g2.setColor(new Color(120, 125, 145)); g2.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 11));
             g2.drawString(String.format("%.1f%%", pct) + " (" + data[i] + " vé)", 44, itemY + 28);
             if (selectedIdx == i) {
                 g2.setColor(COLORS[i]); g2.setStroke(new BasicStroke(1.2f));
