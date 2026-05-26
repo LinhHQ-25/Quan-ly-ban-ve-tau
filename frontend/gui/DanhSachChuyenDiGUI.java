@@ -89,13 +89,35 @@ final class DanhSachChuyenDiGUI extends JPanel {
         loadDataToTable();
         updateSmartFilters();
     }
-
     private void initFilterData() {
         Connection conn = Connect_DB.getInstance().getConnection();
         if (conn == null) return;
         try {
-            // Load Ga
-            String sqlGa = "SELECT tenGa FROM Ga";
+            // Load Ga in geographical order matching DatVeGUI
+            String sqlGa = "SELECT tenGa FROM Ga ORDER BY " +
+                "CASE tenGa " +
+                "WHEN N'Hà Nội' THEN 1 " +
+                "WHEN N'Phủ Lý' THEN 2 " +
+                "WHEN N'Nam Định' THEN 3 " +
+                "WHEN N'Ninh Bình' THEN 4 " +
+                "WHEN N'Thanh Hóa' THEN 5 " +
+                "WHEN N'Vinh' THEN 6 " +
+                "WHEN N'Đồng Hới' THEN 7 " +
+                "WHEN N'Đông Hà' THEN 8 " +
+                "WHEN N'Huế' THEN 9 " +
+                "WHEN N'Đà Nẵng' THEN 10 " +
+                "WHEN N'Tam Kỳ' THEN 11 " +
+                "WHEN N'Quảng Ngãi' THEN 12 " +
+                "WHEN N'Diêu Trì' THEN 13 " +
+                "WHEN N'Tuy Hòa' THEN 14 " +
+                "WHEN N'Nha Trang' THEN 15 " +
+                "WHEN N'Tháp Chàm' THEN 16 " +
+                "WHEN N'Bình Thuận' THEN 17 " +
+                "WHEN N'Long Khánh' THEN 18 " +
+                "WHEN N'Biên Hòa' THEN 19 " +
+                "WHEN N'Dĩ An' THEN 20 " +
+                "WHEN N'Sài Gòn' THEN 21 " +
+                "ELSE 22 END ASC";
             ResultSet rsGa = conn.createStatement().executeQuery(sqlGa);
             cboGaDi.removeAllItems();
             cboGaDen.removeAllItems();
@@ -119,7 +141,6 @@ final class DanhSachChuyenDiGUI extends JPanel {
             e.printStackTrace();
         }
     }
-
     private JPanel buildFilterPanel() {
         RoundedPanel pnlOuter = new RoundedPanel(12, Color.WHITE, GuiTheme.SEARCH_FIELD_BORDER, 1.0f);
         pnlOuter.setLayout(new BorderLayout(0, 10));
