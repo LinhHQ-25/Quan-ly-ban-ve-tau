@@ -83,16 +83,10 @@ final class QuanLyChuyenTauGUI extends JPanel {
         return mapGa.get(tenGa);
     }
     private void initData() {
-<<<<<<< HEAD
-        new dao.GaDAO().selectAll()
-            .forEach(ga -> mapGa.put(ga.getTenGa(), ga.getMaGa()));
-        new dao.tauDAO().selectAll()
-            .forEach(tau -> listTau.add(tau.getTenTau()));
-=======
+        // Ga: giữ thứ tự địa lý theo tuyến Bắc-Nam
         Connection conn = Connect_DB.getInstance().getConnection();
         if (conn == null) return;
         try {
-            // Load Ga in geographical order matching DatVeGUI
             String sqlGa = "SELECT maGa, tenGa FROM Ga ORDER BY " +
                 "CASE tenGa " +
                 "WHEN N'Hà Nội' THEN 1 " +
@@ -118,19 +112,15 @@ final class QuanLyChuyenTauGUI extends JPanel {
                 "WHEN N'Sài Gòn' THEN 21 " +
                 "ELSE 22 END ASC";
             ResultSet rsGa = conn.createStatement().executeQuery(sqlGa);
-            while (rsGa.next()) {
+            while (rsGa.next())
                 mapGa.put(rsGa.getString("tenGa"), rsGa.getString("maGa"));
-            }
-            
-            String sqlTau = "SELECT tenTau FROM Tau";
-            ResultSet rsTau = conn.createStatement().executeQuery(sqlTau);
-            while (rsTau.next()) {
-                listTau.add(rsTau.getString("tenTau"));
-            }
         } catch (SQLException e) {
             e.printStackTrace();
         }
->>>>>>> 9430174dcd532329bcf848f44e5647f630ccff2a
+
+        // Tàu: dùng DAO
+        new dao.tauDAO().selectAll()
+            .forEach(tau -> listTau.add(tau.getTenTau()));
     }
     private JPanel buildSectionTitle(String title) {
         JPanel pnl = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
