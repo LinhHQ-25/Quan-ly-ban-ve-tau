@@ -270,7 +270,9 @@ public class HoaDonDAO implements DAO<HoaDon, String> {
                 "       k.hoTenKH, " +
                 "       (SELECT TOP 1 g.loaiGhe FROM Ve v JOIN Ghe g ON v.maGhe = g.maGhe WHERE v.maHoaDon = h.maHoaDon AND v.trangThaiVe = N'Đã thanh toán') AS loaiGhe, " +
                 "       (SELECT COUNT(*) FROM Ve v WHERE v.maHoaDon = h.maHoaDon AND v.trangThaiVe = N'Đã thanh toán') AS soGhe, " +
-                "       h.tongTien AS tongTien, " +
+                "       (SELECT ISNULL(SUM(v2.giaVe), 0) FROM Ve v2 " +
+                "        WHERE v2.maHoaDon = h.maHoaDon " +
+                "        AND v2.trangThaiVe = N'Đã thanh toán') AS tongTien, " +
                 "       ISNULL(h.phuongThucThanhToan, '') AS phuongThuc " +
                 "FROM HoaDon h " +
                 "JOIN KhachHang k ON h.maKH = k.maKH " +
