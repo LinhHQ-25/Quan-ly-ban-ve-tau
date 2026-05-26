@@ -112,7 +112,9 @@ public class HoaDonDAO implements DAO<HoaDon, String> {
                 "       k.hoTenKH, " +
                 "       (SELECT TOP 1 g.loaiGhe FROM Ve v JOIN Ghe g ON v.maGhe = g.maGhe WHERE v.maHoaDon = h.maHoaDon AND v.trangThaiVe = N'Đã thanh toán') AS loaiGhe, " +
                 "       (SELECT COUNT(*) FROM Ve v WHERE v.maHoaDon = h.maHoaDon AND v.trangThaiVe = N'Đã thanh toán') AS soGhe, " +
-                "       h.tongTien AS tongTien, " +
+                "       (SELECT ISNULL(SUM(v2.giaVe), 0) FROM Ve v2 " +
+                "        WHERE v2.maHoaDon = h.maHoaDon " +
+                "        AND v2.trangThaiVe = N'Đã thanh toán') AS tongTien, " +
                 "       ISNULL(h.phuongThucThanhToan, '') AS phuongThuc " +
                 "FROM HoaDon h " +
                 "JOIN KhachHang k ON h.maKH = k.maKH " +
@@ -152,7 +154,9 @@ public class HoaDonDAO implements DAO<HoaDon, String> {
                 "       k.hoTenKH, " +
                 "       (SELECT TOP 1 g.loaiGhe FROM Ve v JOIN Ghe g ON v.maGhe = g.maGhe WHERE v.maHoaDon = h.maHoaDon AND v.trangThaiVe = N'Đã thanh toán') AS loaiGhe, " +
                 "       (SELECT COUNT(*) FROM Ve v WHERE v.maHoaDon = h.maHoaDon AND v.trangThaiVe = N'Đã thanh toán') AS soGhe, " +
-                "       h.tongTien AS tongTien, " +
+                "       (SELECT ISNULL(SUM(v2.giaVe), 0) FROM Ve v2 " +
+                "        WHERE v2.maHoaDon = h.maHoaDon " +
+                "        AND v2.trangThaiVe = N'Đã thanh toán') AS tongTien, " +
                 "       ISNULL(h.phuongThucThanhToan, '') AS phuongThuc " +
                 "FROM HoaDon h " +
                 "JOIN KhachHang k ON h.maKH = k.maKH " +
@@ -444,7 +448,10 @@ public class HoaDonDAO implements DAO<HoaDon, String> {
     // Lấy thông tin chung của hóa đơn (không JOIN vé)
     public static Object[] getThongTinHoaDon(String maHD) throws SQLException {
         String sql =
-                "SELECT hd.maHoaDon, hd.ngayLapHD, hd.phuongThucThanhToan, hd.tongTien, " +
+                "SELECT hd.maHoaDon, hd.ngayLapHD, hd.phuongThucThanhToan, " +
+                        "       (SELECT ISNULL(SUM(v2.giaVe), 0) FROM Ve v2 " +
+                        "        WHERE v2.maHoaDon = hd.maHoaDon " +
+                        "        AND v2.trangThaiVe = N'Đã thanh toán') AS tongTien, " +
                         "       kh.hoTenKH, kh.sdt, " +
                         "       CASE WHEN kh.laSinhVien = 1 THEN N'Sinh viên' ELSE N'Người lớn' END AS doiTuong " +
                         "FROM HoaDon hd " +
