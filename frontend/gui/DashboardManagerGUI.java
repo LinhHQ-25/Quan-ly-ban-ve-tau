@@ -145,15 +145,34 @@ public class DashboardManagerGUI extends JPanel {
             try (Connection con = Connect_DB.getConnection()) {
                 if (con == null) return;
 
-                // Khai báo NGOÀI cả 2 block để dùng chung
                 long dt = 0;
                 int vb = 0, vh = 0;
 
-                // Query KPI hôm nay
-                String sqlKPI = "SELECT " +
-                    "(SELECT ISNULL(SUM(tongTien),0) FROM HoaDon WHERE CAST(ngayLapHD AS DATE) = CAST(GETDATE() AS DATE)) as doanhThu, " +
-                    "(SELECT COUNT(*) FROM Ve WHERE CAST(ngayMua AS DATE) = CAST(GETDATE() AS DATE) AND trangThaiVe = N'Đã thanh toán') as veBan, " +
-                    "(SELECT COUNT(*) FROM Ve WHERE CAST(ngayMua AS DATE) = CAST(GETDATE() AS DATE) AND trangThaiVe = N'Đã hủy') as veHuy";
+                // ── KPI hôm nay ──
+                // ── KPI hôm nay ──
+                String sqlKPI =
+                        "SELECT " +
+                                "  ( " +
+                                "    (SELECT ISNULL(SUM(v.giaVe),0) FROM Ve v " +
+                                "     JOIN HoaDon h ON v.maHoaDon = h.maHoaDon " +
+                                "     WHERE CAST(h.ngayLapHD AS DATE) = CAST(GETDATE() AS DATE) " +
+                                "     AND v.trangThaiVe = N'Đã thanh toán' " +
+                                "     AND ISNULL(h.phuongThucThanhToan,'') <> 'LUU_TAM') " +
+                                "    + " +
+                                "    (SELECT ISNULL(SUM(h.tongTien),0) FROM HoaDon h " +
+                                "     WHERE CAST(h.ngayLapHD AS DATE) = CAST(GETDATE() AS DATE) " +
+                                "     AND ISNULL(h.phuongThucThanhToan,'') <> 'LUU_TAM' " +
+                                "     AND EXISTS (SELECT 1 FROM Ve v WHERE v.maHoaDon = h.maHoaDon AND v.trangThaiVe IN (N'Đã hủy', 'DA_HUY'))) " +
+                                "  ) as doanhThu, " +
+                                "  (SELECT COUNT(*) FROM Ve v JOIN HoaDon h ON v.maHoaDon = h.maHoaDon " +
+                                "   WHERE CAST(h.ngayLapHD AS DATE) = CAST(GETDATE() AS DATE) " +
+                                "   AND v.trangThaiVe = N'Đã thanh toán' " +
+                                "   AND ISNULL(h.phuongThucThanhToan,'') <> 'LUU_TAM') as veBan, " +
+                                "  (SELECT COUNT(*) FROM Ve v JOIN HoaDon h ON v.maHoaDon = h.maHoaDon " +
+                                "   WHERE CAST(h.ngayLapHD AS DATE) = CAST(GETDATE() AS DATE) " +
+                                "   AND v.trangThaiVe IN (N'Đã hủy', 'DA_HUY') " +
+                                "   AND ISNULL(h.phuongThucThanhToan,'') <> 'LUU_TAM') as veHuy";
+
                 ResultSet rsKPI = con.prepareStatement(sqlKPI).executeQuery();
                 if (rsKPI.next()) {
                     dt = rsKPI.getLong("doanhThu");
@@ -167,11 +186,30 @@ public class DashboardManagerGUI extends JPanel {
                     });
                 }
 
-                // Query KPI hôm qua để so sánh
-                String sqlYesterday = "SELECT " +
-                    "(SELECT ISNULL(SUM(tongTien),0) FROM HoaDon WHERE CAST(ngayLapHD AS DATE) = CAST(DATEADD(day,-1,GETDATE()) AS DATE)) as dtHQ, " +
-                    "(SELECT COUNT(*) FROM Ve WHERE CAST(ngayMua AS DATE) = CAST(DATEADD(day,-1,GETDATE()) AS DATE) AND trangThaiVe = N'Đã thanh toán') as vbHQ, " +
-                    "(SELECT COUNT(*) FROM Ve WHERE CAST(ngayMua AS DATE) = CAST(DATEADD(day,-1,GETDATE()) AS DATE) AND trangThaiVe = N'Đã hủy') as vhHQ";
+                // ── KPI hôm qua để so sánh ──
+                String sqlYesterday =
+                        "SELECT " +
+                                "  ( " +
+                                "    (SELECT ISNULL(SUM(v.giaVe),0) FROM Ve v " +
+                                "     JOIN HoaDon h ON v.maHoaDon = h.maHoaDon " +
+                                "     WHERE CAST(h.ngayLapHD AS DATE) = CAST(DATEADD(day,-1,GETDATE()) AS DATE) " +
+                                "     AND v.trangThaiVe = N'Đã thanh toán' " +
+                                "     AND ISNULL(h.phuongThucThanhToan,'') <> 'LUU_TAM') " +
+                                "    + " +
+                                "    (SELECT ISNULL(SUM(h.tongTien),0) FROM HoaDon h " +
+                                "     WHERE CAST(h.ngayLapHD AS DATE) = CAST(DATEADD(day,-1,GETDATE()) AS DATE) " +
+                                "     AND ISNULL(h.phuongThucThanhToan,'') <> 'LUU_TAM' " +
+                                "     AND EXISTS (SELECT 1 FROM Ve v WHERE v.maHoaDon = h.maHoaDon AND v.trangThaiVe IN (N'Đã hủy', 'DA_HUY'))) " +
+                                "  ) as dtHQ, " +
+                                "  (SELECT COUNT(*) FROM Ve v JOIN HoaDon h ON v.maHoaDon = h.maHoaDon " +
+                                "   WHERE CAST(h.ngayLapHD AS DATE) = CAST(DATEADD(day,-1,GETDATE()) AS DATE) " +
+                                "   AND v.trangThaiVe = N'Đã thanh toán' " +
+                                "   AND ISNULL(h.phuongThucThanhToan,'') <> 'LUU_TAM') as vbHQ, " +
+                                "  (SELECT COUNT(*) FROM Ve v JOIN HoaDon h ON v.maHoaDon = h.maHoaDon " +
+                                "   WHERE CAST(h.ngayLapHD AS DATE) = CAST(DATEADD(day,-1,GETDATE()) AS DATE) " +
+                                "   AND v.trangThaiVe IN (N'Đã hủy', 'DA_HUY') " +
+                                "   AND ISNULL(h.phuongThucThanhToan,'') <> 'LUU_TAM') as vhHQ";
+
                 ResultSet rsYest = con.prepareStatement(sqlYesterday).executeQuery();
                 if (rsYest.next()) {
                     long dtHQ = rsYest.getLong("dtHQ");
@@ -180,30 +218,28 @@ public class DashboardManagerGUI extends JPanel {
                     final long fDt = dt; final int fVb = vb, fVh = vh;
                     final long fDtHQ = dtHQ; final int fVbHQ = vbHQ, fVhHQ = vhHQ;
                     SwingUtilities.invokeLater(() -> {
-                        // Doanh thu → hiện %
-                        lblDoanhThuCmp.setText(formatPct(fDt, fDtHQ) + " vs Hôm qua");
+                        lblDoanhThuCmp.setText(formatPct(fDt, fDtHQ) + " vs hôm qua");
                         colorCmp(lblDoanhThuCmp, fDt, fDtHQ, false);
-
-                        // Vé bán → hiện số nguyên
-                        lblVeBanCmp.setText(formatInt(fVb, fVbHQ) + " vs Hôm qua");
+                        lblVeBanCmp.setText(formatInt(fVb, fVbHQ) + " vs hôm qua");
                         colorCmp(lblVeBanCmp, fVb, fVbHQ, false);
-
-                        // Vé hủy → hiện số nguyên, đảo màu
-                        lblVeHuyCmp.setText(formatInt(fVh, fVhHQ) + " vs Hôm qua");
+                        lblVeHuyCmp.setText(formatInt(fVh, fVhHQ) + " vs hôm qua");
                         colorCmp(lblVeHuyCmp, fVh, fVhHQ, true);
                     });
                 }
 
-                // Query 5 chuyến tàu tỷ lệ lấp đầy
-                String sqlTau = "SELECT TOP 5 ct.maChuyenTau, t.tongSoGhe, " +
-                    "ISNULL((SELECT COUNT(*) FROM Ve v WHERE v.maChuyenTau = ct.maChuyenTau AND v.trangThaiVe = N'Đã thanh toán'), 0) as veDaBan " +
-                    "FROM ChuyenTau ct JOIN Tau t ON ct.maTau = t.maTau " +
-                    "JOIN ChiTietChuyenTau cct ON ct.maChuyenTau = cct.maChuyenTau " +
-                    "ORDER BY veDaBan DESC, cct.thoiGianKhoiHanh ASC";
+                // ── Top 5 chuyến tàu tỷ lệ lấp đầy ──
+                String sqlTau =
+                        "SELECT TOP 5 ct.maChuyenTau, t.tongSoGhe, " +
+                                "ISNULL((SELECT COUNT(*) FROM Ve v WHERE v.maChuyenTau = ct.maChuyenTau " +
+                                "        AND v.trangThaiVe = N'Đã thanh toán'), 0) as veDaBan " +
+                                "FROM ChuyenTau ct JOIN Tau t ON ct.maTau = t.maTau " +
+                                "JOIN ChiTietChuyenTau cct ON ct.maChuyenTau = cct.maChuyenTau " +
+                                "ORDER BY veDaBan DESC, cct.thoiGianKhoiHanh ASC";
+
                 ResultSet rsTau = con.prepareStatement(sqlTau).executeQuery();
-                List<String> tauNames = new ArrayList<>();
-                List<Integer> tauCap = new ArrayList<>();
-                List<Integer> tauSold = new ArrayList<>();
+                List<String>  tauNames = new ArrayList<>();
+                List<Integer> tauCap   = new ArrayList<>();
+                List<Integer> tauSold  = new ArrayList<>();
                 while (rsTau.next()) {
                     tauNames.add(rsTau.getString("maChuyenTau"));
                     tauCap.add(rsTau.getInt("tongSoGhe"));
@@ -211,29 +247,42 @@ public class DashboardManagerGUI extends JPanel {
                 }
                 SwingUtilities.invokeLater(() -> barChart.setData(tauNames, tauCap, tauSold));
 
-                // Query phân loại ghế
-                String sqlGhe = "SELECT g.loaiGhe, COUNT(v.maVe) as soLuong " +
-                    "FROM Ve v JOIN Ghe g ON v.maGhe = g.maGhe " +
-                    "WHERE v.trangThaiVe = N'Đã thanh toán' " +
-                    "GROUP BY g.loaiGhe";
+                // ── Phân loại ghế hôm nay ──
+                String sqlGhe =
+                        "SELECT g.loaiGhe, COUNT(v.maVe) as soLuong " +
+                                "FROM Ve v " +
+                                "JOIN HoaDon h ON v.maHoaDon = h.maHoaDon " +
+                                "JOIN Ghe g ON v.maGhe = g.maGhe " +
+                                "WHERE v.trangThaiVe = N'Đã thanh toán' " +
+                                "AND CAST(h.ngayLapHD AS DATE) = CAST(GETDATE() AS DATE) " +
+                                "GROUP BY g.loaiGhe";
+
                 ResultSet rsGhe = con.prepareStatement(sqlGhe).executeQuery();
                 int gc = 0, gn = 0, gm = 0;
                 while (rsGhe.next()) {
-                    String loai = rsGhe.getString(1); int count = rsGhe.getInt(2);
-                    if (loai != null && loai.contains("giường")) gn += count;
-                    else if (loai != null && loai.contains("cứng")) gc += count;
-                    else gm += count;
+                    String loai = rsGhe.getString(1);
+                    int count = rsGhe.getInt(2);
+                    if (loai != null && (loai.equalsIgnoreCase("GIUONG_NAM")
+                            || loai.equalsIgnoreCase("Giường nằm")))      gn += count;
+                    else if (loai != null && (loai.equalsIgnoreCase("GHE_CUNG")
+                            || loai.equalsIgnoreCase("Ghế cứng")))        gc += count;
+                    else if (loai != null && (loai.equalsIgnoreCase("GHE_MEM")
+                            || loai.equalsIgnoreCase("Ghế mềm")))         gm += count;
                 }
                 final int fgc = gc, fgn = gn, fgm = gm;
                 SwingUtilities.invokeLater(() -> donutChart.setData(fgc, fgn, fgm));
 
-                // Query vé bán theo giờ hôm nay
-                String sqlGio = "SELECT DATEPART(hour, ngayMua) as gio, COUNT(*) FROM Ve " +
-                    "WHERE CAST(ngayMua AS DATE) = CAST(GETDATE() AS DATE) AND trangThaiVe = N'Đã thanh toán' " +
-                    "GROUP BY DATEPART(hour, ngayMua)";
+                // ── Vé bán theo giờ hôm nay ──
+                String sqlGio =
+                        "SELECT DATEPART(hour, h.ngayLapHD) as gio, COUNT(*) as soVe " +
+                                "FROM Ve v JOIN HoaDon h ON v.maHoaDon = h.maHoaDon " +
+                                "WHERE CAST(h.ngayLapHD AS DATE) = CAST(GETDATE() AS DATE) " +
+                                "AND v.trangThaiVe = N'Đã thanh toán' " +
+                                "GROUP BY DATEPART(hour, h.ngayLapHD)";
+
                 ResultSet rsGio = con.prepareStatement(sqlGio).executeQuery();
                 int[] hourlyData = new int[24];
-                while (rsGio.next()) hourlyData[rsGio.getInt(1)] = rsGio.getInt(2);
+                while (rsGio.next()) hourlyData[rsGio.getInt("gio")] = rsGio.getInt("soVe");
                 SwingUtilities.invokeLater(() -> lineChart.setData(hourlyData));
 
             } catch (SQLException e) { e.printStackTrace(); }
@@ -498,15 +547,15 @@ public class DashboardManagerGUI extends JPanel {
         }
     }
  // Doanh thu: hiển thị % thay đổi
-    private String formatPct(long today, long yesterday) {
-        if (yesterday == 0) return "--";
-        double pct = (double)(today - yesterday) / yesterday * 100;
-        return String.format("%s %.1f%%", pct >= 0 ? "↗" : "↘", Math.abs(pct));
-    }
+ private String formatPct(long today, long yesterday) {
+     if (yesterday == 0) return "--";
+     double pct = (double)(today - yesterday) / yesterday * 100;
+     return String.format("%s%.1f%%", pct >= 0 ? "↑" : "↓", Math.abs(pct));
+ }
 
     private String formatInt(long today, long yesterday) {
         long diff = today - yesterday;
-        return String.format("%s %d vé", diff >= 0 ? "↗" : "↘", Math.abs(diff));
+        return String.format("%s%d vé", diff >= 0 ? "↑" : "↓", Math.abs(diff));
     }
     // Tô màu: xanh = tốt, đỏ = xấu
     private void colorCmp(JLabel lbl, long today, long yesterday, boolean invertColor) {
