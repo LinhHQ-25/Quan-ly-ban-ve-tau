@@ -105,4 +105,65 @@ public class tauDAO implements DAO<Tau, String> {
         }
         return false;
     }
+    /**
+     * Tàu rảnh theo ngày cụ thể — không có lịch khởi hành vào ngày đó
+     */
+    public List<Tau> getTauRanhTheoNgay(java.sql.Date ngay) {
+        List<Tau> list = new ArrayList<>();
+        String sql = "SELECT t.* FROM Tau t "
+                   + "WHERE t.trangThai = N'Đang hoạt động' "
+                   + "AND NOT EXISTS ( "
+                   + "    SELECT 1 FROM ChuyenTau ct "
+                   + "    JOIN ChiTietChuyenTau cct ON ct.maChuyenTau = cct.maChuyenTau "
+                   + "    WHERE ct.maTau = t.maTau "
+                   + "      AND CAST(cct.thoiGianKhoiHanh AS DATE) = ? "
+                   + ")";
+        try (Connection con = Connect_DB.getInstance().getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setDate(1, ngay);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    Tau t = new Tau();
+                    t.setMaTau(rs.getString("maTau"));
+                    t.setTenTau(rs.getString("tenTau"));
+                    t.setTrangThai(rs.getString("trangThai"));
+                    t.setGhiChu(rs.getString("ghiChu"));
+                    t.setSoToa(rs.getInt("soToa"));
+                    t.setTongSoGhe(rs.getInt("tongSoGhe"));
+                    list.add(t);
+                }
+            }
+        } catch (Exception e) { e.printStackTrace(); }
+        return list;
+    }
+
+    /**
+     * Tàu rảnh mặc định — không có lịch khởi hành trong tương lai
+     */
+    public List<Tau> getTauRanhMacDinh() {
+        List<Tau> list = new ArrayList<>();
+        String sql = "SELECT t.* FROM Tau t "
+                   + "WHERE t.trangThai = N'Đang hoạt động' "
+                   + "AND NOT EXISTS ( "
+                   + "    SELECT 1 FROM ChuyenTau ct "
+                   + "    JOIN ChiTietChuyenTau cct ON ct.maChuyenTau = cct.maChuyenTau "
+                   + "    WHERE ct.maTau = t.maTau "
+                   + "      AND cct.thoiGianKhoiHanh > GETDATE() "
+                   + ")";
+        try (Connection con = Connect_DB.getInstance().getConnection();
+             PreparedStatement ps = con.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                Tau t = new Tau();
+                t.setMaTau(rs.getString("maTau"));
+                t.setTenTau(rs.getString("tenTau"));
+                t.setTrangThai(rs.getString("trangThai"));
+                t.setGhiChu(rs.getString("ghiChu"));
+                t.setSoToa(rs.getInt("soToa"));
+                t.setTongSoGhe(rs.getInt("tongSoGhe"));
+                list.add(t);
+            }
+        } catch (Exception e) { e.printStackTrace(); }
+        return list;
+    }
 }

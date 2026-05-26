@@ -518,16 +518,20 @@ public class KhuyenMaiGUI extends JPanel {
 
             // 2. Điều kiện tổng tiền — chỉ hiện khi THÊM MỚI
             if (editMaKM == null) {
-                tfDieuKien = inputField();
-                tfDieuKien.setToolTipText("Để trống hoặc 0 = không có điều kiện");
-                JLabel lblVnd = new JLabel("VNĐ");
-                lblVnd.setFont(GuiTheme.font("Segoe UI", java.awt.Font.BOLD, 14));
-                lblVnd.setBorder(new EmptyBorder(0, 6, 0, 0));
-                JPanel pnlDieuKien = new JPanel(new BorderLayout(4, 0));
-                pnlDieuKien.setOpaque(false);
-                pnlDieuKien.add(tfDieuKien, BorderLayout.CENTER);
-                pnlDieuKien.add(lblVnd,     BorderLayout.EAST);
-                addRow(p, g, row++, "Điều kiện (tổng tiền ≥)", pnlDieuKien);
+            	tfDieuKien = inputField();
+            	tfDieuKien.setToolTipText("Để trống hoặc 0 = không có điều kiện");
+            	JLabel lblVnd = new JLabel("VNĐ");
+            	lblVnd.setFont(GuiTheme.font("Segoe UI", java.awt.Font.BOLD, 14));
+            	lblVnd.setBorder(new EmptyBorder(0, 6, 0, 0));
+            	JPanel pnlDieuKien = new JPanel(new BorderLayout(4, 0));
+            	pnlDieuKien.setOpaque(false);
+            	pnlDieuKien.add(tfDieuKien, BorderLayout.CENTER);
+            	pnlDieuKien.add(lblVnd,     BorderLayout.EAST);
+            	if (editMaKM != null) {
+            	    tfDieuKien.setEditable(false);
+            	    tfDieuKien.setBackground(new Color(245, 247, 250));
+            	}
+            	addRow(p, g, row++, "Điều kiện (tổng tiền ≥)", pnlDieuKien);
             }
 
             // 3. Tỉ lệ giảm
@@ -614,6 +618,8 @@ public class KhuyenMaiGUI extends JPanel {
                 dcKetThuc.setDate(java.sql.Timestamp.valueOf(km.getThoiGianKetThuc()));
             taMoTa.setText(km.getMoTaChiTiet());
             cbTrangThai.setSelectedItem(computeStatus(km.getThoiGianBatDau(), km.getThoiGianKetThuc()));
+            if (tfDieuKien != null)
+                tfDieuKien.setText(km.getDieuKienToiThieu() > 0 ? String.valueOf(km.getDieuKienToiThieu()) : "");
         }
 
         // Tự sinh mã KMXXXXXX (6 số ngẫu nhiên), đảm bảo không trùng DB

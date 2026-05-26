@@ -132,4 +132,22 @@ public class GheDAO implements DAO<Ghe, String> {
         } catch (Exception e) { e.printStackTrace(); }
         return false;
     }
+    /**
+     * Lấy {soGhe, soToa} để in lên vé PDF.
+     * Trả về Object[]{String soGhe, String soToa} hoặc {"", ""} nếu không tìm thấy.
+     */
+    public Object[] getSoGheVaSoToa(String maGhe) {
+        String sql = "SELECT g.soGhe, t.soToa "
+                   + "FROM Ghe g JOIN ToaTau t ON g.maToaTau = t.maToaTau "
+                   + "WHERE g.maGhe = ?";
+        try (Connection con = Connect_DB.getInstance().getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setString(1, maGhe);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next())
+                    return new Object[]{ rs.getString("soGhe"), String.valueOf(rs.getInt("soToa")) };
+            }
+        } catch (Exception e) { e.printStackTrace(); }
+        return new Object[]{ "", "" };
+    }
 }

@@ -113,4 +113,38 @@ public class ChiTietChuyenTauDAO implements DAO<ChiTietChuyenTau, String> {
         }
         return false;
     }
+    /**
+     * Lấy thông tin chuyến tàu để in lên vé PDF.
+     * Trả về Object[]{String tenTau, String gaDi, String gaDen, String ngayDi, String gioDi}
+     * hoặc {"", "", "", "", ""} nếu không tìm thấy.
+     */
+    public Object[] getThongTinChuyenChoVe(String maChuyenTau) {
+        String sql = "SELECT t.tenTau, ct.thoiGianKhoiHanh, "
+                   + "g1.tenGa AS GaDi, g2.tenGa AS GaDen "
+                   + "FROM ChuyenTau c "
+                   + "JOIN Tau t ON c.maTau = t.maTau "
+                   + "JOIN ChiTietChuyenTau ct ON c.maChuyenTau = ct.maChuyenTau "
+                   + "JOIN Ga g1 ON ct.maGaDi = g1.maGa "
+                   + "JOIN Ga g2 ON ct.maGaDen = g2.maGa "
+                   + "WHERE c.maChuyenTau = ?";
+        try (Connection con = Connect_DB.getInstance().getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setString(1, maChuyenTau);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    String tenTau = rs.getString("tenTau");
+                    String gaDi   = rs.getString("GaDi");
+                    String gaDen  = rs.getString("GaDen");
+                    String ngayDi = "", gioDi = "";
+                    java.sql.Timestamp ts = rs.getTimestamp("thoiGianKhoiHanh");
+                    if (ts != null) {
+                        ngayDi = new java.text.SimpleDateFormat("dd/MM/yyyy").format(ts);
+                        gioDi  = new java.text.SimpleDateFormat("HH:mm").format(ts);
+                    }
+                    return new Object[]{ tenTau, gaDi, gaDen, ngayDi, gioDi };
+                }
+            }
+        } catch (Exception e) { e.printStackTrace(); }
+        return new Object[]{ "", "", "", "", "" };
+    }
 }
