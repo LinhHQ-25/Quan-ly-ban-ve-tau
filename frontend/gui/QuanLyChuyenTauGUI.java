@@ -83,12 +83,6 @@ final class QuanLyChuyenTauGUI extends JPanel {
         return mapGa.get(tenGa);
     }
     private void initData() {
-<<<<<<< HEAD
-        new dao.GaDAO().selectAll()
-            .forEach(ga -> mapGa.put(ga.getTenGa(), ga.getMaGa()));
-        new dao.tauDAO().selectAll()
-            .forEach(tau -> listTau.add(tau.getTenTau()));
-=======
         Connection conn = Connect_DB.getInstance().getConnection();
         if (conn == null) return;
         try {
@@ -130,7 +124,6 @@ final class QuanLyChuyenTauGUI extends JPanel {
         } catch (SQLException e) {
             e.printStackTrace();
         }
->>>>>>> 9430174dcd532329bcf848f44e5647f630ccff2a
     }
     private JPanel buildSectionTitle(String title) {
         JPanel pnl = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
@@ -185,7 +178,7 @@ final class QuanLyChuyenTauGUI extends JPanel {
         });
 
         btnReset.addActionListener(e -> {
-            cboGaDiFilter.setSelectedIndex(0);
+            cboGaDiFilter.setSelectedItem("Diêu Trì");
             cboGaDenFilter.setSelectedIndex(0);
             cboTauFilter.setSelectedIndex(0);
             dcNgayDi.setDate(null);
@@ -232,6 +225,8 @@ final class QuanLyChuyenTauGUI extends JPanel {
         gbc.gridy = 0;
         
         cboGaDiFilter = buildCombo(getGaListWithEmpty());
+        cboGaDiFilter.setSelectedItem("Diêu Trì");
+        cboGaDiFilter.setEnabled(false);
         cboGaDenFilter = buildCombo(getGaListWithEmpty());
         cboTauFilter = buildCombo(getTauListWithEmpty());
         dcNgayDi = new JDateChooser();
@@ -342,24 +337,33 @@ final class QuanLyChuyenTauGUI extends JPanel {
         java.util.Date selectedDate = dcNgayDi.getDate();
         dao.tauDAO tauDao = new dao.tauDAO();
 
-        java.util.List<entity.Tau> listTauRanh = (selectedDate != null)
-                ? tauDao.getTauRanhTheoNgay(new java.sql.Date(selectedDate.getTime()))
-                : tauDao.getTauRanhMacDinh();
+        java.util.List<Object[]> listTau = tauDao.getTauTrangThaiDong(
+            selectedDate != null ? new java.sql.Date(selectedDate.getTime()) : null
+        );
 
-        if (listTauRanh.isEmpty()) {
+        boolean hasRanh = false;
+        for (Object[] row : listTau) {
+            String tinhTrang = (String) row[4];
+            // Nếu người dùng chọn lọc ngày cụ thể, chỉ hiển thị những tàu "Sẵn sàng"
+            if (selectedDate != null && !tinhTrang.equals("Sẵn sàng")) {
+                continue;
+            }
+            
+            pnlIdleCards.add(new TrainCard(
+                (String) row[0],
+                (String) row[1],
+                (int) row[2],
+                (int) row[3],
+                tinhTrang
+            ));
+            hasRanh = true;
+        }
+
+        if (!hasRanh) {
             JLabel lbl = new JLabel("Hiện không có tàu nào rảnh phù hợp.");
             lbl.setFont(GuiTheme.font("Segoe UI", Font.ITALIC, 13));
             lbl.setForeground(GuiTheme.SUB_TEXT);
             pnlIdleCards.add(lbl);
-        } else {
-            for (entity.Tau t : listTauRanh) {
-                pnlIdleCards.add(new TrainCard(
-                    t.getMaTau(),
-                    t.getTenTau(),
-                    t.getSoToa(),
-                    t.getTongSoGhe()
-                ));
-            }
         }
 
         pnlIdleCards.revalidate();
@@ -412,6 +416,8 @@ final class QuanLyChuyenTauGUI extends JPanel {
         pnlForm.add(lblGaDi, gbc);
         JComboBox<String> cboGaDiPopup = new JComboBox<>(getGaList()); styleField.apply(cboGaDiPopup);
         cboGaDiPopup.setPreferredSize(new Dimension(0, 32));
+        cboGaDiPopup.setSelectedItem("Diêu Trì");
+        cboGaDiPopup.setEnabled(false);
         gbc.gridx = 1; gbc.weightx = 0.7;
         pnlForm.add(cboGaDiPopup, gbc);
 
@@ -424,6 +430,12 @@ final class QuanLyChuyenTauGUI extends JPanel {
         gbc.gridx = 1; gbc.weightx = 0.7;
         pnlForm.add(cboGaDenPopup, gbc);
         
+        // Thiết lập giá trị mặc định từ bộ lọc tra cứu (nếu có)
+        String filterGaDen = (String) cboGaDenFilter.getSelectedItem();
+        if (filterGaDen != null && !filterGaDen.isEmpty()) {
+            cboGaDenPopup.setSelectedItem(filterGaDen);
+        }
+        
         // Khởi hành
         gbc.gridx = 0; gbc.gridy = 3; gbc.weightx = 0.3;
         JLabel lblDi = new JLabel("Khởi hành:"); lblDi.setFont(labelFont); lblDi.setForeground(GuiTheme.NAVY);
@@ -431,26 +443,51 @@ final class QuanLyChuyenTauGUI extends JPanel {
         
         JPanel pnlTimeDi = new JPanel(new BorderLayout(8, 0)); pnlTimeDi.setOpaque(false);
         JDateChooser dcDi = new JDateChooser(); dcDi.setDateFormatString("dd/MM/yyyy"); styleField.apply(dcDi);
-        if (dcNgayDi.getDate() != null) dcDi.setDate(dcNgayDi.getDate());
+        if (dcNgayDi.getDate() != null) {
+            dcDi.setDate(dcNgayDi.getDate());
+        } else {
+            dcDi.setDate(new java.util.Date());
+        }
         JSpinner spDiTime = new JSpinner(new SpinnerDateModel());
         JSpinner.DateEditor deDi = new JSpinner.DateEditor(spDiTime, "HH:mm"); spDiTime.setEditor(deDi); styleField.apply(spDiTime);
         pnlTimeDi.add(dcDi, BorderLayout.CENTER); pnlTimeDi.add(spDiTime, BorderLayout.EAST);
         gbc.gridx = 1; gbc.weightx = 0.7;
         pnlForm.add(pnlTimeDi, gbc);
         
-        // Dự kiến đến
+        // Dự kiến đến (Khóa chỉnh sửa, hệ thống tự động điền)
         gbc.gridx = 0; gbc.gridy = 4; gbc.weightx = 0.3;
         JLabel lblDen = new JLabel("Dự kiến đến:"); lblDen.setFont(labelFont); lblDen.setForeground(GuiTheme.NAVY);
         pnlForm.add(lblDen, gbc);
         
         JPanel pnlTimeDen = new JPanel(new BorderLayout(8, 0)); pnlTimeDen.setOpaque(false);
         JDateChooser dcDen = new JDateChooser(); dcDen.setDateFormatString("dd/MM/yyyy"); styleField.apply(dcDen);
-        if (dcNgayDi.getDate() != null) dcDen.setDate(dcNgayDi.getDate());
         JSpinner spDenTime = new JSpinner(new SpinnerDateModel());
         JSpinner.DateEditor deDen = new JSpinner.DateEditor(spDenTime, "HH:mm"); spDenTime.setEditor(deDen); styleField.apply(spDenTime);
         pnlTimeDen.add(dcDen, BorderLayout.CENTER); pnlTimeDen.add(spDenTime, BorderLayout.EAST);
         gbc.gridx = 1; gbc.weightx = 0.7;
         pnlForm.add(pnlTimeDen, gbc);
+        
+        // Vô hiệu hóa chỉnh sửa thủ công cho thời gian dự kiến đến
+        dcDen.setEnabled(false);
+        spDenTime.setEnabled(false);
+        
+        // Đăng ký bộ lắng nghe tự động cập nhật thời gian đến dự kiến
+        java.awt.event.ActionListener autoUpdateArrival = ev -> {
+            capNhatThoiGianDenTuDong(cboGaDiPopup, cboGaDenPopup, dcDi, spDiTime, dcDen, spDenTime);
+        };
+        cboGaDiPopup.addActionListener(autoUpdateArrival);
+        cboGaDenPopup.addActionListener(autoUpdateArrival);
+        
+        dcDi.getDateEditor().addPropertyChangeListener("date", ev -> {
+            capNhatThoiGianDenTuDong(cboGaDiPopup, cboGaDenPopup, dcDi, spDiTime, dcDen, spDenTime);
+        });
+        
+        spDiTime.addChangeListener(ev -> {
+            capNhatThoiGianDenTuDong(cboGaDiPopup, cboGaDenPopup, dcDi, spDiTime, dcDen, spDenTime);
+        });
+        
+        // Chạy tính toán tự động lần đầu
+        capNhatThoiGianDenTuDong(cboGaDiPopup, cboGaDenPopup, dcDi, spDiTime, dcDen, spDenTime);
 
         // Buttons
         JPanel pnlBtn = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 10));
@@ -530,6 +567,24 @@ final class QuanLyChuyenTauGUI extends JPanel {
                 return;
             }
             
+            // Kiểm tra ràng buộc nghỉ/bảo trì 5 tiếng sau chuyến chạy trước đó
+            Timestamp tsDenGanNhat = new dao.ChuyenTauDAO().getThoiGianDenGanNhat(maTau, tsDi);
+            if (tsDenGanNhat != null) {
+                long fiveHoursInMillis = 5L * 3600 * 1000;
+                if (tsDi.getTime() - tsDenGanNhat.getTime() < fiveHoursInMillis) {
+                    SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy HH:mm");
+                    String gapTimeStr = sdf.format(tsDenGanNhat);
+                    String readyTimeStr = sdf.format(new Timestamp(tsDenGanNhat.getTime() + fiveHoursInMillis));
+                    JOptionPane.showMessageDialog(dialog, 
+                        "❌ Lỗi: Tàu đang trong thời gian bảo trì kỹ thuật và nghỉ dưỡng sau chuyến đi trước!\n"
+                        + "- Về ga gần nhất lúc: " + gapTimeStr + "\n"
+                        + "- Thời gian nghỉ tối thiểu: 5 tiếng\n"
+                        + "- Thời gian sẵn sàng khởi hành tiếp theo: " + readyTimeStr,
+                        "Cảnh báo bảo trì", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+            }
+            
             String maChuyenTau = "CT" + System.currentTimeMillis();
             if (maChuyenTau.length() > 20) maChuyenTau = maChuyenTau.substring(0, 20);
             
@@ -578,6 +633,10 @@ maChuyenTau, maTau, maGaDi, maGaDen, tsDi, tsDen);
         JPanel pnlTableActions = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
         pnlTableActions.setOpaque(false);
         
+        JButton btnAutoSchedule = buildNavyButton("Tự động lập lịch", new Color(40, 167, 69), new Color(33, 136, 56));
+        btnAutoSchedule.setPreferredSize(new Dimension(150, 32));
+        btnAutoSchedule.addActionListener(e -> showAutoScheduleDialog());
+        
         JButton btnUpdate = buildNavyButton("Cập nhật chuyến đi", GuiTheme.NAVY, GuiTheme.NAVY_HOVER);
         btnUpdate.setPreferredSize(new Dimension(160, 32));
         
@@ -587,6 +646,7 @@ maChuyenTau, maTau, maGaDi, maGaDen, tsDi, tsDen);
         btnDelete.addActionListener(e -> deleteSelectedTrip());
         btnUpdate.addActionListener(e -> updateSelectedTrip());
         
+        pnlTableActions.add(btnAutoSchedule);
         pnlTableActions.add(btnUpdate);
         pnlTableActions.add(btnDelete);
         
@@ -962,7 +1022,7 @@ maChuyenTau, maTau, maGaDi, maGaDen, tsDi, tsDen);
     private final class TrainCard extends JPanel {
         private boolean isHovered = false;
 
-        TrainCard(String id, String name, int toa, int ghe) {
+        TrainCard(String id, String name, int toa, int ghe, String tinhTrang) {
             setPreferredSize(new Dimension(130, 95));
             setBackground(Color.WHITE);
             setLayout(new BorderLayout());
@@ -991,11 +1051,17 @@ maChuyenTau, maTau, maGaDi, maGaDen, tsDi, tsDen);
             pnlInfo.add(Box.createVerticalStrut(4));
             pnlInfo.add(lblDetails);
 
-            JButton btnAction = new JButton("Điều động") {
+            boolean isReady = tinhTrang.equals("Sẵn sàng");
+            String btnText = isReady ? "Điều động" : (tinhTrang.contains("Bảo trì") ? "Bảo trì" : tinhTrang);
+            Color btnColor = isReady ? GuiTheme.NAVY 
+                                     : (tinhTrang.equals("Đang chạy") || tinhTrang.equals("Bận chạy") ? new Color(220, 53, 69) : new Color(240, 173, 78));
+            Color btnColorHover = isReady ? GuiTheme.NAVY_HOVER : btnColor;
+
+            JButton btnAction = new JButton(btnText) {
                 @Override protected void paintComponent(Graphics g) {
                     Graphics2D g2 = (Graphics2D) g.create();
                     g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                    g2.setColor(getModel().isRollover() ? GuiTheme.NAVY_HOVER : GuiTheme.NAVY);
+                    g2.setColor(getModel().isRollover() ? btnColorHover : btnColor);
                     g2.fillRoundRect(0,0,getWidth(),getHeight(),8,8);
                     g2.dispose();
                     super.paintComponent(g);
@@ -1005,9 +1071,13 @@ maChuyenTau, maTau, maGaDi, maGaDen, tsDi, tsDen);
             btnAction.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 9));
             btnAction.setPreferredSize(new Dimension(0, 22));
             btnAction.setContentAreaFilled(false); btnAction.setBorderPainted(false); btnAction.setFocusPainted(false);
-            btnAction.setCursor(new Cursor(Cursor.HAND_CURSOR));
             
-            btnAction.addActionListener(e -> showDieuDongDialog(id, name));
+            if (isReady) {
+                btnAction.setCursor(new Cursor(Cursor.HAND_CURSOR));
+                btnAction.addActionListener(e -> showDieuDongDialog(id, name));
+            } else {
+                btnAction.setEnabled(false);
+            }
 
             add(pnlInfo, BorderLayout.CENTER);
             add(btnAction, BorderLayout.SOUTH);
@@ -1072,5 +1142,404 @@ maChuyenTau, maTau, maGaDi, maGaDen, tsDi, tsDen);
             g2.dispose();
             super.paintComponent(g);
         }
+    }
+
+    private void showAutoScheduleDialog() {
+        JDialog dialog = new JDialog((Frame) SwingUtilities.getWindowAncestor(this), "Tự động lập lịch định kỳ", true);
+        dialog.setSize(520, 560);
+        dialog.setLocationRelativeTo(this);
+        dialog.setLayout(new BorderLayout());
+        dialog.getContentPane().setBackground(Color.WHITE);
+        
+        JPanel pnlForm = new JPanel(new GridBagLayout());
+        pnlForm.setBackground(Color.WHITE);
+        pnlForm.setBorder(new EmptyBorder(20, 20, 20, 20));
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(8, 8, 8, 8);
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.anchor = GridBagConstraints.WEST;
+        gbc.weightx = 1.0;
+        
+        Font labelFont = GuiTheme.font("Segoe UI", Font.BOLD, 13);
+        Font fieldFont = GuiTheme.font("Segoe UI", Font.PLAIN, 14);
+        Color fieldBg = new Color(248, 250, 252);
+        
+        java.util.function.Function<JComponent, Void> styleField = comp -> {
+            comp.setFont(fieldFont);
+            comp.setBackground(fieldBg);
+            if (comp instanceof JComboBox) ((JComboBox<?>)comp).setBorder(new LineBorder(BORDER, 1, true));
+            if (comp instanceof JTextField) {
+                ((JTextField)comp).setBorder(BorderFactory.createCompoundBorder(
+                    new LineBorder(BORDER, 1, true), new EmptyBorder(4, 8, 4, 8)));
+            }
+            return null;
+        };
+
+        // 1. Tàu di chuyển
+        gbc.gridx = 0; gbc.gridy = 0; gbc.weightx = 0.3;
+        JLabel lblTau = new JLabel("Chọn tàu:"); lblTau.setFont(labelFont); lblTau.setForeground(GuiTheme.NAVY);
+        pnlForm.add(lblTau, gbc);
+        
+        java.util.List<String> listTenTau = new java.util.ArrayList<>();
+        Connection conn = Connect_DB.getInstance().getConnection();
+        if (conn != null) {
+            try (Statement st = conn.createStatement();
+                 ResultSet rs = st.executeQuery("SELECT tenTau FROM Tau WHERE trangThai = N'Đang hoạt động'")) {
+                while (rs.next()) {
+                    listTenTau.add(rs.getString("tenTau"));
+                }
+            } catch (SQLException e) { e.printStackTrace(); }
+        }
+        if (listTenTau.isEmpty()) {
+            listTenTau.add("Không có tàu khả dụng");
+        }
+        
+        JComboBox<String> cboTauPopup = new JComboBox<>(listTenTau.toArray(new String[0])); styleField.apply(cboTauPopup);
+        cboTauPopup.setPreferredSize(new Dimension(0, 32));
+        gbc.gridx = 1; gbc.weightx = 0.7;
+        pnlForm.add(cboTauPopup, gbc);
+        
+        // 2. Ga đi
+        gbc.gridx = 0; gbc.gridy = 1; gbc.weightx = 0.3;
+        JLabel lblGaDi = new JLabel("Ga đi:"); lblGaDi.setFont(labelFont); lblGaDi.setForeground(GuiTheme.NAVY);
+        pnlForm.add(lblGaDi, gbc);
+        JComboBox<String> cboGaDiPopup = new JComboBox<>(getGaList()); styleField.apply(cboGaDiPopup);
+        cboGaDiPopup.setPreferredSize(new Dimension(0, 32));
+        cboGaDiPopup.setSelectedItem("Diêu Trì");
+        cboGaDiPopup.setEnabled(false);
+        gbc.gridx = 1; gbc.weightx = 0.7;
+        pnlForm.add(cboGaDiPopup, gbc);
+
+        // 3. Ga đến
+        gbc.gridx = 0; gbc.gridy = 2; gbc.weightx = 0.3;
+        JLabel lblGaDen = new JLabel("Ga đến:"); lblGaDen.setFont(labelFont); lblGaDen.setForeground(GuiTheme.NAVY);
+        pnlForm.add(lblGaDen, gbc);
+        JComboBox<String> cboGaDenPopup = new JComboBox<>(getGaList()); styleField.apply(cboGaDenPopup);
+        cboGaDenPopup.setPreferredSize(new Dimension(0, 32));
+        gbc.gridx = 1; gbc.weightx = 0.7;
+        pnlForm.add(cboGaDenPopup, gbc);
+        
+        // 4. Lập lịch từ ngày - đến ngày
+        gbc.gridx = 0; gbc.gridy = 3; gbc.weightx = 0.3;
+        JLabel lblTuNgay = new JLabel("Từ ngày:"); lblTuNgay.setFont(labelFont); lblTuNgay.setForeground(GuiTheme.NAVY);
+        pnlForm.add(lblTuNgay, gbc);
+        
+        JPanel pnlRange = new JPanel(new java.awt.GridLayout(1, 2, 10, 0)); pnlRange.setOpaque(false);
+        JDateChooser dcTu = new JDateChooser(); dcTu.setDateFormatString("dd/MM/yyyy"); styleField.apply(dcTu);
+        dcTu.setDate(new java.util.Date());
+        JDateChooser dcD = new JDateChooser(); dcD.setDateFormatString("dd/MM/yyyy"); styleField.apply(dcD);
+        dcD.setDate(new java.util.Date(System.currentTimeMillis() + 7L * 24 * 3600 * 1000));
+        pnlRange.add(dcTu);
+        pnlRange.add(dcD);
+        gbc.gridx = 1; gbc.weightx = 0.7;
+        pnlForm.add(pnlRange, gbc);
+        
+        // 5. Giờ khởi hành chuyến đầu
+        gbc.gridx = 0; gbc.gridy = 4; gbc.weightx = 0.3;
+        JLabel lblGioDi = new JLabel("Giờ chạy chuyến đầu:"); lblGioDi.setFont(labelFont); lblGioDi.setForeground(GuiTheme.NAVY);
+        pnlForm.add(lblGioDi, gbc);
+        
+        JSpinner spDiTime = new JSpinner(new SpinnerDateModel());
+        JSpinner.DateEditor deDi = new JSpinner.DateEditor(spDiTime, "HH:mm"); spDiTime.setEditor(deDi); styleField.apply(spDiTime);
+        java.util.Calendar calDefault = java.util.Calendar.getInstance();
+        calDefault.set(java.util.Calendar.HOUR_OF_DAY, 8); calDefault.set(java.util.Calendar.MINUTE, 0);
+        spDiTime.setValue(calDefault.getTime());
+        gbc.gridx = 1; gbc.weightx = 0.7;
+        pnlForm.add(spDiTime, gbc);
+        
+        // 6. Thời gian di chuyển (giờ)
+        gbc.gridx = 0; gbc.gridy = 5; gbc.weightx = 0.3;
+        JLabel lblTravel = new JLabel("Thời gian di chuyển (giờ):"); lblTravel.setFont(labelFont); lblTravel.setForeground(GuiTheme.NAVY);
+        pnlForm.add(lblTravel, gbc);
+        JSpinner spTravel = new JSpinner(new SpinnerNumberModel(12, 1, 48, 1)); styleField.apply(spTravel);
+        gbc.gridx = 1; gbc.weightx = 0.7;
+        pnlForm.add(spTravel, gbc);
+        
+        // 7. Thời gian nghỉ tại ga đến (giờ)
+        gbc.gridx = 0; gbc.gridy = 6; gbc.weightx = 0.3;
+        JLabel lblRest = new JLabel("Thời gian nghỉ tại ga đến (giờ):"); lblRest.setFont(labelFont); lblRest.setForeground(GuiTheme.NAVY);
+        pnlForm.add(lblRest, gbc);
+        JSpinner spRest = new JSpinner(new SpinnerNumberModel(5, 5, 24, 1)); styleField.apply(spRest);
+        gbc.gridx = 1; gbc.weightx = 0.7;
+        pnlForm.add(spRest, gbc);
+        
+        // 8. Thời gian nghỉ tại ga đi (giờ)
+        gbc.gridx = 0; gbc.gridy = 7; gbc.weightx = 0.3;
+        JLabel lblRestHome = new JLabel("Thời gian nghỉ tại ga đi (giờ):"); lblRestHome.setFont(labelFont); lblRestHome.setForeground(GuiTheme.NAVY);
+        pnlForm.add(lblRestHome, gbc);
+        JSpinner spRestHome = new JSpinner(new SpinnerNumberModel(5, 5, 24, 1)); styleField.apply(spRestHome);
+        gbc.gridx = 1; gbc.weightx = 0.7;
+        pnlForm.add(spRestHome, gbc);
+        
+        // Đăng ký bộ lắng nghe tự động cập nhật thời gian di chuyển trong Lập lịch định kỳ
+        java.awt.event.ActionListener autoUpdateTravel = ev -> {
+            String gaDi = (String) cboGaDiPopup.getSelectedItem();
+            String gaDen = (String) cboGaDenPopup.getSelectedItem();
+            if (gaDi != null && gaDen != null && !gaDi.equals(gaDen)) {
+                double hrs = tinhThoiGianChay(gaDi, gaDen);
+                spTravel.setValue((int) Math.round(hrs));
+            }
+        };
+        cboGaDiPopup.addActionListener(autoUpdateTravel);
+        cboGaDenPopup.addActionListener(autoUpdateTravel);
+        
+        // Chạy lần đầu để tính toán ngay
+        String gaDiInit = (String) cboGaDiPopup.getSelectedItem();
+        String gaDenInit = (String) cboGaDenPopup.getSelectedItem();
+        if (gaDiInit != null && gaDenInit != null && !gaDiInit.equals(gaDenInit)) {
+            double hrs = tinhThoiGianChay(gaDiInit, gaDenInit);
+            spTravel.setValue((int) Math.round(hrs));
+        }
+
+        // Buttons
+        JPanel pnlBtn = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 10));
+        pnlBtn.setBackground(new Color(245, 247, 250));
+        pnlBtn.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, new Color(220, 220, 220)));
+        
+        JButton btnSave = new JButton("Tự động sinh lịch") {
+            @Override protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(getModel().isPressed() ? new Color(27, 94, 32) : getModel().isRollover() ? new Color(60, 145, 65) : new Color(46, 125, 50));
+                g2.fillRoundRect(0,0,getWidth(),getHeight(),6,6);
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
+        btnSave.setPreferredSize(new Dimension(175, 36));
+        btnSave.setForeground(Color.WHITE);
+        btnSave.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 13));
+        btnSave.setContentAreaFilled(false); btnSave.setBorderPainted(false); btnSave.setFocusPainted(false);
+        btnSave.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        
+        JButton btnCancel = new JButton("Hủy") {
+            @Override protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(getModel().isPressed() ? new Color(200, 200, 200) : getModel().isRollover() ? new Color(220, 220, 220) : Color.WHITE);
+                g2.fillRoundRect(0,0,getWidth(),getHeight(),6,6);
+                g2.setColor(new Color(180, 180, 180));
+                g2.drawRoundRect(0,0,getWidth()-1,getHeight()-1,6,6);
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
+        btnCancel.setPreferredSize(new Dimension(90, 36));
+        btnCancel.setForeground(GuiTheme.TEXT);
+        btnCancel.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 13));
+        btnCancel.setContentAreaFilled(false); btnCancel.setBorderPainted(false); btnCancel.setFocusPainted(false);
+        btnCancel.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        
+        btnCancel.addActionListener(e -> dialog.dispose());
+        btnSave.addActionListener(e -> {
+            String name = (String) cboTauPopup.getSelectedItem();
+            String gaDi = (String) cboGaDiPopup.getSelectedItem();
+            String gaDen = (String) cboGaDenPopup.getSelectedItem();
+            if (name == null || gaDi == null || gaDen == null || gaDi.equals(gaDen)) {
+                JOptionPane.showMessageDialog(dialog, "Vui lòng chọn tàu, ga đi và ga đến hợp lệ (phải khác nhau)!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            
+            java.util.Date dateTu = dcTu.getDate();
+            java.util.Date dateDen = dcD.getDate();
+            if (dateTu == null || dateDen == null || dateTu.after(dateDen)) {
+                JOptionPane.showMessageDialog(dialog, "Ngày bắt đầu và kết thúc không hợp lệ!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            
+            int travelHrs = (int) spTravel.getValue();
+            int restHrs = (int) spRest.getValue(); // Nghỉ tại ga đến
+            int restHomeHrs = (int) spRestHome.getValue(); // Nghỉ tại ga đi (ga nhà)
+            java.util.Date timeDi = (java.util.Date) spDiTime.getValue();
+            java.util.Calendar calTime = java.util.Calendar.getInstance(); calTime.setTime(timeDi);
+            int hourDi = calTime.get(java.util.Calendar.HOUR_OF_DAY);
+            int minuteDi = calTime.get(java.util.Calendar.MINUTE);
+            
+            String maTau = "";
+            try (Connection c = Connect_DB.getInstance().getConnection();
+                 PreparedStatement ps = c.prepareStatement("SELECT maTau FROM Tau WHERE tenTau = ?")) {
+                ps.setString(1, name);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) maTau = rs.getString("maTau");
+                }
+            } catch (SQLException ex) { ex.printStackTrace(); }
+            
+            if (maTau.isEmpty()) {
+                JOptionPane.showMessageDialog(dialog, "Không tìm thấy thông tin tàu trong CSDL!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            
+            java.util.List<entity.ChuyenTau> listChuyen = new java.util.ArrayList<>();
+            java.util.List<entity.ChiTietChuyenTau> listChiTiet = new java.util.ArrayList<>();
+            
+            java.util.Calendar currentCursor = java.util.Calendar.getInstance();
+            currentCursor.setTime(dateTu);
+            currentCursor.set(java.util.Calendar.HOUR_OF_DAY, hourDi);
+            currentCursor.set(java.util.Calendar.MINUTE, minuteDi);
+            currentCursor.set(java.util.Calendar.SECOND, 0);
+            currentCursor.set(java.util.Calendar.MILLISECOND, 0);
+            
+            java.util.Calendar limitTime = java.util.Calendar.getInstance();
+            limitTime.setTime(dateDen);
+            limitTime.set(java.util.Calendar.HOUR_OF_DAY, 23);
+            limitTime.set(java.util.Calendar.MINUTE, 59);
+            limitTime.set(java.util.Calendar.SECOND, 59);
+            limitTime.set(java.util.Calendar.MILLISECOND, 999);
+            
+            entity.Tau tObj = new entity.Tau(); tObj.setMaTau(maTau);
+            entity.Ga gaDiObj = new entity.Ga(); gaDiObj.setMaGa(getMaGa(gaDi));
+            entity.Ga gaDenObj = new entity.Ga(); gaDenObj.setMaGa(getMaGa(gaDen));
+            
+            int tripCount = 0;
+            dao.ChuyenTauDAO ctDao = new dao.ChuyenTauDAO();
+            
+            while (true) {
+                java.util.Calendar calKhoiHanhOut = (java.util.Calendar) currentCursor.clone();
+                java.util.Calendar calDuKienOut = (java.util.Calendar) calKhoiHanhOut.clone();
+                calDuKienOut.add(java.util.Calendar.HOUR_OF_DAY, travelHrs);
+                
+                Timestamp tsKhoiHanhOut = new Timestamp(calKhoiHanhOut.getTimeInMillis());
+                Timestamp tsDuKienOut = new Timestamp(calDuKienOut.getTimeInMillis());
+                
+                java.util.Calendar calKhoiHanhRet = (java.util.Calendar) calDuKienOut.clone();
+                calKhoiHanhRet.add(java.util.Calendar.HOUR_OF_DAY, restHrs);
+                java.util.Calendar calDuKienRet = (java.util.Calendar) calKhoiHanhRet.clone();
+                calDuKienRet.add(java.util.Calendar.HOUR_OF_DAY, travelHrs);
+                
+                Timestamp tsKhoiHanhRet = new Timestamp(calKhoiHanhRet.getTimeInMillis());
+                Timestamp tsDuKienRet = new Timestamp(calDuKienRet.getTimeInMillis());
+                
+                // Nếu thời gian về ga của chuyến khứ hồi này vượt quá ngày kết thúc được chọn, dừng sinh
+                if (calDuKienRet.after(limitTime)) {
+                    break;
+                }
+                
+                // Kiểm tra xem tàu có bận chạy hay bảo trì trong các khoảng thời gian này không
+                boolean isOutConflict = ctDao.isTauBanTrongKhoang(maTau, tsKhoiHanhOut, new Timestamp(tsDuKienOut.getTime() + 5L * 3600 * 1000));
+                boolean isRetConflict = ctDao.isTauBanTrongKhoang(maTau, tsKhoiHanhRet, new Timestamp(tsDuKienRet.getTime() + 5L * 3600 * 1000));
+                
+                if (isOutConflict || isRetConflict) {
+                    // Nếu xung đột lịch, bỏ qua cả chu kỳ khứ hồi này và nhảy sang chu kỳ tuần hoàn kế tiếp
+                    currentCursor.add(java.util.Calendar.HOUR_OF_DAY, travelHrs + restHrs + travelHrs + restHomeHrs);
+                    continue;
+                }
+                
+                // 1. Tạo chuyến đi (Outbound)
+                String maChuyenOut = "CT" + (System.currentTimeMillis() + tripCount++);
+                if (maChuyenOut.length() > 20) maChuyenOut = maChuyenOut.substring(0, 20);
+                entity.ChuyenTau cOut = new entity.ChuyenTau(maChuyenOut, "Lịch tự động định kỳ", tObj, entity.TrangThaiChuyenTau.CHUAN_BI);
+                entity.ChiTietChuyenTau ctOut = new entity.ChiTietChuyenTau(
+                    tsKhoiHanhOut.toLocalDateTime(),
+                    tsDuKienOut.toLocalDateTime(),
+                    cOut, gaDiObj, gaDenObj
+                );
+                listChuyen.add(cOut);
+                listChiTiet.add(ctOut);
+                
+                // 2. Tạo chuyến về (Return)
+                String maChuyenRet = "CT" + (System.currentTimeMillis() + tripCount++);
+                if (maChuyenRet.length() > 20) maChuyenRet = maChuyenRet.substring(0, 20);
+                entity.ChuyenTau cRet = new entity.ChuyenTau(maChuyenRet, "Lịch tự động định kỳ", tObj, entity.TrangThaiChuyenTau.CHUAN_BI);
+                entity.ChiTietChuyenTau ctRet = new entity.ChiTietChuyenTau(
+                    tsKhoiHanhRet.toLocalDateTime(),
+                    tsDuKienRet.toLocalDateTime(),
+                    cRet, gaDenObj, gaDiObj
+                );
+                listChuyen.add(cRet);
+                listChiTiet.add(ctRet);
+                
+                // Cộng chu kỳ hoàn tất để chuyển sang chuyến tiếp theo: Đi + Nghỉ ga đến + Về + Nghỉ ga đi
+                currentCursor.add(java.util.Calendar.HOUR_OF_DAY, travelHrs + restHrs + travelHrs + restHomeHrs);
+            }
+            
+            if (listChuyen.isEmpty()) {
+                JOptionPane.showMessageDialog(dialog, "Không sinh được lịch trình nào do toàn bộ các ngày được chọn đều bị xung đột với lịch chạy sẵn có của tàu này!", "Cảnh báo", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            
+            boolean ok = ctDao.saveMultipleChuyenTau(listChuyen, listChiTiet);
+            if (ok) {
+                JOptionPane.showMessageDialog(dialog, "Tự động sinh thành công " + listChuyen.size() + " chuyến tàu định kỳ cho cả 2 chiều!", "Thành công", JOptionPane.INFORMATION_MESSAGE);
+                dialog.dispose();
+                loadDataToTable();
+                loadIdleTrains();
+            } else {
+                JOptionPane.showMessageDialog(dialog, "Lỗi xảy ra khi lưu lịch trình tự động vào CSDL!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+            }
+        });
+        
+        pnlBtn.add(btnCancel);
+        pnlBtn.add(btnSave);
+        
+        dialog.add(pnlForm, BorderLayout.CENTER);
+        dialog.add(pnlBtn, BorderLayout.SOUTH);
+        dialog.setVisible(true);
+    }
+
+    private int getGaIndex(String tenGa) {
+        if (tenGa == null) return 0;
+        switch (tenGa.trim()) {
+            case "Hà Nội": return 1;
+            case "Phủ Lý": return 2;
+            case "Nam Định": return 3;
+            case "Ninh Bình": return 4;
+            case "Thanh Hóa": return 5;
+            case "Vinh": return 6;
+            case "Đồng Hới": return 7;
+            case "Đông Hà": return 8;
+            case "Huế": return 9;
+            case "Đà Nẵng": return 10;
+            case "Tam Kỳ": return 11;
+            case "Quảng Ngãi": return 12;
+            case "Diêu Trì": return 13;
+            case "Tuy Hòa": return 14;
+            case "Nha Trang": return 15;
+            case "Tháp Chàm": return 16;
+            case "Bình Thuận": return 17;
+            case "Long Khánh": return 18;
+            case "Biên Hòa": return 19;
+            case "Dĩ An": return 20;
+            case "Sài Gòn": return 21;
+            default: return 22;
+        }
+    }
+
+    private double tinhThoiGianChay(String tenGaDi, String tenGaDen) {
+        int idxDi = getGaIndex(tenGaDi);
+        int idxDen = getGaIndex(tenGaDen);
+        return Math.abs(idxDen - idxDi) * 1.5;
+    }
+
+    private void capNhatThoiGianDenTuDong(JComboBox<String> cboDi, JComboBox<String> cboDen, 
+                                         JDateChooser dcDi, JSpinner spDi, 
+                                         JDateChooser dcDen, JSpinner spDen) {
+        String gaDi = (String) cboDi.getSelectedItem();
+        String gaDen = (String) cboDen.getSelectedItem();
+        if (gaDi == null || gaDen == null || gaDi.isEmpty() || gaDen.isEmpty() || gaDi.equals(gaDen)) {
+            return;
+        }
+        
+        java.util.Date dateDi = dcDi.getDate();
+        if (dateDi == null) return;
+        
+        java.util.Date timeDi = (java.util.Date) spDi.getValue();
+        java.util.Calendar cal = java.util.Calendar.getInstance();
+        cal.setTime(dateDi);
+        java.util.Calendar tCal = java.util.Calendar.getInstance();
+        tCal.setTime(timeDi);
+        cal.set(java.util.Calendar.HOUR_OF_DAY, tCal.get(java.util.Calendar.HOUR_OF_DAY));
+        cal.set(java.util.Calendar.MINUTE, tCal.get(java.util.Calendar.MINUTE));
+        cal.set(java.util.Calendar.SECOND, 0);
+        cal.set(java.util.Calendar.MILLISECOND, 0);
+        
+        double travelHrs = tinhThoiGianChay(gaDi, gaDen);
+        int hours = (int) travelHrs;
+        int minutes = (int) ((travelHrs - hours) * 60);
+        
+        cal.add(java.util.Calendar.HOUR_OF_DAY, hours);
+        cal.add(java.util.Calendar.MINUTE, minutes);
+        
+        dcDen.setDate(cal.getTime());
+        spDen.setValue(cal.getTime());
     }
 }

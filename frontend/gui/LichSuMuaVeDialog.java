@@ -17,6 +17,8 @@ import connect_DB.Connect_DB;
 
 public class LichSuMuaVeDialog extends JDialog {
     private String maKH;
+    private String maHoaDon;
+    private boolean isHoaDon = false;
     private static final DecimalFormat DF = new DecimalFormat("#,### VNĐ");
     private static final SimpleDateFormat SDF = new SimpleDateFormat("dd/MM/yyyy HH:mm");
     
@@ -24,9 +26,14 @@ public class LichSuMuaVeDialog extends JDialog {
     private JTable tblData;
     private JLabel lblSummary;
 
-    public LichSuMuaVeDialog(Frame parent, String maKH) {
-        super(parent, "Lịch sử mua vé", true);
-        this.maKH = maKH;
+    public LichSuMuaVeDialog(Frame parent, String id, boolean isHoaDon) {
+        super(parent, isHoaDon ? "Chi tiết hóa đơn" : "Lịch sử mua vé", true);
+        this.isHoaDon = isHoaDon;
+        if (isHoaDon) {
+            this.maHoaDon = id;
+        } else {
+            this.maKH = id;
+        }
         
         setSize(800, 500);
         setLocationRelativeTo(parent);
@@ -35,6 +42,10 @@ public class LichSuMuaVeDialog extends JDialog {
         
         buildUI();
         loadHistoryData();
+    }
+
+    public LichSuMuaVeDialog(Frame parent, String maKH) {
+        this(parent, maKH, false);
     }
 
     private void buildUI() {
@@ -47,30 +58,10 @@ public class LichSuMuaVeDialog extends JDialog {
         pnlHeader.setBackground(new Color(245, 248, 252));
         pnlHeader.setBorder(new EmptyBorder(12, 20, 12, 20));
         
-        JLabel lblTitle = new JLabel("Lịch sử mua vé");
+        JLabel lblTitle = new JLabel(isHoaDon ? "Chi tiết hóa đơn" : "Lịch sử mua vé");
         lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 18));
         lblTitle.setForeground(new Color(40, 60, 90));
         pnlHeader.add(lblTitle, BorderLayout.WEST);
-        
-        JLabel lblClose = new JLabel("✕");
-        lblClose.setFont(new Font("Segoe UI", Font.BOLD, 18));
-        lblClose.setForeground(Color.GRAY);
-        lblClose.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        lblClose.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                dispose();
-            }
-            @Override
-            public void mouseEntered(MouseEvent e) {
-                lblClose.setForeground(Color.RED);
-            }
-            @Override
-            public void mouseExited(MouseEvent e) {
-                lblClose.setForeground(Color.GRAY);
-            }
-        });
-        pnlHeader.add(lblClose, BorderLayout.EAST);
         root.add(pnlHeader, BorderLayout.NORTH);
         
         // Center Table
@@ -174,12 +165,12 @@ public class LichSuMuaVeDialog extends JDialog {
                      "JOIN Ga gDen ON dt.maGaDen = gDen.maGa " +
                      "JOIN Ghe g ON v.maGhe = g.maGhe " +
                      "JOIN ToaTau toa ON g.maToaTau = toa.maToaTau " +
-                     "WHERE hd.maKH = ? " +
+                     (isHoaDon ? "WHERE hd.maHoaDon = ? " : "WHERE hd.maKH = ? ") +
                      "ORDER BY dt.thoiGianKhoiHanh DESC";
                      
         try (Connection con = Connect_DB.getInstance().getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {
-            ps.setString(1, maKH);
+            ps.setString(1, isHoaDon ? maHoaDon : maKH);
             ResultSet rs = ps.executeQuery();
             
             int stt = 1;
@@ -216,7 +207,11 @@ public class LichSuMuaVeDialog extends JDialog {
                 }
             }
             
-            lblSummary.setText("Tổng số chuyến đã đi: " + totalTrips + " | Tổng số tiền đã đóng: " + DF.format(totalPaid));
+            if (isHoaDon) {
+                lblSummary.setText("Tổng số vé: " + (stt - 1) + " | Tổng tiền thanh toán: " + DF.format(totalPaid));
+            } else {
+                lblSummary.setText("Tổng số chuyến đã đi: " + totalTrips + " | Tổng số tiền đã đóng: " + DF.format(totalPaid));
+            }
             
         } catch (Exception e) {
             e.printStackTrace();

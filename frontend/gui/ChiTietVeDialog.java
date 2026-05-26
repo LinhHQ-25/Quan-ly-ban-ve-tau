@@ -82,7 +82,7 @@ public class ChiTietVeDialog extends JDialog {
         String maGhe = rs.getString("maGhe");
         String loaiGhe = rs.getString("loaiGhe");
         String tenToa = rs.getString("maToaTau");
-        String viTri = tenToa + " - Ghế " + maGhe + " (" + loaiGhe + ")";
+        String viTri = tenToa + " - Ghế " + maGhe + " (" + normalizeLoaiGhe(loaiGhe) + ")";
         
         Timestamp ngayLapHD = rs.getTimestamp("ngayLapHD");
         String strNgayLap = (ngayLapHD != null) ? SDF_L.format(ngayLapHD) : "";
@@ -92,9 +92,12 @@ public class ChiTietVeDialog extends JDialog {
         else hinhThucThanhToan = "Chuyển khoản";
         
         double giaVe = rs.getDouble("giaVe");
+        if (giaVe < 1000) {
+            giaVe *= 1000;
+        }
         
         boolean isChoThanhToan = "Chờ thanh toán".equals(trangThaiVe);
-        boolean isHopLe = !"Đã hủy".equals(trangThaiVe);
+        boolean isHopLe = !"Đã hủy".equals(trangThaiVe) && !"DA_HUY".equals(trangThaiVe);
         
         // Header
         JPanel pnlHeader = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 10));
@@ -200,6 +203,7 @@ public class ChiTietVeDialog extends JDialog {
         pnlFooter.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, new Color(220, 230, 240)));
         
         JButton btnInVe = createStyledButton("In lại vé", new Color(40, 110, 200), 100);
+        btnInVe.setEnabled("Đã thanh toán".equals(trangThaiVe));
         JButton btnThanhToan = createStyledButton("Thanh toán", new Color(40, 160, 60), 120);
         btnThanhToan.setEnabled(isChoThanhToan);
         JButton btnDong = createStyledButton("Đóng", new Color(90, 95, 100), 90);
@@ -551,5 +555,14 @@ public class ChiTietVeDialog extends JDialog {
             }
         }
         return cccd;
+    }
+
+    private String normalizeLoaiGhe(String loaiGhe) {
+        if (loaiGhe == null) return "";
+        String s = loaiGhe.toUpperCase().trim();
+        if (s.contains("CUNG")) return "Ghế cứng";
+        if (s.contains("MEM")) return "Ghế mềm";
+        if (s.contains("NAM") || s.contains("GIUONG")) return "Giường nằm";
+        return loaiGhe;
     }
 }

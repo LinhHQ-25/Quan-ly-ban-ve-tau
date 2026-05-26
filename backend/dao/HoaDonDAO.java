@@ -384,4 +384,25 @@ public class HoaDonDAO implements DAO<HoaDon, String> {
             return ps.executeUpdate() > 0;
         }
     }
+
+    /**
+     * Update hóa đơn trong một transaction đang mở (con truyền vào, không tự đóng).
+     * Dùng trong luuDuLieuVaoDatabase() của DatVeGUI3 để gộp hóa đơn lưu tạm.
+     */
+    public boolean updateTrongTransaction(Connection con, String maHD, String maNV, String maKH,
+                                          double tongTien, double tienNhan,
+                                          String phuongThucThanhToan) throws Exception {
+        String sql = "UPDATE HoaDon SET ngayLapHD = GETDATE(), maNV = ?, maKH = ?, tongTien = ?, tienNhan = ?, phuongThucThanhToan = ? "
+                   + "WHERE maHoaDon = ?";
+        try (PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setString(1, maNV);
+            if (maKH != null) ps.setString(2, maKH);
+            else              ps.setNull(2, java.sql.Types.VARCHAR);
+            ps.setDouble(3, tongTien);
+            ps.setDouble(4, tienNhan);
+            ps.setString(5, phuongThucThanhToan);
+            ps.setString(6, maHD);
+            return ps.executeUpdate() > 0;
+        }
+    }
 }

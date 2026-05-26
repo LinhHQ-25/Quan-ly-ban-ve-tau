@@ -101,6 +101,11 @@
 		private JLabel lblTienThua;
 		private double tongThanhToan = 0, tongGiaGoc = 0, tongGiamDoiTuong = 0, giamVoucher = 0;
 		private String maHD = taoMaHoaDon();
+		private boolean isHistoryCheckout = false;
+		public void setMaHD(String maHD) {
+			this.maHD = maHD;
+			this.isHistoryCheckout = true;
+		}
 		private java.util.function.Consumer<Integer> onQuayLai;
 		private Runnable onHuyVe;
 		private DefaultTableModel modelFromGUI2;
@@ -1359,11 +1364,94 @@
 		        // --- Lấy maKH qua DAO ---
 		        String maKH = null;
 		        String sdtKhach = modelFromGUI2.getRowCount() > 0
-		                          ? modelFromGUI2.getValueAt(0, 7).toString() : "";
-		        try {
-		            entity.KhachHang kh = new dao.KhachHangDAO().timTheoSDT(sdtKhach);
-		            if (kh != null) maKH = kh.getMaKH();
-		        } catch (Exception ignored) {}
+		                          ? modelFromGUI2.getValueAt(0, 7).toString().trim() : "";
+		        if (sdtKhach != null && !sdtKhach.trim().isEmpty()) {
+		            try {
+		                dao.KhachHangDAO khDAO = new dao.KhachHangDAO();
+		                entity.KhachHang kh = khDAO.timTheoSDT(sdtKhach);
+		                
+		                if (modelFromGUI2.getColumnCount() >= 12 && modelFromGUI2.getColumnName(9).contains("hidden")) {
+		                    String hoTen = modelFromGUI2.getValueAt(0, 5).toString().trim();
+		                    String cccd = modelFromGUI2.getValueAt(0, 6).toString().trim();
+		                    String email = modelFromGUI2.getValueAt(0, 9) != null ? modelFromGUI2.getValueAt(0, 9).toString().trim() : "";
+		                    String nsStr = modelFromGUI2.getValueAt(0, 10) != null ? modelFromGUI2.getValueAt(0, 10).toString().trim() : "";
+		                    
+		                    boolean laSV = false;
+		                    Object svObj = modelFromGUI2.getValueAt(0, 11);
+		                    if (svObj instanceof Boolean) {
+		                        laSV = (Boolean) svObj;
+		                    } else if (svObj != null) {
+		                        laSV = Boolean.parseBoolean(svObj.toString());
+		                    }
+		                    
+		                    LocalDate nsLocal = null;
+		                    if (!nsStr.isEmpty()) {
+		                        try {
+		                            if (nsStr.contains("/")) {
+		                                String[] p = nsStr.split("/");
+		                                nsLocal = LocalDate.of(Integer.parseInt(p[2]), Integer.parseInt(p[1]), Integer.parseInt(p[0]));
+		                            } else {
+		                                nsLocal = LocalDate.of(Integer.parseInt(nsStr), 1, 1);
+		                            }
+		                        } catch (Exception ignored) {}
+		                    }
+		                    
+		                    if (kh != null) {
+		                        maKH = kh.getMaKH();
+		                        entity.KhachHang khUpdate = new entity.KhachHang(maKH, hoTen, cccd, sdtKhach, email, nsLocal, laSV);
+		                        khDAO.update(khUpdate);
+		                    } else {
+		                        maKH = util.MaTuDong.taoMaKhachHang(con);
+		                        entity.KhachHang khNew = new entity.KhachHang(maKH, hoTen, cccd, sdtKhach, email, nsLocal, laSV);
+		                        khDAO.insert(khNew);
+		                    }
+		                } else {
+		                    if (kh != null) {
+		                        maKH = kh.getMaKH();
+		                    } else {
+		                        // Create new customer profile using the visible columns in modelFromGUI2
+		                        String hoTen = modelFromGUI2.getValueAt(0, 5).toString().trim();
+		                        String cccd = modelFromGUI2.getValueAt(0, 6).toString().trim();
+		                        maKH = util.MaTuDong.taoMaKhachHang(con);
+		                        entity.KhachHang khNew = new entity.KhachHang(maKH, hoTen, cccd, sdtKhach, "", null, false);
+		                        khDAO.insert(khNew);
+		                    }
+		                }
+		            } catch (Exception e) {
+		                e.printStackTrace();
+		            }
+		        }
+
+		        // --- Kiểm tra xem khách hàng có hóa đơn LUU_TAM nào đang hoạt động không ---
+		        String existingMaHD = null;
+		        double oldTongTien = 0.0;
+		        if (maKH != null) {
+		            try (java.sql.PreparedStatement psCheck = con.prepareStatement(
+		                    "SELECT maHoaDon, tongTien FROM HoaDon WHERE maKH = ? AND phuongThucThanhToan = 'LUU_TAM'")) {
+		                psCheck.setString(1, maKH);
+		                try (java.sql.ResultSet rsCheck = psCheck.executeQuery()) {
+		                    if (rsCheck.next()) {
+		                        existingMaHD = rsCheck.getString("maHoaDon");
+		                        oldTongTien = rsCheck.getDouble("tongTien");
+		                    }
+		                }
+		            } catch (Exception ignored) {}
+		        }
+
+		        boolean isMerging = !isHistoryCheckout && (existingMaHD != null);
+
+		        if (isMerging) {
+		            maHD = existingMaHD;
+		        } else {
+		            // --- Clean up existing invoice if it already exists (to support checking out LUU_TAM invoices) ---
+		            try (java.sql.PreparedStatement psDelVe = con.prepareStatement("DELETE FROM Ve WHERE maHoaDon = ?");
+		                 java.sql.PreparedStatement psDelHD = con.prepareStatement("DELETE FROM HoaDon WHERE maHoaDon = ?")) {
+		                psDelVe.setString(1, maHD);
+		                psDelVe.executeUpdate();
+		                psDelHD.setString(1, maHD);
+		                psDelHD.executeUpdate();
+		            }
+		        }
 
 		        // --- Tính tiền nhận ---
 		        double tienKhach = hinhThucThanhToan.contains("Chuyển khoản")
@@ -1376,11 +1464,17 @@
 		                  : hinhThucThanhToan.equals("Lưu tạm")    ? "LUU_TAM"
 		                  : "CHUYEN_KHOAN";
 
-		        // --- Insert HoaDon qua DAO ---
-		        boolean hdOk = new dao.HoaDonDAO()
-		                .insertTrongTransaction(con, maHD, maNV, maKH,
-		                                        tongThanhToan, tienKhach, pt);
-		        if (!hdOk) throw new Exception("Insert HoaDon thất bại");
+		        // --- Insert/Update HoaDon qua DAO ---
+		        boolean hdOk = false;
+		        if (isMerging) {
+		            hdOk = new dao.HoaDonDAO().updateTrongTransaction(con, maHD, maNV, maKH,
+		                                                              oldTongTien + tongThanhToan,
+		                                                              oldTongTien + tienKhach, pt);
+		        } else {
+		            hdOk = new dao.HoaDonDAO().insertTrongTransaction(con, maHD, maNV, maKH,
+		                                                              tongThanhToan, tienKhach, pt);
+		        }
+		        if (!hdOk) throw new Exception("Insert/Update HoaDon thất bại");
 
 		        // --- Insert danh sách Ve qua DAO ---
 		        String trangThai = hinhThucThanhToan.equals("Lưu tạm")
@@ -1393,6 +1487,15 @@
 		                .insertBatchTrongTransaction(con, modelChiTiet, modelFromGUI2,
 		                                             maHD, maKH, trangThai, isKhuHoi);
 		        if (!veOk) throw new Exception("Insert Ve thất bại");
+
+		        // --- Nếu đang gộp và thanh toán luôn, cập nhật toàn bộ vé trong hóa đơn lưu tạm này thành Đã thanh toán ---
+		        if (isMerging && !hinhThucThanhToan.equals("Lưu tạm")) {
+		            try (java.sql.PreparedStatement psUpdateAllVe = con.prepareStatement(
+		                    "UPDATE Ve SET trangThaiVe = N'Đã thanh toán' WHERE maHoaDon = ?")) {
+		                psUpdateAllVe.setString(1, maHD);
+		                psUpdateAllVe.executeUpdate();
+		            }
+		        }
 
 		        con.commit();
 		        return true;

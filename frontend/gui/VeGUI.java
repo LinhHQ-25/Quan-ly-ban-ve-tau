@@ -317,6 +317,39 @@ final class VeGUI extends JPanel {
                 }
             }
         });
+
+        tblData.getSelectionModel().addListSelectionListener(event -> {
+            if (!event.getValueIsAdjusting()) {
+                int row = tblData.getSelectedRow();
+                if (row != -1) {
+                    txtMaVe.setText((String) tblModel.getValueAt(row, 1));
+                    txtHoTen.setText((String) tblModel.getValueAt(row, 2));
+                    cboLoaiVe.setSelectedItem((String) tblModel.getValueAt(row, 3));
+                    
+                    String tuyenDuong = (String) tblModel.getValueAt(row, 6);
+                    if (tuyenDuong != null && tuyenDuong.contains(" - ")) {
+                        String[] parts = tuyenDuong.split(" - ");
+                        if (parts.length >= 2) {
+                            txtGaDi.setText(parts[0].trim());
+                            txtGaDen.setText(parts[1].trim());
+                        }
+                    } else {
+                        txtGaDi.setText("");
+                        txtGaDen.setText("");
+                    }
+                    
+                    txtCccdViTri.setText((String) tblModel.getValueAt(row, 7));
+                    cboTrangThai.setSelectedItem((String) tblModel.getValueAt(row, 9));
+                    try {
+                        String ngayMuaStr = (String) tblModel.getValueAt(row, 8);
+                        if (ngayMuaStr != null && !ngayMuaStr.isEmpty()) {
+                            java.util.Date date = new SimpleDateFormat("dd/MM/yyyy HH:mm").parse(ngayMuaStr);
+                            dcNgayMua.setDate(date);
+                        }
+                    } catch (Exception ignored) {}
+                }
+            }
+        });
         
         SwingUtilities.invokeLater(() -> {
             if (tblData.getColumnModel().getColumnCount() >= 10) {
@@ -385,9 +418,13 @@ final class VeGUI extends JPanel {
                 sql += " AND v.trangThaiVe = ?";
             }
             
-            String loaiVe = (String) cboLoaiVe.getSelectedItem();
-            if (loaiVe != null && !loaiVe.isEmpty() && !loaiVe.equals("Tất cả")) {
-                sql += " AND v.loaiVe = ?";
+            String loaiVeSelected = (String) cboLoaiVe.getSelectedItem();
+            if (loaiVeSelected != null && !loaiVeSelected.isEmpty() && !loaiVeSelected.equals("Tất cả")) {
+                if ("Một chiều".equals(loaiVeSelected)) {
+                    sql += " AND (v.loaiVe = 'MOT_CHIEU' OR v.loaiVe = N'Một chiều' OR v.loaiVe = 'mot chieu' OR v.loaiVe = 'mot_chieu')";
+                } else if ("Khứ hồi".equals(loaiVeSelected)) {
+                    sql += " AND (v.loaiVe = 'KHU_HOI' OR v.loaiVe = N'Khứ hồi' OR v.loaiVe = 'khu hoi' OR v.loaiVe = 'khu_hoi')";
+                }
             }
 
             if (dcNgayMua.getDate() != null) {
@@ -406,9 +443,6 @@ final class VeGUI extends JPanel {
             if (trangThai != null && !trangThai.isEmpty() && !trangThai.equals("Tất cả")) {
                 stmt.setString(idx++, trangThai);
             }
-            if (loaiVe != null && !loaiVe.isEmpty() && !loaiVe.equals("Tất cả")) {
-                stmt.setString(idx++, loaiVe);
-            }
             if (dcNgayMua.getDate() != null) {
                 stmt.setDate(idx++, new java.sql.Date(dcNgayMua.getDate().getTime()));
             }
@@ -419,9 +453,32 @@ final class VeGUI extends JPanel {
             while (rs.next()) {
                 String khoiHanh = rs.getTimestamp("thoiGianKhoiHanh") != null ? sdf.format(rs.getTimestamp("thoiGianKhoiHanh")) : "";
                 String ngayMua = rs.getTimestamp("ngayLapHD") != null ? sdf.format(rs.getTimestamp("ngayLapHD")) : "";
+                
+                String loaiVeRaw = rs.getString("loaiVe");
+                String loaiVeHienThi = "Một chiều";
+                if (loaiVeRaw != null) {
+                    String clean = loaiVeRaw.trim().toLowerCase();
+                    if (clean.contains("khu") || clean.contains("hồi")) {
+                        loaiVeHienThi = "Khứ hồi";
+                    }
+                }
+                
+                String loaiGheRaw = rs.getString("loaiGhe");
+                String loaiGheHienThi = loaiGheRaw;
+                if (loaiGheRaw != null) {
+                    String clean = loaiGheRaw.trim().toLowerCase();
+                    if (clean.contains("cung") || clean.contains("cứng")) {
+                        loaiGheHienThi = "Ghế cứng";
+                    } else if (clean.contains("mem") || clean.contains("mềm")) {
+                        loaiGheHienThi = "Ghế mềm";
+                    } else if (clean.contains("nam") || clean.contains("nằm")) {
+                        loaiGheHienThi = "Giường nằm";
+                    }
+                }
+                                        
                 tblModel.addRow(new Object[] {
-                    stt++, rs.getString("maVe"), rs.getString("hoTenKH"), rs.getString("loaiVe"),
-                    rs.getString("loaiGhe"), khoiHanh, rs.getString("gaDi") + " - " + rs.getString("gaDen"),
+                    stt++, rs.getString("maVe"), rs.getString("hoTenKH"), loaiVeHienThi,
+                    loaiGheHienThi, khoiHanh, rs.getString("gaDi") + " - " + rs.getString("gaDen"),
                     rs.getString("maGhe"), ngayMua, rs.getString("trangThaiVe")
                 });
             }

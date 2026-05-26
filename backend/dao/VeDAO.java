@@ -125,13 +125,16 @@ public class VeDAO {
     }
 
     public static void capNhatTrangThaiVeHetHan() {
-        String sqlRename = "UPDATE Ve SET trangThaiVe = N'Chờ thanh toán' WHERE trangThaiVe = N'Chưa thanh toán'";
-        String sql = "UPDATE Ve SET trangThaiVe = N'Đã hủy' WHERE trangThaiVe = N'Chờ thanh toán' AND DATEDIFF(minute, ngayMua, GETDATE()) >= 30";
+        String sqlRename = "UPDATE Ve SET trangThaiVe = N'Chờ thanh toán' WHERE trangThaiVe = N'Chữa thanh toán'";
+        String sqlDelVe = "DELETE FROM Ve WHERE maHoaDon IN (SELECT maHoaDon FROM HoaDon WHERE phuongThucThanhToan = 'LUU_TAM' AND DATEDIFF(minute, ngayLapHD, GETDATE()) >= 30)";
+        String sqlDelHD = "DELETE FROM HoaDon WHERE phuongThucThanhToan = 'LUU_TAM' AND DATEDIFF(minute, ngayLapHD, GETDATE()) >= 30";
         try (Connection con = Connect_DB.getInstance().getConnection();
              PreparedStatement psRename = con.prepareStatement(sqlRename);
-             PreparedStatement ps = con.prepareStatement(sql)) {
+             PreparedStatement psDelVe = con.prepareStatement(sqlDelVe);
+             PreparedStatement psDelHD = con.prepareStatement(sqlDelHD)) {
             psRename.executeUpdate();
-            ps.executeUpdate();
+            psDelVe.executeUpdate();
+            psDelHD.executeUpdate();
         } catch (Exception e) {
             e.printStackTrace();
         }
