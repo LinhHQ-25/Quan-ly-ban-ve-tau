@@ -1,5 +1,7 @@
 package gui;
 
+import java.awt.Dialog;
+import javax.swing.KeyStroke;
 import javax.swing.*;
 import javax.swing.border.*;
 import java.awt.*;
@@ -304,7 +306,7 @@ public class TraVeGUI extends JPanel {
 
         String maDon;
         try (Connection conn = connect_DB.Connect_DB.getInstance().getConnection()) {
-            maDon = util.MaTuDong.taoMaDon(conn, LocalDate.now());
+            maDon = util.MaTuDong.taoMaDon(conn, java.time.LocalDate.now());
         } catch (Exception e) { return; }
 
         String currentNV = service.AuthService.getCurrentMaNV();
@@ -325,11 +327,15 @@ public class TraVeGUI extends JPanel {
         String sqlUpdateVe  = "UPDATE Ve SET trangThaiVe = N'Đã hủy', maHoaDon = ? WHERE maVe = ?";
         String sqlInsertDon = "INSERT INTO DonDoiTraVe (maDon, tienBu, ngayLap, tienHoanTra, loaiDon, maVe) VALUES (?, ?, GETDATE(), ?, 'DON_TRA', ?)";
 
+        final String maDonFinal = maDon;
+        final long tienHoanFinal = tienHoanKhach;
+        final long phiFinal = phiHuyVe;
+
         try (Connection conn = connect_DB.Connect_DB.getInstance().getConnection()) {
             conn.setAutoCommit(false);
-            try (PreparedStatement psHD  = conn.prepareStatement(sqlInsertHD);
-                 PreparedStatement psVe  = conn.prepareStatement(sqlUpdateVe);
-                 PreparedStatement psDon = conn.prepareStatement(sqlInsertDon)) {
+            try (java.sql.PreparedStatement psHD  = conn.prepareStatement(sqlInsertHD);
+                 java.sql.PreparedStatement psVe  = conn.prepareStatement(sqlUpdateVe);
+                 java.sql.PreparedStatement psDon = conn.prepareStatement(sqlInsertDon)) {
 
                 psHD.setString(1, maDon);
                 psHD.setString(2, currentNV);
@@ -352,13 +358,105 @@ public class TraVeGUI extends JPanel {
 
                 xuatHoaDonPDF(maDon, tienHoanKhach, phiHuyVe);
 
-                JOptionPane.showMessageDialog(this,
-                        "<html><div style='padding:6px'><b>Trả vé thành công!</b><br><br>" +
-                                "Mã đơn: <b>" + maDon + "</b><br>" +
-                                "Phí giữ lại: <b>" + fmtTien(phiHuyVe) + "</b><br>" +
-                                "Hoàn trả khách: <b>" + fmtTien(tienHoanKhach) + "</b></div></html>",
-                        "Hoàn tất", JOptionPane.PLAIN_MESSAGE);
-                appFrame.showCard("doi-tra");
+                // ── Popup thành công (giống DatVeGUI3) ──────────────────────────
+                java.awt.Window ancestor = javax.swing.SwingUtilities.getWindowAncestor(this);
+                javax.swing.JDialog dialog = new javax.swing.JDialog(ancestor, "",
+                        java.awt.Dialog.ModalityType.APPLICATION_MODAL);
+                dialog.setUndecorated(true);
+
+                final float[] alpha = { 0f };
+                final int[] frame   = { 0 };
+                final int TOTAL_FRAMES = 30;
+
+                javax.swing.JPanel glass = new javax.swing.JPanel(new java.awt.GridBagLayout()) {
+                    @Override protected void paintComponent(java.awt.Graphics g) {
+                        java.awt.Graphics2D g2 = (java.awt.Graphics2D) g.create();
+                        g2.setComposite(java.awt.AlphaComposite.getInstance(
+                                java.awt.AlphaComposite.SRC_OVER, 0.25f));
+                        g2.setColor(new java.awt.Color(10, 20, 50));
+                        g2.fillRect(0, 0, getWidth(), getHeight());
+                        g2.dispose();
+                    }
+                };
+                glass.setOpaque(false);
+
+                javax.swing.JPanel box = new javax.swing.JPanel(
+                        new java.awt.BorderLayout(0, 12)) {
+                    @Override protected void paintComponent(java.awt.Graphics g) {
+                        java.awt.Graphics2D g2 = (java.awt.Graphics2D) g.create();
+                        g2.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING,
+                                java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
+                        g2.setComposite(java.awt.AlphaComposite.getInstance(
+                                java.awt.AlphaComposite.SRC_OVER, alpha[0]));
+                        g2.setColor(java.awt.Color.WHITE);
+                        g2.fillRoundRect(0, 0, getWidth(), getHeight(), 20, 20);
+
+                        int cx = getWidth() / 2, cy = 70, r = 38;
+                        float progress = Math.min(1f, (float) frame[0] / TOTAL_FRAMES);
+                        g2.setColor(new java.awt.Color(220, 245, 220));
+                        g2.fillOval(cx - r, cy - r, r * 2, r * 2);
+                        g2.setColor(new java.awt.Color(34, 170, 70));
+                        g2.setStroke(new java.awt.BasicStroke(3f));
+                        g2.drawOval(cx - r, cy - r, r * 2, r * 2);
+                        if (progress > 0) {
+                            g2.setStroke(new java.awt.BasicStroke(4f,
+                                    java.awt.BasicStroke.CAP_ROUND,
+                                    java.awt.BasicStroke.JOIN_ROUND));
+                            int x1 = cx - 18, y1 = cy,
+                                    xMid = cx - 6, yMid = cy + 14,
+                                    x2 = cx + 20, y2 = cy - 16;
+                            float p1 = Math.min(1f, progress / 0.5f);
+                            g2.drawLine(x1, y1,
+                                    (int)(x1 + (xMid - x1) * p1),
+                                    (int)(y1 + (yMid - y1) * p1));
+                            if (progress > 0.5f) {
+                                float p2 = (progress - 0.5f) / 0.5f;
+                                g2.drawLine(xMid, yMid,
+                                        (int)(xMid + (x2 - xMid) * p2),
+                                        (int)(yMid + (y2 - yMid) * p2));
+                            }
+                        }
+                        g2.dispose();
+                    }
+                };
+                box.setOpaque(false);
+                box.setPreferredSize(new java.awt.Dimension(320, 240));
+                box.setBorder(new javax.swing.border.EmptyBorder(140, 24, 24, 24));
+
+                javax.swing.JLabel lblMsg = new javax.swing.JLabel(
+                        "<html><div style='text-align:center;'>" +
+                                "<b style='font-size:15px;color:#1c396e;'>Trả vé thành công!</b><br>" +
+                                "<span style='font-size:13px;color:#888;'>Đang xuất hóa đơn hoàn tiền...</span>" +
+                                "</div></html>",
+                        javax.swing.SwingConstants.CENTER);
+                box.add(lblMsg, java.awt.BorderLayout.CENTER);
+                glass.add(box);
+
+                dialog.setContentPane(glass);
+                dialog.setSize(ancestor.getSize());
+                dialog.setLocation(ancestor.getLocation());
+
+                javax.swing.Timer animTimer = new javax.swing.Timer(16, null);
+                animTimer.addActionListener(ev -> {
+                    frame[0]++;
+                    alpha[0] = Math.min(1f, frame[0] / 20f);
+                    glass.repaint();
+                    box.repaint();
+                    if (frame[0] >= TOTAL_FRAMES) animTimer.stop();
+                });
+                animTimer.start();
+
+                javax.swing.Timer closeTimer = new javax.swing.Timer(2500, ev -> {
+                    animTimer.stop();
+                    dialog.dispose();
+                    appFrame.showCard("doi-tra");
+                });
+                closeTimer.setRepeats(false);
+                closeTimer.start();
+
+                dialog.setVisible(true);
+                // ────────────────────────────────────────────────────────────────
+
             } catch (Exception ex) { conn.rollback(); throw ex; }
         } catch (Exception e) {
             e.printStackTrace();
@@ -443,14 +541,14 @@ public class TraVeGUI extends JPanel {
 
     private void xuatHoaDonPDF(String maDon, long tienHoanKhach, long phiHuyVe) {
         try (Connection conn = connect_DB.Connect_DB.getConnection()) {
-            String sqlHD = "SELECT h.phuongThucThanhToan, k.hoTenKH, k.sdt FROM HoaDon h LEFT JOIN KhachHang k ON h.maKH = k.maKH WHERE h.maHoaDon = ?";
-            String tenKH = "Khách vãng lai", sdtKH = "", hinhThuc = "Tiền mặt";
+            String sqlHD = "SELECT k.hoTenKH, k.sdt FROM HoaDon h LEFT JOIN KhachHang k ON h.maKH = k.maKH WHERE h.maHoaDon = ?";
+            String tenKH = "Khách vãng lai", sdtKH = "";
             try (PreparedStatement ps = conn.prepareStatement(sqlHD)) {
                 ps.setString(1, maDon);
                 try (java.sql.ResultSet rs = ps.executeQuery()) {
                     if (rs.next()) {
                         tenKH = rs.getString("hoTenKH") != null ? rs.getString("hoTenKH") : "Khách vãng lai";
-                        sdtKH = rs.getString("sdt") != null ? rs.getString("sdt") : "";
+                        sdtKH = rs.getString("sdt")     != null ? rs.getString("sdt")     : "";
                     }
                 }
             }
@@ -463,12 +561,18 @@ public class TraVeGUI extends JPanel {
             com.itextpdf.text.pdf.PdfWriter.getInstance(document, new java.io.FileOutputStream(pdfFile));
             document.open();
 
-            com.itextpdf.text.pdf.BaseFont bf = com.itextpdf.text.pdf.BaseFont.createFont("c:/windows/fonts/arial.ttf", com.itextpdf.text.pdf.BaseFont.IDENTITY_H, com.itextpdf.text.pdf.BaseFont.EMBEDDED);
-            com.itextpdf.text.Font fontTitle = new com.itextpdf.text.Font(bf, 16, com.itextpdf.text.Font.BOLD);
-            com.itextpdf.text.Font fontBold = new com.itextpdf.text.Font(bf, 11, com.itextpdf.text.Font.BOLD);
+            com.itextpdf.text.pdf.BaseFont bf = com.itextpdf.text.pdf.BaseFont.createFont(
+                    "c:/windows/fonts/arial.ttf",
+                    com.itextpdf.text.pdf.BaseFont.IDENTITY_H,
+                    com.itextpdf.text.pdf.BaseFont.EMBEDDED);
+            com.itextpdf.text.Font fontTitle  = new com.itextpdf.text.Font(bf, 16, com.itextpdf.text.Font.BOLD);
+            com.itextpdf.text.Font fontBold   = new com.itextpdf.text.Font(bf, 11, com.itextpdf.text.Font.BOLD);
             com.itextpdf.text.Font fontNormal = new com.itextpdf.text.Font(bf, 11, com.itextpdf.text.Font.NORMAL);
             com.itextpdf.text.Font fontItalic = new com.itextpdf.text.Font(bf, 11, com.itextpdf.text.Font.ITALIC);
+            com.itextpdf.text.Font fontVAT    = new com.itextpdf.text.Font(bf, 13, com.itextpdf.text.Font.ITALIC,
+                    com.itextpdf.text.BaseColor.DARK_GRAY);
 
+            // ── Tiêu đề ──────────────────────────────────────────────────────
             com.itextpdf.text.Paragraph title = new com.itextpdf.text.Paragraph("HÓA ĐƠN GIÁ TRỊ GIA TĂNG", fontTitle);
             title.setAlignment(com.itextpdf.text.Element.ALIGN_CENTER);
             document.add(title);
@@ -480,22 +584,38 @@ public class TraVeGUI extends JPanel {
             document.add(new com.itextpdf.text.Paragraph(" ", fontNormal));
             document.add(new com.itextpdf.text.Paragraph(" ", fontNormal));
 
+            // ── Thông tin đơn vị ─────────────────────────────────────────────
             document.add(new com.itextpdf.text.Paragraph("Đơn vị bán hàng: CÔNG TY CỔ PHẦN VẬN TẢI ĐƯỜNG SẮT", fontBold));
             document.add(new com.itextpdf.text.Paragraph("Mã số thuế: 0100106264", fontNormal));
             document.add(new com.itextpdf.text.Paragraph("Địa chỉ: 113 Nguyễn Đình Thụ, Tuy Phước, Gia Lai", fontNormal));
-            document.add(new com.itextpdf.text.Paragraph("Nhân viên thực hiện trả vé: " + (service.AuthService.getCurrentHoTen() != null ? service.AuthService.getCurrentHoTen() : "N/A"), fontItalic));
+            document.add(new com.itextpdf.text.Paragraph(
+                    "Họ tên người bán: " + (service.AuthService.getCurrentHoTen() != null ? service.AuthService.getCurrentHoTen() : "N/A") +
+                            "          Mã NV: " + (service.AuthService.getCurrentMaNV() != null ? service.AuthService.getCurrentMaNV() : "N/A"),
+                    fontNormal));
             document.add(new com.itextpdf.text.Paragraph(" ", fontNormal));
 
+            // ── Thông tin khách ───────────────────────────────────────────────
             document.add(new com.itextpdf.text.Paragraph("Họ tên người mua hàng: " + tenKH, fontBold));
             document.add(new com.itextpdf.text.Paragraph("Điện thoại: " + sdtKH, fontNormal));
-            document.add(new com.itextpdf.text.Paragraph("Hình thức thanh toán: " + hinhThuc + "          Mã HĐ: " + maDon, fontNormal));
+            document.add(new com.itextpdf.text.Paragraph("Hình thức: Hoàn tiền          Mã HĐ: " + maDon, fontNormal));
             document.add(new com.itextpdf.text.Paragraph(" ", fontNormal));
 
+            // ── Dữ liệu vé ───────────────────────────────────────────────────
+            java.text.DecimalFormat df = new java.text.DecimalFormat("#,###");
+            long tongTienVe = 0;
+            try { tongTienVe = Long.parseLong(s_data[8].replaceAll("[^0-9]", "")); } catch (Exception ignored) {}
+            String loaiVe        = s_data.length > 3 ? s_data[3] : "";
+            String loaiVeHienThi = "MOT_CHIEU".equals(loaiVe) ? "Một chiều" : "KHU_HOI".equals(loaiVe) ? "Khứ hồi" : loaiVe;
+            String chieu         = s_data.length > 4 ? s_data[4] : "";
+
+            // ── Bảng ─────────────────────────────────────────────────────────
             com.itextpdf.text.pdf.PdfPTable table = new com.itextpdf.text.pdf.PdfPTable(10);
             table.setWidthPercentage(100);
             table.setWidths(new float[]{1f, 3.5f, 2f, 2.3f, 1.8f, 2f, 1f, 1f, 2f, 2.2f});
-            for (String h : new String[]{"STT","Tên dịch vụ","Loại vé","Mã vé","Chiều","Giá vé","ĐVT","SL","Phụ phí","Thành tiền"}) {
-                com.itextpdf.text.pdf.PdfPCell cell = new com.itextpdf.text.pdf.PdfPCell(new com.itextpdf.text.Phrase(h, fontBold));
+
+            for (String h : new String[]{"STT","Tên dịch vụ","Loại vé","Mã vé","Chiều","Giá vé","ĐVT","SL","Phí trả","Hoàn lại"}) {
+                com.itextpdf.text.pdf.PdfPCell cell = new com.itextpdf.text.pdf.PdfPCell(
+                        new com.itextpdf.text.Phrase(h, fontBold));
                 cell.setHorizontalAlignment(com.itextpdf.text.Element.ALIGN_CENTER);
                 cell.setVerticalAlignment(com.itextpdf.text.Element.ALIGN_MIDDLE);
                 cell.setPaddingBottom(6);
@@ -503,57 +623,66 @@ public class TraVeGUI extends JPanel {
                 table.addCell(cell);
             }
 
-            java.text.DecimalFormat df = new java.text.DecimalFormat("#,###");
-            long tongTienVe = 0;
-            try { tongTienVe = Long.parseLong(s_data[8].replaceAll("[^0-9]", "")); } catch(Exception ignored){}
-
-            String loaiVe = s_data.length > 3 ? s_data[3] : "";
-            String loaiVeHienThi = "MOT_CHIEU".equals(loaiVe) ? "Một chiều" : "KHU_HOI".equals(loaiVe) ? "Khứ hồi" : loaiVe;
-            String chieu = s_data.length > 4 ? s_data[4] : "";
-
-            pdfAddCell(table, fontNormal, "1", com.itextpdf.text.Element.ALIGN_CENTER);
-            pdfAddCell(table, fontNormal, "Hủy vé HK trực tiếp", com.itextpdf.text.Element.ALIGN_LEFT);
-            pdfAddCell(table, fontNormal, loaiVeHienThi, com.itextpdf.text.Element.ALIGN_CENTER);
-            pdfAddCell(table, fontNormal, s_maVe, com.itextpdf.text.Element.ALIGN_CENTER);
-            pdfAddCell(table, fontNormal, chieu, com.itextpdf.text.Element.ALIGN_CENTER);
-            pdfAddCell(table, fontNormal, df.format(tongTienVe), com.itextpdf.text.Element.ALIGN_RIGHT);
-            pdfAddCell(table, fontNormal, "Vé", com.itextpdf.text.Element.ALIGN_CENTER);
-            pdfAddCell(table, fontNormal, "1", com.itextpdf.text.Element.ALIGN_CENTER);
-            pdfAddCell(table, fontNormal, df.format(phiHuyVe), com.itextpdf.text.Element.ALIGN_RIGHT);
+            pdfAddCell(table, fontNormal, "1",                      com.itextpdf.text.Element.ALIGN_CENTER);
+            pdfAddCell(table, fontNormal, "Trả vé trực tiếp",       com.itextpdf.text.Element.ALIGN_LEFT);
+            pdfAddCell(table, fontNormal, loaiVeHienThi,            com.itextpdf.text.Element.ALIGN_CENTER);
+            pdfAddCell(table, fontNormal, s_maVe,                   com.itextpdf.text.Element.ALIGN_CENTER);
+            pdfAddCell(table, fontNormal, chieu,                    com.itextpdf.text.Element.ALIGN_CENTER);
+            pdfAddCell(table, fontNormal, df.format(tongTienVe),    com.itextpdf.text.Element.ALIGN_RIGHT);
+            pdfAddCell(table, fontNormal, "Vé",                     com.itextpdf.text.Element.ALIGN_CENTER);
+            pdfAddCell(table, fontNormal, "1",                      com.itextpdf.text.Element.ALIGN_CENTER);
+            pdfAddCell(table, fontNormal, df.format(phiHuyVe),      com.itextpdf.text.Element.ALIGN_RIGHT);
             pdfAddCell(table, fontNormal, df.format(tienHoanKhach), com.itextpdf.text.Element.ALIGN_RIGHT);
 
             document.add(table);
             document.add(new com.itextpdf.text.Paragraph(" ", fontNormal));
 
-            com.itextpdf.text.Paragraph pGiaVe = new com.itextpdf.text.Paragraph("Tổng tiền: " + df.format(tongTienVe) + " VNĐ", fontBold);
+            // ── Tổng kết ─────────────────────────────────────────────────────
+            com.itextpdf.text.Paragraph pGiaVe = new com.itextpdf.text.Paragraph(
+                    "Tổng tiền vé: " + df.format(tongTienVe) + " VNĐ", fontBold);
             pGiaVe.setAlignment(com.itextpdf.text.Element.ALIGN_RIGHT);
             document.add(pGiaVe);
 
-            com.itextpdf.text.Paragraph pPhi = new com.itextpdf.text.Paragraph("Tổng phụ phí (phí trả vé): " + df.format(phiHuyVe) + " VNĐ", fontBold);
+            com.itextpdf.text.Paragraph pPhi = new com.itextpdf.text.Paragraph(
+                    "Phí trả vé: " + df.format(phiHuyVe) + " VNĐ", fontBold);
             pPhi.setAlignment(com.itextpdf.text.Element.ALIGN_RIGHT);
             document.add(pPhi);
 
-            com.itextpdf.text.Paragraph pTong = new com.itextpdf.text.Paragraph("Còn lại (Tiền hoàn khách): " + df.format(tienHoanKhach) + " VNĐ", fontBold);
+            com.itextpdf.text.Paragraph pTong = new com.itextpdf.text.Paragraph(
+                    "Tiền hoàn khách: " + df.format(tienHoanKhach) + " VNĐ", fontBold);
             pTong.setAlignment(com.itextpdf.text.Element.ALIGN_RIGHT);
             document.add(pTong);
 
+            com.itextpdf.text.Paragraph pVAT = new com.itextpdf.text.Paragraph(
+                    "(Hóa đơn đã bao gồm thuế VAT (thuế giá trị gia tăng))", fontVAT);
+            pVAT.setAlignment(com.itextpdf.text.Element.ALIGN_CENTER);
+            pVAT.setSpacingBefore(6);
+            pVAT.setSpacingAfter(4);
+            document.add(pVAT);
             document.add(new com.itextpdf.text.Paragraph(" ", fontNormal));
 
+            // ── Số tiền bằng chữ ─────────────────────────────────────────────
             com.itextpdf.text.Phrase phraseTienChu = new com.itextpdf.text.Phrase();
             phraseTienChu.add(new com.itextpdf.text.Chunk("Số tiền viết bằng chữ: ", fontNormal));
             phraseTienChu.add(new com.itextpdf.text.Chunk(docTien(tienHoanKhach), fontItalic));
             document.add(new com.itextpdf.text.Paragraph(phraseTienChu));
 
-            document.add(new com.itextpdf.text.Paragraph("Ghi chú: ......................................................................................................................................", fontNormal));
+            document.add(new com.itextpdf.text.Paragraph(
+                    "Ghi chú: ......................................................................................................................................", fontNormal));
             document.add(new com.itextpdf.text.Paragraph(" ", fontNormal));
             document.add(new com.itextpdf.text.Paragraph(" ", fontNormal));
 
+            // ── Ký tên ───────────────────────────────────────────────────────
             com.itextpdf.text.pdf.PdfPTable signTable = new com.itextpdf.text.pdf.PdfPTable(2);
             signTable.setWidthPercentage(100);
-            com.itextpdf.text.pdf.PdfPCell cBuyer = new com.itextpdf.text.pdf.PdfPCell(new com.itextpdf.text.Phrase("Người mua hàng\n(Ký, ghi rõ họ tên)", fontNormal));
-            com.itextpdf.text.pdf.PdfPCell cSeller = new com.itextpdf.text.pdf.PdfPCell(new com.itextpdf.text.Phrase("Người bán hàng\n(Ký, ghi rõ họ tên)", fontNormal));
-            cBuyer.setHorizontalAlignment(com.itextpdf.text.Element.ALIGN_CENTER); cBuyer.setBorder(com.itextpdf.text.pdf.PdfPCell.NO_BORDER);
-            cSeller.setHorizontalAlignment(com.itextpdf.text.Element.ALIGN_CENTER); cSeller.setBorder(com.itextpdf.text.pdf.PdfPCell.NO_BORDER);
+            com.itextpdf.text.pdf.PdfPCell cBuyer = new com.itextpdf.text.pdf.PdfPCell(
+                    new com.itextpdf.text.Phrase("Người nhận tiền hoàn\n(Ký, ghi rõ họ tên)", fontNormal));
+            com.itextpdf.text.pdf.PdfPCell cSeller = new com.itextpdf.text.pdf.PdfPCell(
+                    new com.itextpdf.text.Phrase("Người bán hàng\n(Ký, ghi rõ họ tên)", fontNormal));
+            cBuyer.setHorizontalAlignment(com.itextpdf.text.Element.ALIGN_CENTER);
+            cBuyer.setBorder(com.itextpdf.text.pdf.PdfPCell.NO_BORDER);
+            cSeller.setHorizontalAlignment(com.itextpdf.text.Element.ALIGN_CENTER);
+            cSeller.setBorder(com.itextpdf.text.pdf.PdfPCell.NO_BORDER);
             signTable.addCell(cBuyer);
             signTable.addCell(cSeller);
             document.add(signTable);

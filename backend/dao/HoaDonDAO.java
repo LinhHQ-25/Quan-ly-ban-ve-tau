@@ -112,7 +112,9 @@ public class HoaDonDAO implements DAO<HoaDon, String> {
                 "       k.hoTenKH, " +
                 "       (SELECT TOP 1 g.loaiGhe FROM Ve v JOIN Ghe g ON v.maGhe = g.maGhe WHERE v.maHoaDon = h.maHoaDon AND v.trangThaiVe = N'Đã thanh toán') AS loaiGhe, " +
                 "       (SELECT COUNT(*) FROM Ve v WHERE v.maHoaDon = h.maHoaDon AND v.trangThaiVe = N'Đã thanh toán') AS soGhe, " +
-                "       h.tongTien AS tongTien, " +
+                "       (SELECT ISNULL(SUM(v2.giaVe), 0) FROM Ve v2 " +
+                "        WHERE v2.maHoaDon = h.maHoaDon " +
+                "        AND v2.trangThaiVe = N'Đã thanh toán') AS tongTien, " +
                 "       ISNULL(h.phuongThucThanhToan, '') AS phuongThuc " +
                 "FROM HoaDon h " +
                 "JOIN KhachHang k ON h.maKH = k.maKH " +
@@ -152,7 +154,9 @@ public class HoaDonDAO implements DAO<HoaDon, String> {
                 "       k.hoTenKH, " +
                 "       (SELECT TOP 1 g.loaiGhe FROM Ve v JOIN Ghe g ON v.maGhe = g.maGhe WHERE v.maHoaDon = h.maHoaDon AND v.trangThaiVe = N'Đã thanh toán') AS loaiGhe, " +
                 "       (SELECT COUNT(*) FROM Ve v WHERE v.maHoaDon = h.maHoaDon AND v.trangThaiVe = N'Đã thanh toán') AS soGhe, " +
-                "       h.tongTien AS tongTien, " +
+                "       (SELECT ISNULL(SUM(v2.giaVe), 0) FROM Ve v2 " +
+                "        WHERE v2.maHoaDon = h.maHoaDon " +
+                "        AND v2.trangThaiVe = N'Đã thanh toán') AS tongTien, " +
                 "       ISNULL(h.phuongThucThanhToan, '') AS phuongThuc " +
                 "FROM HoaDon h " +
                 "JOIN KhachHang k ON h.maKH = k.maKH " +
@@ -270,7 +274,9 @@ public class HoaDonDAO implements DAO<HoaDon, String> {
                 "       k.hoTenKH, " +
                 "       (SELECT TOP 1 g.loaiGhe FROM Ve v JOIN Ghe g ON v.maGhe = g.maGhe WHERE v.maHoaDon = h.maHoaDon AND v.trangThaiVe = N'Đã thanh toán') AS loaiGhe, " +
                 "       (SELECT COUNT(*) FROM Ve v WHERE v.maHoaDon = h.maHoaDon AND v.trangThaiVe = N'Đã thanh toán') AS soGhe, " +
-                "       h.tongTien AS tongTien, " +
+                "       (SELECT ISNULL(SUM(v2.giaVe), 0) FROM Ve v2 " +
+                "        WHERE v2.maHoaDon = h.maHoaDon " +
+                "        AND v2.trangThaiVe = N'Đã thanh toán') AS tongTien, " +
                 "       ISNULL(h.phuongThucThanhToan, '') AS phuongThuc " +
                 "FROM HoaDon h " +
                 "JOIN KhachHang k ON h.maKH = k.maKH " +
@@ -404,5 +410,127 @@ public class HoaDonDAO implements DAO<HoaDon, String> {
             ps.setString(6, maHD);
             return ps.executeUpdate() > 0;
         }
+    }
+
+    public static Object[] getChiTietHoaDon(String maHD) throws SQLException {
+        String sql =
+                "SELECT TOP 1 " +
+                        "    hd.maHoaDon, " +
+                        "    hd.ngayLapHD, " +
+                        "    hd.phuongThucThanhToan, " +
+                        "    hd.tongTien, " +
+                        "    kh.hoTenKH, " +
+                        "    kh.sdt, " +
+                        "    CASE WHEN kh.laSinhVien = 1 THEN N'Sinh viên' ELSE N'Người lớn' END AS doiTuong, " +
+                        "    tau.tenTau, " +
+                        "    gaDi.tenGa + N' -> ' + gaDen.tenGa AS loTrinh, " +
+                        "    ctct.thoiGianKhoiHanh, " +
+                        "    g.soGhe, " +
+                        "    g.loaiGhe, " +
+                        "    v.trangThaiVe, " +
+                        "    (SELECT COUNT(*) FROM Ve v2 WHERE v2.maHoaDon = hd.maHoaDon) AS soVe " +
+                        "FROM HoaDon hd " +
+                        "LEFT JOIN KhachHang kh          ON hd.maKH = kh.maKH " +
+                        "LEFT JOIN Ve v                  ON v.maHoaDon = hd.maHoaDon " +
+                        "LEFT JOIN Ghe g                 ON v.maGhe = g.maGhe " +
+                        "LEFT JOIN ToaTau tt             ON g.maToaTau = tt.maToaTau " +
+                        "LEFT JOIN ChuyenTau ct          ON v.maChuyenTau = ct.maChuyenTau " +
+                        "LEFT JOIN Tau tau               ON ct.maTau = tau.maTau " +
+                        "LEFT JOIN ChiTietChuyenTau ctct ON ctct.maChuyenTau = v.maChuyenTau " +
+                        "LEFT JOIN Ga gaDi               ON ctct.maGaDi = gaDi.maGa " +
+                        "LEFT JOIN Ga gaDen              ON ctct.maGaDen = gaDen.maGa " +
+                        "WHERE hd.maHoaDon = ?";
+
+        try (Connection con = Connect_DB.getInstance().getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setString(1, maHD);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return new Object[]{
+                            rs.getString("maHoaDon"),              // [0]
+                            rs.getTimestamp("ngayLapHD"),          // [1]
+                            rs.getString("phuongThucThanhToan"),   // [2]
+                            rs.getDouble("tongTien"),              // [3]
+                            rs.getString("hoTenKH"),               // [4]
+                            rs.getString("sdt"),                   // [5]
+                            rs.getString("doiTuong"),              // [6]
+                            rs.getString("tenTau"),                // [7]
+                            rs.getString("loTrinh"),               // [8]
+                            rs.getTimestamp("thoiGianKhoiHanh"),   // [9]
+                            rs.getString("soGhe"),                 // [10]
+                            rs.getString("loaiGhe"),               // [11]
+                            rs.getString("trangThaiVe"),           // [12]
+                            rs.getInt("soVe")                      // [13]
+                    };
+                }
+            }
+        }
+        return null;
+    }
+    // Lấy thông tin chung của hóa đơn (không JOIN vé)
+    public static Object[] getThongTinHoaDon(String maHD) throws SQLException {
+        String sql =
+                "SELECT hd.maHoaDon, hd.ngayLapHD, hd.phuongThucThanhToan, " +
+                        "       (SELECT ISNULL(SUM(v2.giaVe), 0) FROM Ve v2 " +
+                        "        WHERE v2.maHoaDon = hd.maHoaDon " +
+                        "        AND v2.trangThaiVe = N'Đã thanh toán') AS tongTien, " +
+                        "       kh.hoTenKH, kh.sdt, " +
+                        "       CASE WHEN kh.laSinhVien = 1 THEN N'Sinh viên' ELSE N'Người lớn' END AS doiTuong " +
+                        "FROM HoaDon hd " +
+                        "LEFT JOIN KhachHang kh ON hd.maKH = kh.maKH " +
+                        "WHERE hd.maHoaDon = ?";
+        try (Connection con = Connect_DB.getInstance().getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setString(1, maHD);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return new Object[]{
+                        rs.getString("maHoaDon"),
+                        rs.getTimestamp("ngayLapHD"),
+                        rs.getString("phuongThucThanhToan"),
+                        rs.getDouble("tongTien"),
+                        rs.getString("hoTenKH"),
+                        rs.getString("sdt"),
+                        rs.getString("doiTuong")
+                };
+            }
+        }
+        return null;
+    }
+
+    // Lấy danh sách tất cả vé của hóa đơn
+    public static List<Object[]> getDanhSachVeTheoHoaDon(String maHD) throws SQLException {
+        List<Object[]> list = new ArrayList<>();
+        String sql =
+                "SELECT v.maVe, v.trangThaiVe, v.giaVe, v.loaiVe, " +
+                        "       g.soGhe, g.loaiGhe, " +
+                        "       tau.tenTau, " +
+                        "       gaDi.tenGa + N' -> ' + gaDen.tenGa AS loTrinh, " +
+                        "       ctct.thoiGianKhoiHanh " +
+                        "FROM Ve v " +
+                        "LEFT JOIN Ghe g                 ON v.maGhe = g.maGhe " +
+                        "LEFT JOIN ChuyenTau ct          ON v.maChuyenTau = ct.maChuyenTau " +
+                        "LEFT JOIN Tau tau               ON ct.maTau = tau.maTau " +
+                        "LEFT JOIN ChiTietChuyenTau ctct ON ctct.maChuyenTau = v.maChuyenTau " +
+                        "LEFT JOIN Ga gaDi               ON ctct.maGaDi = gaDi.maGa " +
+                        "LEFT JOIN Ga gaDen              ON ctct.maGaDen = gaDen.maGa " +
+                        "WHERE v.maHoaDon = ?";
+        try (Connection con = Connect_DB.getInstance().getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setString(1, maHD);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) list.add(new Object[]{
+                        rs.getString("maVe"),                   // [0]
+                        rs.getString("trangThaiVe"),            // [1]
+                        rs.getDouble("giaVe"),                  // [2]
+                        rs.getString("loaiVe"),                 // [3]
+                        rs.getString("soGhe"),                  // [4]
+                        rs.getString("loaiGhe"),                // [5]
+                        rs.getString("tenTau"),                 // [6]
+                        rs.getString("loTrinh"),                // [7]
+                        rs.getTimestamp("thoiGianKhoiHanh")     // [8]
+                });
+            }
+        }
+        return list;
     }
 }

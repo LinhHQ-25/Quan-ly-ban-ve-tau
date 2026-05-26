@@ -69,7 +69,7 @@ public class BaoCaoPDF {
              drawLabelValue(cs,fReg,fBold,M+8f,     y+4f,10f,"Quản lý: ",  tenQL);
              drawLabelValue(cs,fReg,fBold,M+c4+8f,  y+4f,10f,"Từ ngày: ",  fromDate);
              drawLabelValue(cs,fReg,fBold,M+c4*2+8f,y+4f,10f,"Đến ngày: ", toDate);
-             drawLabelValue(cs,fReg,fBold,M+c4*3+8f,y+4f,10f,"Xuất lúc: ", strDate+" "+strTime);
+             drawLabelValue(cs,fReg,fBold,M+c4*3+8f,y+4f,10f,"Xuất lúc: ", strTime);
              y-=28f;
 
              // SECTION 1

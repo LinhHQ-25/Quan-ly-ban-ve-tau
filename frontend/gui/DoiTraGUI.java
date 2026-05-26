@@ -117,7 +117,7 @@ public final class DoiTraGUI extends JPanel {
 		searchBar.add(btnSearch, gbc);
 
 		tableModel = new DefaultTableModel(
-				new Object[]{"Mã vé","Mã Chuyến","Ga đi","Ga đến","Loại vé","Chiều Vé","Ngày/Giờ KH","SL","Ghế"}, 0) {
+				new Object[]{"Mã vé","Mã Chuyến","Ga đi","Ga đến","Loại vé","Chiều Vé","Ngày/Giờ KH","Ngày/Giờ Mua Vé","SL","Ghế"}, 0) {
 			public boolean isCellEditable(int r, int c) { return false; }
 		};
 		table = new JTable(tableModel);
@@ -135,8 +135,8 @@ public final class DoiTraGUI extends JPanel {
 		for (int _i = 0; _i < table.getColumnCount(); _i++) {
 			table.getColumnModel().getColumn(_i).setCellRenderer(_leftR);
 		}
-		// Mã vé | Mã Chuyến | Ga đi | Ga đến | Loại vé | Chiều | Ngày/Giờ | SL | Ghế
-		int[] _widths = {110, 110, 110, 110, 90, 80, 130, 50, 100};
+		// Mã vé | Mã Chuyến | Ga đi | Ga đến | Loại vé | Chiều | Ngày/Giờ KH | Ngày/Giờ Mua Vé | SL | Ghế
+		int[] _widths = {100, 100, 100, 100, 85, 75, 120, 120, 45, 90};
 		for (int _i = 0; _i < _widths.length && _i < table.getColumnCount(); _i++) {
 			table.getColumnModel().getColumn(_i).setPreferredWidth(_widths[_i]);
 		}
@@ -154,12 +154,14 @@ public final class DoiTraGUI extends JPanel {
 		table.getTableHeader().setBackground(Color.WHITE);
 		table.getTableHeader().setForeground(GuiTheme.TEXT);
 		table.getTableHeader().setBorder(new LineBorder(BORDER, 1, true));
-
 		DefaultTableCellRenderer center = new DefaultTableCellRenderer();
 		center.setHorizontalAlignment(SwingConstants.CENTER);
 		table.getColumnModel().getColumn(0).setCellRenderer(center);
 		table.getColumnModel().getColumn(5).setCellRenderer(center);
-		table.getColumnModel().getColumn(7).setCellRenderer(center);
+		table.getColumnModel().getColumn(8).setCellRenderer(center);
+
+		// ---> THÊM ĐÚNG 1 DÒNG NÀY ĐỂ ẨN CỘT SỐ LƯỢNG (Cột số 8) <---
+		table.getColumnModel().removeColumn(table.getColumnModel().getColumn(8));
 
 		JScrollPane scroll = new JScrollPane(table);
 		scroll.setBorder(new LineBorder(BORDER, 1, true));
@@ -222,7 +224,7 @@ public final class DoiTraGUI extends JPanel {
 		String sql =
 				"SELECT v.maVe, ct.maChuyenTau AS maChuyenTau, gDi.tenGa AS gaDi, gDen.tenGa AS gaDen, " +
 						"v.loaiVe, dt.thoiGianKhoiHanh, v.giaVe, v.maGhe, g.soGhe, kh.hoTenKH, " +
-						"dt.maGaDi, dt.maGaDen, " +
+						"dt.maGaDi, dt.maGaDen, v.ngayMua, " +
 						"1 AS soLuongVe " +
 						"FROM Ve v " +
 						"JOIN ChiTietChuyenTau dt ON v.maChuyenTau = dt.maChuyenTau " +
@@ -272,13 +274,15 @@ public final class DoiTraGUI extends JPanel {
 					String giaVe  = String.valueOf(rs.getLong("giaVe"));
 					Timestamp ts = rs.getTimestamp("thoiGianKhoiHanh");
 					String ngayGio = ts != null ? sdf.format(ts) : "";
+					Timestamp tsMua = rs.getTimestamp("ngayMua");
+					String ngayMua = tsMua != null ? sdf.format(tsMua) : "";
 					String soLuong = String.valueOf(rs.getInt("soLuongVe"));
 
 					// SỬA: Truyền thêm soGhe và tenKH vào cuối mảng veCache (index 9 và 10)
 					veCache.put(maVe, new String[]{maChuyenTau, gaDi, gaDen, rawLoaiVe, chieuVe, ngayGio, soLuong, maGhe, giaVe, soGhe, tenKH});
 
 					// Hiển thị lên bảng (Vẫn giữ nguyên số lượng cột trên UI, 2 cột mới chỉ lưu ẩn dưới cache)
-					tableModel.addRow(new Object[]{maVe, maChuyenTau, gaDi, gaDen, (rawLoaiVe.equals("KHU_HOI") ? "Khứ hồi" : "Một chiều"), chieuVe, ngayGio, soLuong, maGhe});
+					tableModel.addRow(new Object[]{maVe, maChuyenTau, gaDi, gaDen, (rawLoaiVe.equals("KHU_HOI") ? "Khứ hồi" : "Một chiều"), chieuVe, ngayGio, ngayMua, soLuong, maGhe});
 				}
 
 				if (!found && !searchKw.isEmpty()) {

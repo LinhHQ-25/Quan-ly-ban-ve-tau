@@ -3,8 +3,14 @@ package gui;
 import javax.swing.*;
 import javax.swing.border.*;
 import java.awt.*;
-import java.sql.*;
-import connect_DB.Connect_DB;
+
+// IMPORT CÁC CLASS DAO VÀ ENTITY
+import dao.ChiTietChuyenTauDAO;
+import dao.GaDAO;
+import dao.ToaTauDAO;
+import entity.ChiTietChuyenTau;
+import entity.Ga;
+import entity.ToaTau;
 
 public class DoiVeGUI1 extends JPanel {
     private static final Color BORDER = new Color(210, 215, 224);
@@ -58,8 +64,8 @@ public class DoiVeGUI1 extends JPanel {
         stack.setLayout(new BoxLayout(stack, BoxLayout.Y_AXIS));
         stack.setOpaque(false);
 
-        stack.add(buildSuccessBox());
-        stack.add(Box.createVerticalStrut(15));
+
+
         stack.add(buildTabController());
         stack.add(buildCompareCard());
 
@@ -112,13 +118,23 @@ public class DoiVeGUI1 extends JPanel {
         revalidate(); repaint();
     }
 
+    // --- ĐÃ SỬA: DÙNG DAO THAY CHO CÂU LỆNH SQL ---
     private String[] queryGaFromChuyen(String maChuyenTau) {
-        String sql = "SELECT gDi.tenGa AS gaDi, gDen.tenGa AS gaDen FROM ChiTietChuyenTau dt " +
-                "JOIN Ga gDi ON dt.maGaDi = gDi.maGa JOIN Ga gDen ON dt.maGaDen = gDen.maGa WHERE dt.maChuyenTau = ?";
-        try (Connection conn = Connect_DB.getInstance().getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, maChuyenTau);
-            try (ResultSet rs = ps.executeQuery()) { if (rs.next()) return new String[]{ rs.getString("gaDi"), rs.getString("gaDen") }; }
-        } catch (Exception e) {} return new String[]{"—", "—"};
+        ChiTietChuyenTauDAO ctDao = new ChiTietChuyenTauDAO();
+        GaDAO gaDao = new GaDAO();
+
+        ChiTietChuyenTau ct = ctDao.selectById(maChuyenTau);
+        if (ct != null) {
+            // DAO trả về ChiTietChuyenTau chỉ có maGa, cần gọi thêm GaDAO để lấy tên Ga
+            Ga gaDi = gaDao.selectById(ct.getGaDi().getMaGa());
+            Ga gaDen = gaDao.selectById(ct.getGaDen().getMaGa());
+
+            String tenGaDi = (gaDi != null) ? gaDi.getTenGa() : "—";
+            String tenGaDen = (gaDen != null) ? gaDen.getTenGa() : "—";
+
+            return new String[]{tenGaDi, tenGaDen};
+        }
+        return new String[]{"—", "—"};
     }
 
     private void calcPriceAndRefresh() {
@@ -158,17 +174,17 @@ public class DoiVeGUI1 extends JPanel {
         lbTongThu.setForeground(tongLePhi > phiDoiVe ? new Color(180, 60, 0) : GuiTheme.TEXT);
     }
 
-    // Query heSoCuLy của ga đến từ ChiTietChuyenTau → Ga
+    // --- ĐÃ SỬA: DÙNG DAO THAY CHO CÂU LỆNH SQL ---
+    // Query heSoCuLy của ga đến
     private double queryHeSoCuLyTheoChuyen(String maChuyenTau) {
-        String sql = "SELECT g.heSoCuLy FROM ChiTietChuyenTau dt " +
-                "JOIN Ga g ON dt.maGaDen = g.maGa WHERE dt.maChuyenTau = ?";
-        try (Connection conn = Connect_DB.getInstance().getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, maChuyenTau);
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) return rs.getDouble(1);
-            }
-        } catch (Exception e) { e.printStackTrace(); }
+        ChiTietChuyenTauDAO ctDao = new ChiTietChuyenTauDAO();
+        ChiTietChuyenTau ct = ctDao.selectById(maChuyenTau);
+
+        if (ct != null) {
+            GaDAO gaDao = new GaDAO();
+            // Trong GaDAO bạn đã viết sẵn hàm getHeSoCuLy(maGa) fallback là 1.2
+            return gaDao.getHeSoCuLy(ct.getGaDen().getMaGa());
+        }
         return 1.0; // fallback
     }
 
@@ -177,13 +193,17 @@ public class DoiVeGUI1 extends JPanel {
         int tIdx = maGhe.indexOf('T'); return (tIdx > 0) ? maGhe.substring(tIdx) : "";
     }
 
+    // --- ĐÃ SỬA: DÙNG DAO THAY CHO CÂU LỆNH SQL ---
     private double queryHeSoToa(String maToaTau) {
         if (maToaTau == null || maToaTau.isEmpty()) return 1.0;
-        String sql = "SELECT heSoLoaiToa FROM ToaTau WHERE maToaTau = ?";
-        try (Connection conn = Connect_DB.getInstance().getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, maToaTau);
-            try (ResultSet rs = ps.executeQuery()) { if (rs.next()) return rs.getDouble("heSoLoaiToa"); }
-        } catch (Exception e) {} return 1.0;
+
+        ToaTauDAO toaDao = new ToaTauDAO();
+        ToaTau toa = toaDao.selectById(maToaTau);
+
+        if (toa != null) {
+            return toa.getHeSoLoaiToa();
+        }
+        return 1.0;
     }
 
     private JPanel buildCompareCard() {
@@ -261,8 +281,6 @@ public class DoiVeGUI1 extends JPanel {
         return String.format("%,d đ", a).replace(",", ".");
     }
     private String safe(String[] a, int i) { return (a!=null && i<a.length && a[i]!=null) ? a[i] : "—"; }
-
-    private JPanel buildSuccessBox() { JPanel p = new JPanel(new BorderLayout()) { @Override protected void paintComponent(Graphics g) { Graphics2D g2 = (Graphics2D) g.create(); g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON); g2.setColor(new Color(236, 252, 240)); g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10); g2.dispose(); } }; p.setBorder(new EmptyBorder(16, 20, 16, 20)); p.setMaximumSize(new Dimension(Integer.MAX_VALUE, 55)); JLabel msg = new JLabel("Thông tin hợp lệ. Vui lòng xác nhận lộ trình đổi vé."); msg.setFont(FONT_B14); msg.setForeground(new Color(30, 130, 70)); msg.setHorizontalAlignment(SwingConstants.CENTER); p.add(msg, BorderLayout.CENTER); return p; }
     private JPanel buildCard(String t) { JPanel card = new JPanel(new BorderLayout(0, 12)); card.setBackground(Color.WHITE); card.setBorder(BorderFactory.createCompoundBorder(new LineBorder(BORDER, 1, true), new EmptyBorder(20, 24, 20, 24))); JLabel lbTitle = new JLabel(t, SwingConstants.CENTER); lbTitle.setHorizontalAlignment(SwingConstants.CENTER); lbTitle.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 16)); card.add(lbTitle, BorderLayout.NORTH); return card; }
     private JLabel headerLabel(String t, Color c) { JLabel lb = new JLabel(t); lb.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 13)); lb.setForeground(c); lb.setHorizontalAlignment(SwingConstants.CENTER); return lb; }
     private JLabel fieldLabel(Color c) { JLabel lb = new JLabel("—"); lb.setFont(FONT_B14); lb.setForeground(c); lb.setOpaque(true); lb.setBackground(GuiTheme.SEARCH_FIELD_BG); lb.setBorder(BorderFactory.createCompoundBorder(new LineBorder(BORDER, 1, false), new EmptyBorder(8, 12, 8, 12))); return lb; }

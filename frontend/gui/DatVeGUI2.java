@@ -249,6 +249,10 @@ public class DatVeGUI2 extends JPanel {
 		pnlRadioRow.setOpaque(false);
 		pnlRadioRow.add(rdoCccd);
 		pnlRadioRow.add(rdoHoChieu);
+		JLabel starIdCard = new JLabel("*");
+		starIdCard.setFont(FONT_B14);
+		starIdCard.setForeground(ERR_C);
+		pnlRadioRow.add(starIdCard);
 
 		JPanel pnlIdCard = new JPanel(new GridBagLayout());
 		pnlIdCard.setOpaque(false);
@@ -332,18 +336,28 @@ public class DatVeGUI2 extends JPanel {
 
 			@Override
 			public void keyPressed(KeyEvent e) {
-				if (e.getKeyCode() != KeyEvent.VK_ENTER)
-					return;
-				String ns = txtNamSinh.getText().trim();
-				if (ns.isEmpty() || (!ns.matches(REGEX_NAM) && !ns.matches(REGEX_NGAY))) {
-					showErrMsg(txtNamSinh, "Vui lòng kiểm tra thông tin \"Năm sinh\"");
-					return;
-				}
-				if (chkSinhVien.isSelected())
-					setLoaiDoiTuong("Sinh viên");
-				else
-					tinhLoaiDoiTuongTuNamSinh();
-				xacNhanVaDuaXuongBang();
+			    if (e.getKeyCode() != KeyEvent.VK_ENTER)
+			        return;
+			    String ns = txtNamSinh.getText().trim();
+			    if (ns.isEmpty() || (!ns.matches(REGEX_NAM) && !ns.matches(REGEX_NGAY))) {
+			        showErrMsg(txtNamSinh, "Vui lòng kiểm tra thông tin \"Năm sinh\"");
+			        return;
+			    }
+			    // Thêm check năm không vượt hiện tại
+			    try {
+			        int namCheck = ns.contains("/")
+			            ? Integer.parseInt(ns.split("/")[ns.split("/").length - 1])
+			            : Integer.parseInt(ns);
+			        if (namCheck > LocalDate.now().getYear()) {
+			            showErrMsg(txtNamSinh, "Năm sinh không được vượt quá năm hiện tại (" + LocalDate.now().getYear() + ")");
+			            return;
+			        }
+			    } catch (Exception ex) { return; }
+			    if (chkSinhVien.isSelected())
+			        setLoaiDoiTuong("Sinh viên");
+			    else
+			        tinhLoaiDoiTuongTuNamSinh();
+			    xacNhanVaDuaXuongBang();
 			}
 		});
 		txtNamSinh.addFocusListener(new FocusAdapter() {
@@ -380,9 +394,9 @@ public class DatVeGUI2 extends JPanel {
 		pnlActionBtns.add(btnXacNhan);
 
 		gbc.weightx = 0.15;
-		addFormItem(pnlForm, gbc, 0, 0, "Số điện thoại", txtSdt);
+		addFormItem(pnlForm, gbc, 0, 0, "Số điện thoại", txtSdt, true);
 		gbc.weightx = 0.25;
-		addFormItem(pnlForm, gbc, 1, 0, "Họ và tên", txtHoTen);
+		addFormItem(pnlForm, gbc, 1, 0, "Họ và tên", txtHoTen, true);
 		gbc.weightx = 0.28;
 		gbc.gridx = 2;
 		gbc.gridy = 0;
@@ -391,10 +405,10 @@ public class DatVeGUI2 extends JPanel {
 		gbc.insets = new Insets(10, 10, 6, 10);
 		pnlForm.add(pnlIdCard, gbc);
 		gbc.weightx = 0.22;
-		addFormItem(pnlForm, gbc, 3, 0, "Email", txtEmail);
+		addFormItem(pnlForm, gbc, 3, 0, "Email", txtEmail, false); 
 
 		gbc.weightx = 0.15;
-		addFormItem(pnlForm, gbc, 0, 1, "Năm sinh", txtNamSinh);
+		addFormItem(pnlForm, gbc, 0, 1, "Năm sinh", txtNamSinh, true);
 		gbc.weightx = 0.45;
 		gbc.gridx = 1;
 		gbc.gridy = 1;
@@ -423,71 +437,78 @@ public class DatVeGUI2 extends JPanel {
 	}
 
 	private boolean validateForm() {
-		String sdt = txtSdt.getText().trim();
-		String hoten = txtHoTen.getText().trim();
-		String id = txtIdCard.getText().trim();
-		String email = txtEmail.getText().trim();
-		String ns = txtNamSinh.getText().trim();
-		String loaiDT = txtLoaiDoiTuong.getText().trim();
+	    String sdt = txtSdt.getText().trim();
+	    String hoten = txtHoTen.getText().trim();
+	    String id = txtIdCard.getText().trim();
+	    String email = txtEmail.getText().trim();
+	    String ns = txtNamSinh.getText().trim();
+	    String loaiDT = txtLoaiDoiTuong.getText().trim();
 
-		if (sdt.isEmpty()) {
-			showErr(txtSdt, "Số điện thoại");
-			return false;
-		}
-		if (!sdt.matches(REGEX_SDT)) {
-			showErrMsg(txtSdt, "Vui lòng kiểm tra thông tin \"Số điện thoại\"");
-			return false;
-		}
+	    if (sdt.isEmpty()) {
+	        showErr(txtSdt, "Số điện thoại");
+	        return false;
+	    }
+	    if (!sdt.matches(REGEX_SDT)) {
+	        showErrMsg(txtSdt, "Vui lòng kiểm tra thông tin \"Số điện thoại\"");
+	        return false;
+	    }
 
-		if (hoten.isEmpty()) {
-			showErr(txtHoTen, "Họ và tên");
-			return false;
-		}
-		if (!hoten.matches(REGEX_HOTEN)) {
-			showErrMsg(txtHoTen, "Vui lòng kiểm tra thông tin \"Họ và tên\"");
-			return false;
-		}
+	    if (hoten.isEmpty()) {
+	        showErr(txtHoTen, "Họ và tên");
+	        return false;
+	    }
+	    if (!hoten.matches(REGEX_HOTEN)) {
+	        showErrMsg(txtHoTen, "Vui lòng kiểm tra thông tin \"Họ và tên\"");
+	        return false;
+	    }
 
-		if (id.isEmpty()) {
-			showErr(txtIdCard, rdoCccd.isSelected() ? "CCCD" : "Hộ chiếu");
-			return false;
-		}
-		if (rdoCccd.isSelected()) {
-			if (!id.matches(REGEX_CCCD)) {
-				showErrMsg(txtIdCard, "Vui lòng kiểm tra thông tin \"CCCD\"");
-				return false;
-			}
-		} else {
-			if (!id.matches(REGEX_HC)) {
-				showErrMsg(txtIdCard, "Vui lòng kiểm tra thông tin \"Hộ chiếu\"");
-				return false;
-			}
-		}
+	    if (id.isEmpty()) {
+	        showErr(txtIdCard, rdoCccd.isSelected() ? "CCCD" : "Hộ chiếu");
+	        return false;
+	    }
+	    if (rdoCccd.isSelected()) {
+	        if (!id.matches(REGEX_CCCD)) {
+	            showErrMsg(txtIdCard, "Vui lòng kiểm tra thông tin \"CCCD\"");
+	            return false;
+	        }
+	    } else {
+	        if (!id.matches(REGEX_HC)) {
+	            showErrMsg(txtIdCard, "Vui lòng kiểm tra thông tin \"Hộ chiếu\"");
+	            return false;
+	        }
+	    }
 
-		if (email.isEmpty()) {
-			showErr(txtEmail, "Email");
-			return false;
-		}
-		if (!email.matches(REGEX_EMAIL)) {
-			showErrMsg(txtEmail, "Vui lòng kiểm tra thông tin \"Email\"");
-			return false;
-		}
+	    // Email không bắt buộc, chỉ validate format nếu có nhập
+	    if (!email.isEmpty() && !email.matches(REGEX_EMAIL)) {
+	        showErrMsg(txtEmail, "Vui lòng kiểm tra thông tin \"Email\"");
+	        return false;
+	    }
 
-		if (ns.isEmpty()) {
-			showErr(txtNamSinh, "Năm sinh");
-			return false;
-		}
-		if (!ns.matches(REGEX_NAM) && !ns.matches(REGEX_NGAY)) {
-			showErrMsg(txtNamSinh, "Vui lòng kiểm tra thông tin \"Năm sinh\"");
-			return false;
-		}
+	    if (ns.isEmpty()) {
+	        showErr(txtNamSinh, "Năm sinh");
+	        return false;
+	    }
+	    if (!ns.matches(REGEX_NAM) && !ns.matches(REGEX_NGAY)) {
+	        showErrMsg(txtNamSinh, "Vui lòng kiểm tra thông tin \"Năm sinh\"");
+	        return false;
+	    }
+	    // Năm sinh không được vượt quá hiện tại
+	    try {
+	        int namCheck = ns.contains("/")
+	            ? Integer.parseInt(ns.split("/")[ns.split("/").length - 1])
+	            : Integer.parseInt(ns);
+	        if (namCheck > LocalDate.now().getYear()) {
+	            showErrMsg(txtNamSinh, "Năm sinh không được vượt quá năm hiện tại (" + LocalDate.now().getYear() + ")");
+	            return false;
+	        }
+	    } catch (Exception ignored) {}
 
-		if (loaiDT.isEmpty()) {
-			JOptionPane.showMessageDialog(this, "Vui lòng kiểm tra thông tin \"Loại đối tượng\"", "Thiếu thông tin",
-					JOptionPane.WARNING_MESSAGE);
-			return false;
-		}
-		return true;
+	    if (loaiDT.isEmpty()) {
+	        JOptionPane.showMessageDialog(this, "Vui lòng kiểm tra thông tin \"Loại đối tượng\"", "Thiếu thông tin",
+	                JOptionPane.WARNING_MESSAGE);
+	        return false;
+	    }
+	    return true;
 	}
 
 	private void showErr(JTextField field, String fieldName) {
@@ -768,26 +789,31 @@ public class DatVeGUI2 extends JPanel {
 	}
 
 	private void tinhLoaiDoiTuongTuNamSinh() {
-		String ns = txtNamSinh.getText().trim();
-		if (ns.isEmpty()) {
-			txtLoaiDoiTuong.setText("");
-			return;
-		}
-		try {
-			int namSinh = ns.contains("/") ? Integer.parseInt(ns.split("/")[ns.split("/").length - 1])
-					: Integer.parseInt(ns);
-			int age = LocalDate.now().getYear() - namSinh;
-			if (age < 6)
-				setLoaiDoiTuong("Trẻ em (<6 tuổi)");
-			else if (age <= 10)
-				setLoaiDoiTuong("Trẻ em (6-10 tuổi)");
-			else if (age >= 60)
-				setLoaiDoiTuong("Người cao tuổi");
-			else
-				setLoaiDoiTuong("Người lớn");
-		} catch (Exception ex) {
-			setLoaiDoiTuong("Người lớn");
-		}
+	    String ns = txtNamSinh.getText().trim();
+	    if (ns.isEmpty()) {
+	        txtLoaiDoiTuong.setText("");
+	        return;
+	    }
+	    try {
+	        int namSinh = ns.contains("/") ? Integer.parseInt(ns.split("/")[ns.split("/").length - 1])
+	                : Integer.parseInt(ns);
+	        // Thêm check năm không vượt hiện tại
+	        if (namSinh > LocalDate.now().getYear()) {
+	            txtLoaiDoiTuong.setText("");
+	            return;
+	        }
+	        int age = LocalDate.now().getYear() - namSinh;
+	        if (age < 6)
+	            setLoaiDoiTuong("Trẻ em (<6 tuổi)");
+	        else if (age <= 10)
+	            setLoaiDoiTuong("Trẻ em (6-10 tuổi)");
+	        else if (age >= 60)
+	            setLoaiDoiTuong("Người cao tuổi");
+	        else
+	            setLoaiDoiTuong("Người lớn");
+	    } catch (Exception ex) {
+	        setLoaiDoiTuong("Người lớn");
+	    }
 	}
 
 	private void setLoaiDoiTuong(String loai) {
@@ -1057,19 +1083,31 @@ public class DatVeGUI2 extends JPanel {
 		return txt;
 	}
 
-	private void addFormItem(JPanel pnl, GridBagConstraints gbc, int x, int y, String label, JComponent comp) {
-		gbc.gridx = x;
-		gbc.gridy = y;
-		gbc.fill = GridBagConstraints.HORIZONTAL;
-		gbc.anchor = GridBagConstraints.WEST;
-		JPanel wrap = new JPanel(new BorderLayout(0, 4));
-		wrap.setOpaque(false);
-		JLabel lbl = new JLabel(label);
-		lbl.setFont(FONT_14);
-		lbl.setForeground(new Color(40, 40, 40));
-		wrap.add(lbl, BorderLayout.NORTH);
-		wrap.add(comp, BorderLayout.CENTER);
-		pnl.add(wrap, gbc);
+	private void addFormItem(JPanel pnl, GridBagConstraints gbc, int x, int y, String labelText, JComponent comp, boolean required) {
+	    gbc.gridx = x;
+	    gbc.gridy = y;
+	    gbc.fill = GridBagConstraints.HORIZONTAL;
+	    gbc.anchor = GridBagConstraints.WEST;
+	    JPanel wrap = new JPanel(new BorderLayout(0, 4));
+	    wrap.setOpaque(false);
+
+	    // Build label với dấu * nếu required
+	    JPanel lblRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+	    lblRow.setOpaque(false);
+	    JLabel lbl = new JLabel(labelText);
+	    lbl.setFont(FONT_14);
+	    lbl.setForeground(new Color(40, 40, 40));
+	    lblRow.add(lbl);
+	    if (required) {
+	        JLabel star = new JLabel(" *");
+	        star.setFont(FONT_B14);
+	        star.setForeground(ERR_C);
+	        lblRow.add(star);
+	    }
+
+	    wrap.add(lblRow, BorderLayout.NORTH);
+	    wrap.add(comp, BorderLayout.CENTER);
+	    pnl.add(wrap, gbc);
 	}
 
 	private Icon loadIcon(String path, int w, int h) {

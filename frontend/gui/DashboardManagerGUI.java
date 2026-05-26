@@ -1,6 +1,8 @@
 package gui;
 
 import connect_DB.Connect_DB;
+import dao.VeDAO;
+import dao.ChuyenTauDAO;
 import java.awt.*;
 import java.awt.geom.*;
 import java.sql.*;
@@ -139,102 +141,61 @@ public class DashboardManagerGUI extends JPanel {
         card.add(inner, BorderLayout.CENTER);
         return card;
     }
-
     private void loadRealtimeData() {
         new Thread(() -> {
-            try (Connection con = Connect_DB.getConnection()) {
-                if (con == null) return;
+            try {
+                java.time.LocalDate homNay  = java.time.LocalDate.now();
+                java.time.LocalDate homQua  = homNay.minusDays(1);
 
-                // Khai báo NGOÀI cả 2 block để dùng chung
-                long dt = 0;
-                int vb = 0, vh = 0;
+                // ── KPI hôm nay ──
+                long doanhThuHN;
+                long[] pttt = VeDAO.getDoanhThuPTTTTheoKhoang(homNay, homNay);
+                doanhThuHN = pttt[0] + pttt[1]; // tiền mặt + chuyển khoản
+                int veBanHN = VeDAO.getSoVeTheoKhoang(homNay, homNay, "Đã thanh toán");
+                int veHuyHN = VeDAO.getSoVeHuyTheoKhoang(homNay, homNay);
 
-                // Query KPI hôm nay
-                String sqlKPI = "SELECT " +
-                    "(SELECT ISNULL(SUM(tongTien),0) FROM HoaDon WHERE CAST(ngayLapHD AS DATE) = CAST(GETDATE() AS DATE)) as doanhThu, " +
-                    "(SELECT COUNT(*) FROM Ve WHERE CAST(ngayMua AS DATE) = CAST(GETDATE() AS DATE) AND trangThaiVe = N'Đã thanh toán') as veBan, " +
-                    "(SELECT COUNT(*) FROM Ve WHERE CAST(ngayMua AS DATE) = CAST(GETDATE() AS DATE) AND trangThaiVe = N'Đã hủy') as veHuy";
-                ResultSet rsKPI = con.prepareStatement(sqlKPI).executeQuery();
-                if (rsKPI.next()) {
-                    dt = rsKPI.getLong("doanhThu");
-                    vb = rsKPI.getInt("veBan");
-                    vh = rsKPI.getInt("veHuy");
-                    final long fDt = dt; final int fVb = vb, fVh = vh;
-                    SwingUtilities.invokeLater(() -> {
-                        lblDoanhThu.setText(String.format("%,d đ", fDt).replace(",", "."));
-                        lblVeBan.setText(fVb + " vé");
-                        lblVeHuy.setText(fVh + " vé");
-                    });
-                }
+                final long fDt = doanhThuHN;
+                final int  fVb = veBanHN, fVh = veHuyHN;
+                SwingUtilities.invokeLater(() -> {
+                    lblDoanhThu.setText(String.format("%,d đ", fDt).replace(",", "."));
+                    lblVeBan.setText(fVb + " vé");
+                    lblVeHuy.setText(fVh + " vé");
+                });
 
-                // Query KPI hôm qua để so sánh
-                String sqlYesterday = "SELECT " +
-                    "(SELECT ISNULL(SUM(tongTien),0) FROM HoaDon WHERE CAST(ngayLapHD AS DATE) = CAST(DATEADD(day,-1,GETDATE()) AS DATE)) as dtHQ, " +
-                    "(SELECT COUNT(*) FROM Ve WHERE CAST(ngayMua AS DATE) = CAST(DATEADD(day,-1,GETDATE()) AS DATE) AND trangThaiVe = N'Đã thanh toán') as vbHQ, " +
-                    "(SELECT COUNT(*) FROM Ve WHERE CAST(ngayMua AS DATE) = CAST(DATEADD(day,-1,GETDATE()) AS DATE) AND trangThaiVe = N'Đã hủy') as vhHQ";
-                ResultSet rsYest = con.prepareStatement(sqlYesterday).executeQuery();
-                if (rsYest.next()) {
-                    long dtHQ = rsYest.getLong("dtHQ");
-                    int  vbHQ = rsYest.getInt("vbHQ");
-                    int  vhHQ = rsYest.getInt("vhHQ");
-                    final long fDt = dt; final int fVb = vb, fVh = vh;
-                    final long fDtHQ = dtHQ; final int fVbHQ = vbHQ, fVhHQ = vhHQ;
-                    SwingUtilities.invokeLater(() -> {
-                        // Doanh thu → hiện %
-                        lblDoanhThuCmp.setText(formatPct(fDt, fDtHQ) + " vs Hôm qua");
-                        colorCmp(lblDoanhThuCmp, fDt, fDtHQ, false);
+                // ── KPI hôm qua để so sánh ──
+                long[] ptttHQ = VeDAO.getDoanhThuPTTTTheoKhoang(homQua, homQua);
+                long doanhThuHQ = ptttHQ[0] + ptttHQ[1];
+                int veBanHQ = VeDAO.getSoVeTheoKhoang(homQua, homQua, "Đã thanh toán");
+                int veHuyHQ = VeDAO.getSoVeHuyTheoKhoang(homQua, homQua);
 
-                        // Vé bán → hiện số nguyên
-                        lblVeBanCmp.setText(formatInt(fVb, fVbHQ) + " vs Hôm qua");
-                        colorCmp(lblVeBanCmp, fVb, fVbHQ, false);
+                final long fDtHQ = doanhThuHQ;
+                final int  fVbHQ = veBanHQ, fVhHQ = veHuyHQ;
+                SwingUtilities.invokeLater(() -> {
+                    lblDoanhThuCmp.setText(formatPct(fDt, fDtHQ));
+                    lblVeBanCmp.setText(formatInt(fVb, fVbHQ));
+                    lblVeHuyCmp.setText(formatIntInvert(fVh, fVhHQ));
+                });
 
-                        // Vé hủy → hiện số nguyên, đảo màu
-                        lblVeHuyCmp.setText(formatInt(fVh, fVhHQ) + " vs Hôm qua");
-                        colorCmp(lblVeHuyCmp, fVh, fVhHQ, true);
-                    });
-                }
-
-                // Query 5 chuyến tàu tỷ lệ lấp đầy
-                String sqlTau = "SELECT TOP 5 ct.maChuyenTau, t.tongSoGhe, " +
-                    "ISNULL((SELECT COUNT(*) FROM Ve v WHERE v.maChuyenTau = ct.maChuyenTau AND v.trangThaiVe = N'Đã thanh toán'), 0) as veDaBan " +
-                    "FROM ChuyenTau ct JOIN Tau t ON ct.maTau = t.maTau " +
-                    "JOIN ChiTietChuyenTau cct ON ct.maChuyenTau = cct.maChuyenTau " +
-                    "ORDER BY veDaBan DESC, cct.thoiGianKhoiHanh ASC";
-                ResultSet rsTau = con.prepareStatement(sqlTau).executeQuery();
-                List<String> tauNames = new ArrayList<>();
-                List<Integer> tauCap = new ArrayList<>();
-                List<Integer> tauSold = new ArrayList<>();
-                while (rsTau.next()) {
-                    tauNames.add(rsTau.getString("maChuyenTau"));
-                    tauCap.add(rsTau.getInt("tongSoGhe"));
-                    tauSold.add(rsTau.getInt("veDaBan"));
+                // ── Top 5 chuyến tàu tỷ lệ lấp đầy ──
+                List<Object[]> top5 = new ChuyenTauDAO().getTop5ChuyenLapDay();
+                List<String>  tauNames = new ArrayList<>();
+                List<Integer> tauCap   = new ArrayList<>();
+                List<Integer> tauSold  = new ArrayList<>();
+                for (Object[] row : top5) {
+                    tauNames.add((String)  row[0]);
+                    tauCap.add((Integer)   row[1]);
+                    tauSold.add((Integer)  row[2]);
                 }
                 SwingUtilities.invokeLater(() -> barChart.setData(tauNames, tauCap, tauSold));
 
-                // Query phân loại ghế
-                String sqlGhe = "SELECT g.loaiGhe, COUNT(v.maVe) as soLuong " +
-                    "FROM Ve v JOIN Ghe g ON v.maGhe = g.maGhe " +
-                    "WHERE v.trangThaiVe = N'Đã thanh toán' " +
-                    "GROUP BY g.loaiGhe";
-                ResultSet rsGhe = con.prepareStatement(sqlGhe).executeQuery();
-                int gc = 0, gn = 0, gm = 0;
-                while (rsGhe.next()) {
-                    String loai = rsGhe.getString(1); int count = rsGhe.getInt(2);
-                    if (loai != null && loai.contains("giường")) gn += count;
-                    else if (loai != null && loai.contains("cứng")) gc += count;
-                    else gm += count;
-                }
-                final int fgc = gc, fgn = gn, fgm = gm;
-                SwingUtilities.invokeLater(() -> donutChart.setData(fgc, fgn, fgm));
+                // ── Phân loại ghế hôm nay ──
+                int[] ghe = VeDAO.getSoGheTheoLoaiTheoKhoang(homNay, homNay);
+                // ghe[0]=cứng, ghe[1]=nằm, ghe[2]=mềm
+                SwingUtilities.invokeLater(() -> donutChart.setData(ghe[0], ghe[1], ghe[2]));
 
-                // Query vé bán theo giờ hôm nay
-                String sqlGio = "SELECT DATEPART(hour, ngayMua) as gio, COUNT(*) FROM Ve " +
-                    "WHERE CAST(ngayMua AS DATE) = CAST(GETDATE() AS DATE) AND trangThaiVe = N'Đã thanh toán' " +
-                    "GROUP BY DATEPART(hour, ngayMua)";
-                ResultSet rsGio = con.prepareStatement(sqlGio).executeQuery();
-                int[] hourlyData = new int[24];
-                while (rsGio.next()) hourlyData[rsGio.getInt(1)] = rsGio.getInt(2);
-                SwingUtilities.invokeLater(() -> lineChart.setData(hourlyData));
+                // ── Vé bán theo giờ hôm nay ──
+                int[] hourly = VeDAO.getVeBanTheoGioHomNay();
+                SwingUtilities.invokeLater(() -> lineChart.setData(hourly));
 
             } catch (SQLException e) { e.printStackTrace(); }
         }).start();
@@ -498,21 +459,38 @@ public class DashboardManagerGUI extends JPanel {
         }
     }
  // Doanh thu: hiển thị % thay đổi
-    private String formatPct(long today, long yesterday) {
-        if (yesterday == 0) return "--";
-        double pct = (double)(today - yesterday) / yesterday * 100;
-        return String.format("%s %.1f%%", pct >= 0 ? "↗" : "↘", Math.abs(pct));
-    }
+ private String formatPct(long today, long yesterday) {
+     if (yesterday == 0) return "<html><font color='gray'>-- vs hôm qua</font></html>";
+     double pct = (double)(today - yesterday) / yesterday * 100;
+     boolean isUp = pct >= 0;
+     String arrow = isUp ? "▲" : "▼";
+     String color = isUp ? "#27ae60" : "#c0392b";
+     return String.format(
+             "<html><font color='%s'><b>%s %.1f%%</b></font> vs hôm qua</html>",
+             color, arrow, Math.abs(pct)
+     );
+ }
 
     private String formatInt(long today, long yesterday) {
         long diff = today - yesterday;
-        return String.format("%s %d vé", diff >= 0 ? "↗" : "↘", Math.abs(diff));
+        boolean isUp = diff >= 0;
+        String arrow = isUp ? "▲" : "▼";
+        String color = isUp ? "#27ae60" : "#c0392b";
+        return String.format(
+                "<html><font color='%s'><b>%s %d vé</b></font> vs hôm qua</html>",
+                color, arrow, Math.abs(diff)
+        );
     }
-    // Tô màu: xanh = tốt, đỏ = xấu
-    private void colorCmp(JLabel lbl, long today, long yesterday, boolean invertColor) {
-        if (yesterday == 0) { lbl.setForeground(Color.GRAY); return; }
-        boolean isUp = today >= yesterday;
-        boolean isGood = invertColor ? !isUp : isUp;
-        lbl.setForeground(isGood ? new Color(39, 174, 96) : new Color(192, 57, 43));
+    // Tô màu: xanh = tốt, đỏ = xấuD
+    private String formatIntInvert(long today, long yesterday) {
+        long diff = today - yesterday;
+        boolean isUp = diff >= 0;
+        String arrow = isUp ? "▲" : "▼";
+        // Vé hủy tăng → đỏ (xấu), giảm → xanh (tốt)
+        String color = isUp ? "#c0392b" : "#27ae60";
+        return String.format(
+                "<html><font color='%s'><b>%s %d vé</b></font> vs hôm qua</html>",
+                color, arrow, Math.abs(diff)
+        );
     }
 }

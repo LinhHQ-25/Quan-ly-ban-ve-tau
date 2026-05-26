@@ -262,17 +262,31 @@ public class VeDAO {
 
     // ── QUẢN LÝ: tổng tiền mặt và chuyển khoản theo khoảng thời gian ──
     public static long[] getDoanhThuPTTTTheoKhoang(java.time.LocalDate from, java.time.LocalDate to) throws java.sql.SQLException {
-        long[] res = {0L, 0L}; // [0]=tiền mặt, [1]=chuyển khoản
-        String sql = "SELECT h.phuongThucThanhToan, ISNULL(SUM(h.tongTien), 0) " +
-                "FROM HoaDon h " +
-                "WHERE ISNULL(h.phuongThucThanhToan,'') <> 'LUU_TAM' " +
-                "AND CAST(h.ngayLapHD AS DATE) BETWEEN ? AND ? " +
-                "AND EXISTS (SELECT 1 FROM Ve v WHERE v.maHoaDon = h.maHoaDon AND v.trangThaiVe = N'Đã thanh toán') " +
-                "GROUP BY h.phuongThucThanhToan";
+        long[] res = {0L, 0L};
+        String sql =
+                // Vé đã thanh toán → tính theo giaVe từng vé
+                "SELECT h.phuongThucThanhToan, ISNULL(SUM(v.giaVe), 0) " +
+                        "FROM Ve v " +
+                        "JOIN HoaDon h ON v.maHoaDon = h.maHoaDon " +
+                        "WHERE v.trangThaiVe = N'Đã thanh toán' " +
+                        "AND ISNULL(h.phuongThucThanhToan,'') <> 'LUU_TAM' " +
+                        "AND CAST(h.ngayLapHD AS DATE) BETWEEN ? AND ? " +
+                        "GROUP BY h.phuongThucThanhToan " +
+                        "UNION ALL " +
+                        // Phí phạt hủy vé → tính theo h.tongTien của HĐ hủy
+                        "SELECT h.phuongThucThanhToan, ISNULL(SUM(h.tongTien), 0) " +
+                        "FROM HoaDon h " +
+                        "WHERE ISNULL(h.phuongThucThanhToan,'') <> 'LUU_TAM' " +
+                        "AND CAST(h.ngayLapHD AS DATE) BETWEEN ? AND ? " +
+                        "AND EXISTS (SELECT 1 FROM Ve v WHERE v.maHoaDon = h.maHoaDon " +
+                        "            AND v.trangThaiVe IN (N'Đã hủy', 'DA_HUY')) " +
+                        "GROUP BY h.phuongThucThanhToan";
         try (Connection con = Connect_DB.getInstance().getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setDate(1, java.sql.Date.valueOf(from));
             ps.setDate(2, java.sql.Date.valueOf(to));
+            ps.setDate(3, java.sql.Date.valueOf(from));
+            ps.setDate(4, java.sql.Date.valueOf(to));
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     String p = rs.getString(1);
@@ -315,5 +329,21 @@ public class VeDAO {
             ps.executeBatch();
             return true;
         }
+    }
+    // ── DASHBOARD: vé bán theo từng giờ hôm nay ──
+    public static int[] getVeBanTheoGioHomNay() throws SQLException {
+        int[] hourly = new int[24];
+        String sql = "SELECT DATEPART(hour, h.ngayLapHD) as gio, COUNT(*) as soVe " +
+                "FROM Ve v JOIN HoaDon h ON v.maHoaDon = h.maHoaDon " +
+                "WHERE CAST(h.ngayLapHD AS DATE) = CAST(GETDATE() AS DATE) " +
+                "AND v.trangThaiVe = N'Đã thanh toán' " +
+                "AND ISNULL(h.phuongThucThanhToan,'') <> 'LUU_TAM' " +
+                "GROUP BY DATEPART(hour, h.ngayLapHD)";
+        try (Connection con = Connect_DB.getInstance().getConnection();
+             PreparedStatement ps = con.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) hourly[rs.getInt("gio")] = rs.getInt("soVe");
+        }
+        return hourly;
     }
 }

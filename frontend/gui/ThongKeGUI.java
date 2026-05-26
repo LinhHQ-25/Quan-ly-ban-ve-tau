@@ -73,10 +73,6 @@ public final class ThongKeGUI extends JPanel {
         pnlCenter.setBorder(new EmptyBorder(0, GuiTheme.PAGE_PAD_LEFT, GuiTheme.PAGE_PAD_BOTTOM, GuiTheme.PAGE_PAD_LEFT));
         pnlCenter.add(buildTableWithChart(), BorderLayout.CENTER);
 
-        chartPanel.setOnFilterListener(type -> {
-            if (type == null) sorter.setRowFilter(null);
-            else              sorter.setRowFilter(RowFilter.regexFilter(type, 3));
-        });
 
         add(pnlTop,            BorderLayout.NORTH);
         add(pnlCenter,         BorderLayout.CENTER);
@@ -288,8 +284,8 @@ public final class ThongKeGUI extends JPanel {
         tblData.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
         tblData.getTableHeader().setFont(GuiTheme.font("Segoe UI", Font.BOLD, 14));
         tblData.setShowVerticalLines(false);
-        tblData.setSelectionBackground(new Color(71, 71, 156));
-        tblData.setSelectionForeground(Color.WHITE);
+        tblData.setSelectionBackground(new Color(207, 222, 243));
+        tblData.setSelectionForeground(Color.BLACK);
 
         DefaultTableCellRenderer zebraRenderer = new DefaultTableCellRenderer() {
             @Override public Component getTableCellRendererComponent(
@@ -319,14 +315,14 @@ public final class ThongKeGUI extends JPanel {
         // height tự fill theo CENTER layout
 
         // Click vào hàng → mở PDF hóa đơn
+// Click vào hàng → hiện dialog chi tiết hóa đơn
         tblData.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
                 int row = tblData.getSelectedRow();
                 if (row < 0) return;
                 int modelRow = tblData.convertRowIndexToModel(row);
-                String maHoaDon = (String) tblModel.getValueAt(modelRow, 0);
-                if (maHoaDon != null) openPDF(maHoaDon);
+                showHoaDonDetail(modelRow);
             }
         });
 
@@ -351,6 +347,222 @@ public final class ThongKeGUI extends JPanel {
                     "Không thể mở file PDF: " + ex.getMessage(),
                     "Lỗi", JOptionPane.ERROR_MESSAGE);
         }
+    }
+    private void showHoaDonDetail(int modelRow) {
+        String maHD = (String) tblModel.getValueAt(modelRow, 0);
+        if (maHD == null) return;
+        boolean isHuy = "huy".equals(currentFilter);
+
+        new Thread(() -> {
+            try {
+                Object[] hdInfo     = HoaDonDAO.getThongTinHoaDon(maHD);
+                List<Object[]> veList = HoaDonDAO.getDanhSachVeTheoHoaDon(maHD);
+                SwingUtilities.invokeLater(() -> buildAndShowDialog(maHD, hdInfo, veList, isHuy));
+            } catch (SQLException ex) {
+                ex.printStackTrace();
+                SwingUtilities.invokeLater(() ->
+                        JOptionPane.showMessageDialog(this,
+                                "Chi tiết lỗi:\n" + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE));
+            }
+        }).start();
+    }
+
+    private void buildAndShowDialog(String maHD, Object[] d, List<Object[]> veList, boolean isHuy) {
+        JDialog dlg = new JDialog((Frame) SwingUtilities.getWindowAncestor(this), "Chi tiết hóa đơn", true);
+        dlg.setSize(660, 560);
+        dlg.setLocationRelativeTo(this);
+        dlg.setResizable(false);
+
+        JPanel root = new JPanel(new BorderLayout(0, 10));
+        root.setBackground(Color.WHITE);
+        root.setBorder(new EmptyBorder(20, 28, 16, 28));
+
+        // ── Badge trạng thái ──
+        JPanel pnlBadge = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        pnlBadge.setOpaque(false);
+        JLabel badge = new JLabel(isHuy ? "  Đã hủy  " : "  Đã thanh toán  ");
+        badge.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 12));
+        badge.setOpaque(true);
+        badge.setBackground(isHuy ? new Color(220, 53, 69) : new Color(34, 139, 87));
+        badge.setForeground(Color.WHITE);
+        badge.setBorder(new EmptyBorder(4, 12, 4, 12));
+        pnlBadge.add(badge);
+
+        // ── Thông tin khách hàng + giao dịch (2 cột) ──
+        String pttt = d != null && d[2] != null ? d[2].toString() : "—";
+        if ("TIEN_MAT".equalsIgnoreCase(pttt))         pttt = "Tiền mặt";
+        else if ("CHUYEN_KHOAN".equalsIgnoreCase(pttt)) pttt = "Chuyển khoản";
+        String tongTien = d != null
+                ? String.format("%,.0f VNĐ", (Double) d[3]).replace(",", ".")
+                : "—";
+        String thoiGianLap = d != null && d[1] != null
+                ? new java.text.SimpleDateFormat("dd/MM/yyyy HH:mm").format(d[1])
+                : "—";
+
+        JPanel pnlCols = new JPanel(new GridLayout(1, 2, 24, 0));
+        pnlCols.setOpaque(false);
+
+        JPanel pnlLeft = buildInfoSection("THÔNG TIN KHÁCH HÀNG", new String[][]{
+                {"Họ và tên:",     d != null && d[4] != null ? d[4].toString() : "—"},
+                {"Số điện thoại:", d != null && d[5] != null ? d[5].toString() : "—"},
+                {"Đối tượng:",     d != null && d[6] != null ? d[6].toString() : "—"},
+        }, false);
+
+        JPanel pnlRight = buildInfoSection("THÔNG TIN GIAO DỊCH", new String[][]{
+                {"Thời gian lập:", thoiGianLap},
+                {"Hình thức TT:",  pttt},
+                {"Tổng tiền:",     tongTien},
+        }, false);
+
+        pnlCols.add(pnlLeft);
+        pnlCols.add(pnlRight);
+
+        // ── Separator ──
+        JSeparator sep = new JSeparator();
+        sep.setForeground(new Color(210, 215, 224));
+
+        // ── Bảng danh sách vé ──
+        JLabel lbVe = new JLabel("DANH SÁCH VÉ (" + veList.size() + " vé)");
+        lbVe.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 13));
+        lbVe.setForeground(new Color(40, 45, 70));
+        lbVe.setBorder(new EmptyBorder(8, 0, 6, 0));
+
+        DefaultTableModel veModel = new DefaultTableModel(
+                new Object[]{"Mã vé", "Tàu", "Lộ trình", "Khởi hành", "Ghế", "Giá vé"}, 0) {
+            @Override public boolean isCellEditable(int r, int c) { return false; }
+        };
+
+        java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("dd/MM HH:mm");
+        for (Object[] ve : veList) {
+            String trangThaiVe = ve[1] != null ? ve[1].toString() : "—";
+            String giaVe = String.format("%,.0f đ", (Double) ve[2]).replace(",", ".");
+            String gioKH = ve[8] != null ? sdf.format(ve[8]) : "—";
+            String soGhe = ve[4] != null
+                    ? "Ghế " + ve[4] + " (" + formatLoaiGhe(ve[5] != null ? ve[5].toString() : "") + ")"
+                    : "—";
+            veModel.addRow(new Object[]{
+                    ve[0], ve[6], ve[7], gioKH, soGhe, giaVe
+            });
+        }
+
+        JTable tblVe = new JTable(veModel);
+        tblVe.setRowHeight(32);
+        tblVe.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 12));
+        tblVe.getTableHeader().setFont(GuiTheme.font("Segoe UI", Font.BOLD, 12));
+        tblVe.setShowVerticalLines(false);
+        tblVe.setSelectionBackground(new Color(207, 222, 243));
+        tblVe.getTableHeader().setReorderingAllowed(false);
+
+        // Căn giữa tất cả cột
+        DefaultTableCellRenderer center = new DefaultTableCellRenderer();
+        center.setHorizontalAlignment(SwingConstants.CENTER);
+        for (int i = 0; i < tblVe.getColumnCount(); i++)
+            tblVe.getColumnModel().getColumn(i).setCellRenderer(center);
+
+        // Width cột
+        tblVe.getColumnModel().getColumn(0).setPreferredWidth(90);  // Mã vé
+        tblVe.getColumnModel().getColumn(1).setPreferredWidth(70);  // Tàu
+        tblVe.getColumnModel().getColumn(2).setPreferredWidth(130); // Lộ trình
+        tblVe.getColumnModel().getColumn(3).setPreferredWidth(80);  // Khởi hành
+        tblVe.getColumnModel().getColumn(4).setPreferredWidth(110); // Ghế
+        tblVe.getColumnModel().getColumn(5).setPreferredWidth(70);  // Giá vé
+
+        JScrollPane spVe = new JScrollPane(tblVe);
+        spVe.setBorder(new LineBorder(new Color(210, 215, 224), 1, true));
+        spVe.setPreferredSize(new Dimension(600, Math.min(veList.size() * 32 + 30, 160)));
+
+        // ── Gom phần giữa ──
+        JPanel pnlMid = new JPanel();
+        pnlMid.setLayout(new BoxLayout(pnlMid, BoxLayout.Y_AXIS));
+        pnlMid.setOpaque(false);
+        pnlMid.add(pnlCols);
+        pnlMid.add(Box.createVerticalStrut(10));
+        pnlMid.add(sep);
+        pnlMid.add(lbVe);
+        pnlMid.add(spVe);
+
+        // ── Nút ──
+        JPanel pnlBtn = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
+        pnlBtn.setOpaque(false);
+        pnlBtn.setBorder(new EmptyBorder(10, 0, 0, 0));
+
+        JButton btnIn = buildNavyButton("In lại hoá đơn", null);
+        btnIn.addActionListener(e -> openPDF(maHD));
+
+        JButton btnDong = new JButton("Đóng") {
+            @Override protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(getModel().isPressed() ? new Color(80,85,100) : new Color(100,105,120));
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 15, 15);
+                g2.setColor(Color.WHITE);
+                g2.setFont(getFont());
+                FontMetrics fm = g2.getFontMetrics();
+                g2.drawString(getText(), (getWidth() - fm.stringWidth(getText())) / 2,
+                        (getHeight() + fm.getAscent() - fm.getDescent()) / 2);
+                g2.dispose();
+            }
+        };
+        btnDong.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 13));
+        btnDong.setContentAreaFilled(false);
+        btnDong.setBorderPainted(false);
+        btnDong.setFocusPainted(false);
+        btnDong.setPreferredSize(new Dimension(90, 34));
+        btnDong.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btnDong.addActionListener(e -> dlg.dispose());
+
+        pnlBtn.add(btnIn);
+        pnlBtn.add(btnDong);
+
+        root.add(pnlBadge, BorderLayout.NORTH);
+        root.add(pnlMid,   BorderLayout.CENTER);
+        root.add(pnlBtn,   BorderLayout.SOUTH);
+
+        dlg.setContentPane(root);
+        dlg.setVisible(true);
+    }
+
+    // Helper: tạo 1 section thông tin
+    private JPanel buildInfoSection(String title, String[][] rows, boolean highlightLast) {
+        JPanel pnl = new JPanel();
+        pnl.setLayout(new BoxLayout(pnl, BoxLayout.Y_AXIS));
+        pnl.setOpaque(false);
+
+        JLabel lbTitle = new JLabel(title);
+        lbTitle.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 13));
+        lbTitle.setForeground(new Color(40, 45, 70));
+        pnl.add(lbTitle);
+        pnl.add(Box.createVerticalStrut(8));
+
+        for (int i = 0; i < rows.length; i++) {
+            JPanel row = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 2));
+            row.setOpaque(false);
+            JLabel lbKey = new JLabel(rows[i][0] + " ");
+            lbKey.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 13));
+            lbKey.setForeground(new Color(70, 75, 95));
+            JLabel lbVal = new JLabel(rows[i][1]);
+            lbVal.setFont(GuiTheme.font("Segoe UI",
+                    (i == rows.length - 1 && !highlightLast) ? Font.BOLD : Font.PLAIN, 13));
+            // "Không hợp lệ" tô đỏ, "Hợp lệ" tô xanh
+            if (highlightLast && i == rows.length - 1)
+                lbVal.setForeground(new Color(220, 53, 69));
+            else
+                lbVal.setForeground(new Color(30, 35, 55));
+            row.add(lbKey);
+            row.add(lbVal);
+            pnl.add(row);
+        }
+        return pnl;
+    }
+
+    // Helper: dịch loại ghế
+    private String formatLoaiGhe(String loai) {
+        return switch (loai.toUpperCase()) {
+            case "GHE_CUNG"   -> "Ghế cứng";
+            case "GHE_MEM"    -> "Ghế mềm";
+            case "GIUONG_NAM" -> "Giường nằm";
+            default           -> loai;
+        };
     }
 
     private JPanel buildBottomBar() {
@@ -432,17 +644,6 @@ class ChartPanel extends JPanel {
         setPreferredSize(new Dimension(320, 420));
         setBackground(Color.WHITE);
         setBorder(new LineBorder(new Color(210, 215, 224), 1, true));
-        setCursor(new Cursor(Cursor.HAND_CURSOR));
-
-        addMouseListener(new MouseAdapter() {
-            @Override public void mousePressed(MouseEvent e) {
-                int old = selectedIdx;
-                selectedIdx = detectIndex(e.getPoint());
-                if (old == selectedIdx) selectedIdx = -1;
-                repaint();
-                if (listener != null) listener.onFilter(selectedIdx == -1 ? null : LABELS[selectedIdx]);
-            }
-        });
     }
 
     private int detectIndex(Point p) {

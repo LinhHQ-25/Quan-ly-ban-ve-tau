@@ -72,6 +72,7 @@ public class AppFrameManager extends JFrame {
 		sb.add(mkBtn("ql-chuyentau", "Quản lý chuyến tàu", "/Images/iconChuyenTau.png"));
 		sb.add(mkBtn("ql-khuyenmai", "Quản lý khuyến mãi", "/Images/KhuyenMai.png"));
 		sb.add(mkBtn("thong-ke", "Thống kê", "/Images/ThongKe.png"));
+		sb.add(mkBtn("cau-hinh", "Cấu hình hệ thống", "/Images/logoSetting.png"));
 		sb.add(mkBtn("ho-tro", "Hỗ trợ", "/Images/HoTro.png"));
 
 		sb.add(Box.createVerticalGlue());
@@ -134,6 +135,7 @@ public class AppFrameManager extends JFrame {
 	    bind.accept(KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_M, CTRL), () -> showCard("ql-khuyenmai"));
 	    bind.accept(KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_G, CTRL), () -> showCard("thong-ke"));
 	    bind.accept(KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_H, CTRL), () -> showCard("ho-so"));
+	    
 	    bind.accept(KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_F1, 0),   () -> showCard("ho-tro"));
 	    bind.accept(KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_L, CTRL), () -> {
 	        int choice = JOptionPane.showConfirmDialog(AppFrameManager.this,
@@ -166,6 +168,7 @@ public class AppFrameManager extends JFrame {
 			case "ql-khuyenmai": headerTitle.setText(""); break;
 			case "thong-ke":     headerTitle.setText(""); break;
 			case "ho-tro":       headerTitle.setText(""); break;
+			case "cau-hinh":     headerTitle.setText(""); break;
 			case "ho-so":        headerTitle.setText(""); break;
 		}
 	}
@@ -256,6 +259,7 @@ public class AppFrameManager extends JFrame {
 		contentCards.add(new QuanLyChuyenTauGUI(), "ql-chuyentau");
 		contentCards.add(new KhuyenMaiGUI(), "ql-khuyenmai");
 		contentCards.add(new ThongKeManagerGUI(), "thong-ke");
+		contentCards.add(new CauHinhHeThongGUI(), "cau-hinh"); 
 		contentCards.add(new HoTroManagerGUI(), "ho-tro");
 		contentCards.add(new HoSoQuanLyGUI(), "ho-so");
 	}
