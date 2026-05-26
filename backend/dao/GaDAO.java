@@ -99,4 +99,10 @@ public class GaDAO implements DAO<Ga, String> {
         } catch (Exception e) { e.printStackTrace(); }
         return false;
     }
+    /** Lấy heSoCuLy theo maGa, trả về 1.2 nếu không tìm thấy (fallback mặc định) */
+    public double getHeSoCuLy(String maGa) {
+        if (maGa == null || maGa.isBlank()) return 1.2;
+        Ga ga = selectById(maGa);
+        return (ga != null) ? ga.getHeSoCuLy() : 1.2;
+    }
 }

@@ -90,7 +90,7 @@ public class DatVeGUI3 extends JPanel {
 	private static final String ACCOUNT_NO = "0382588430";
 	private static final String ACCOUNT_NAME = "MB Bank";
 	private static final String CASSO_API_KEY = "AK_CS.69d49310536411f1ad2d7bbf51f870c4.1OR4aZOPpK4BslQXgsgNQGlFiMwe8EDKc6Tuva6vzVcTf7ssLfssoXfn5vVKU27z4bemHq6E";
-
+	private String ghiChu = "";
 	private JTable tblChiTiet;
 	private DefaultTableModel modelChiTiet;
 	private JLabel lblTongTien, lblTongKhuyenMai, lblThanhToanConLai, lblQR, lblCountdown;
@@ -110,6 +110,7 @@ public class DatVeGUI3 extends JPanel {
 	private entity.KhuyenMai selectedVoucher = null;
 	private JPanel pnlBottomLeft;
 	private JPanel pnlBtns; // thêm vào đầu class
+
 	public DatVeGUI3(DefaultTableModel modelFromGUI2, int secondsLeft, java.util.function.Consumer<Integer> onQuayLai,
 			Runnable onHuyVe) {
 		this.modelFromGUI2 = modelFromGUI2;
@@ -143,56 +144,33 @@ public class DatVeGUI3 extends JPanel {
 	}
 
 	private Object[] tinhGiaVeChoVe(String maGhe, String maGaDen, String loaiDoiTuong) {
-		// --- 1. Lấy heSoLoaiToa + loaiGhe từ DB ---
+		// --- 1. Lấy heSoLoaiToa + loaiGhe từ DAO ---
 		double heSoLoaiToa = 1.0;
 		String loaiGheHienThi = "Ghế cứng";
-		String sqlGhe = "SELECT g.loaiGhe, t.heSoLoaiToa " + "FROM Ghe g JOIN ToaTau t ON g.maToaTau = t.maToaTau "
-				+ "WHERE g.maGhe = ?";
-		try (java.sql.Connection con = connect_DB.Connect_DB.getInstance().getConnection();
-				java.sql.PreparedStatement ps = con.prepareStatement(sqlGhe)) {
-			ps.setString(1, maGhe);
-			try (java.sql.ResultSet rs = ps.executeQuery()) {
-				if (rs.next()) {
-					heSoLoaiToa = rs.getDouble("heSoLoaiToa");
-					String raw = rs.getString("loaiGhe");
-					if (raw != null) {
-						loaiGheHienThi = switch (raw.trim()) {
-						case "GHE_CUNG" -> "Ghế cứng";
-						case "GHE_MEM" -> "Ghế mềm";
-						case "GIUONG_NAM" -> "Giường nằm";
-						default -> raw;
-						};
-					}
-				}
+
+		entity.Ghe gheInfo = new dao.GheDAO().selectByIdWithToa(maGhe);
+		if (gheInfo != null) {
+			if (gheInfo.getToaTau() != null)
+				heSoLoaiToa = gheInfo.getToaTau().getHeSoLoaiToa();
+			if (gheInfo.getLoaiGhe() != null) {
+				loaiGheHienThi = switch (gheInfo.getLoaiGhe().name()) {
+				case "GHE_CUNG" -> "Ghế cứng";
+				case "GHE_MEM" -> "Ghế mềm";
+				case "GIUONG_NAM" -> "Giường nằm";
+				default -> gheInfo.getLoaiGhe().name();
+				};
 			}
-		} catch (Exception e) {
-			e.printStackTrace();
 		}
 
-		// --- 2. Lấy heSoCuLy: dùng tên ga đến để tra từ bảng ChiTietChuyenTau hoặc Ga
-		// ---
-		// Thử lấy từ cột heSoKhoangCach trong Ga trước, fallback sang giá trị mặc định
-		// theo loại toa
+		// --- 2. Lấy heSoCuLy từ DAO ---
 		double heSoCuLy = tinhHeSoCuLyMacDinh(heSoLoaiToa);
-		if (maGaDen != null && !maGaDen.isEmpty()) {
-			// Thử các tên cột có thể có trong bảng Ga
-			for (String col : new String[] { "heSoCuLy", "heSoKhoangCach", "heSo", "khoangCach" }) {
-				try (java.sql.Connection con = connect_DB.Connect_DB.getInstance().getConnection();
-						java.sql.PreparedStatement ps = con
-								.prepareStatement("SELECT " + col + " FROM Ga WHERE maGa = ?")) {
-					ps.setString(1, maGaDen);
-					try (java.sql.ResultSet rs = ps.executeQuery()) {
-						if (rs.next()) {
-							heSoCuLy = rs.getDouble(1);
-							break;
-						}
-					}
-				} catch (Exception ignored) {
-				}
-			}
+		if (maGaDen != null && !maGaDen.isBlank()) {
+			double heso = new dao.GaDAO().getHeSoCuLy(maGaDen);
+			if (heso > 0)
+				heSoCuLy = heso;
 		}
 
-		// --- 3. Tạo Ve entity và dùng tinhGiaVe() ---
+		// --- 3. Tính giá qua entity Ve ---
 		entity.Ve ve = new entity.Ve();
 		ve.setHeSoCuLy(heSoCuLy);
 		ve.setHeSoLoaiToa(heSoLoaiToa);
@@ -299,14 +277,16 @@ public class DatVeGUI3 extends JPanel {
 		pnlBottomLeft = new JPanel(new BorderLayout(0, 6));
 		pnlBottomLeft.setOpaque(false);
 
-	
-
 		pnlBtns = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
 		pnlBtns.setOpaque(false);
 		JButton btnKhuyenMai = makeNavyBtn("Thêm khuyến mãi", null);
 		btnKhuyenMai.addActionListener(e -> nhapKhuyenMai());
 		JButton btnGhiChu = makeNavyBtn("Ghi chú", null);
-		btnGhiChu.addActionListener(e -> JOptionPane.showInputDialog(this, "Nhập ghi chú cho hóa đơn:"));
+		btnGhiChu.addActionListener(e -> {
+			String input = JOptionPane.showInputDialog(this, "Nhập ghi chú cho hóa đơn:", ghiChu);
+			if (input != null)
+				ghiChu = input.trim();
+		});
 		pnlBtns.add(btnKhuyenMai);
 		pnlBtns.add(btnGhiChu);
 
@@ -933,6 +913,9 @@ public class DatVeGUI3 extends JPanel {
 			Font fValue = new Font(bf, 9, Font.BOLD);
 			Font fMaVe = new Font(bf, 8, Font.NORMAL, BaseColor.GRAY);
 
+			dao.ChiTietChuyenTauDAO ctctDAO = new dao.ChiTietChuyenTauDAO();
+			dao.GheDAO gheDAO = new dao.GheDAO();
+
 			for (int i = 0; i < modelChiTiet.getRowCount(); i++) {
 				String maVeStr = modelChiTiet.getValueAt(i, 1).toString();
 				String loaiVe = modelFromGUI2.getValueAt(i, 2).toString();
@@ -943,52 +926,26 @@ public class DatVeGUI3 extends JPanel {
 				String hangVe = loaiCho.equals("Giường nằm") ? "VIP" : "Thường";
 				String maChuyen = modelFromGUI2.getValueAt(i, 12).toString();
 
-				String tenTau = "", ngayDi = "", gioDi = "";
-				String gaDi = "", gaDen = "", maToaTau = "", soGhe = "";
+				// --- Lấy thông tin chuyến qua DAO ---
+				Object[] chuyenInfo = ctctDAO.getThongTinChuyenChoVe(maChuyen);
+				String tenTau = (String) chuyenInfo[0];
+				String gaDi = (String) chuyenInfo[1];
+				String gaDen = (String) chuyenInfo[2];
+				String ngayDi = (String) chuyenInfo[3];
+				String gioDi = (String) chuyenInfo[4];
 
-				try (java.sql.Connection con = connect_DB.Connect_DB.getInstance().getConnection()) {
-					String sqlCT = "SELECT t.tenTau, ct.thoiGianKhoiHanh, " + "g1.tenGa AS GaDi, g2.tenGa AS GaDen "
-							+ "FROM ChuyenTau c JOIN Tau t ON c.maTau = t.maTau "
-							+ "JOIN ChiTietChuyenTau ct ON c.maChuyenTau = ct.maChuyenTau "
-							+ "JOIN Ga g1 ON ct.maGaDi = g1.maGa " + "JOIN Ga g2 ON ct.maGaDen = g2.maGa "
-							+ "WHERE c.maChuyenTau = ?";
-					try (java.sql.PreparedStatement ps = con.prepareStatement(sqlCT)) {
-						ps.setString(1, maChuyen);
-						try (java.sql.ResultSet rs = ps.executeQuery()) {
-							if (rs.next()) {
-								tenTau = rs.getString("tenTau");
-								gaDi = rs.getString("GaDi");
-								gaDen = rs.getString("GaDen");
-								java.sql.Timestamp ts = rs.getTimestamp("thoiGianKhoiHanh");
-								if (ts != null) {
-									ngayDi = new SimpleDateFormat("dd/MM/yyyy").format(ts);
-									gioDi = new SimpleDateFormat("HH:mm").format(ts);
-								}
-							}
-						}
-					}
-					String sqlGhe = "SELECT g.soGhe, t.soToa " + "FROM Ghe g JOIN ToaTau t ON g.maToaTau = t.maToaTau "
-							+ "WHERE g.maGhe = ?";
-					try (java.sql.PreparedStatement ps = con.prepareStatement(sqlGhe)) {
-						ps.setString(1, maGhe);
-						try (java.sql.ResultSet rs = ps.executeQuery()) {
-							if (rs.next()) {
-								soGhe = rs.getString("soGhe");
-								maToaTau = String.valueOf(rs.getInt("soToa"));
-							}
-						}
-					}
-				} catch (Exception ignored) {
-				}
+				// --- Lấy soGhe, soToa qua DAO ---
+				Object[] gheInfo = gheDAO.getSoGheVaSoToa(maGhe);
+				String soGhe = (String) gheInfo[0];
+				String maToaTau = (String) gheInfo[1];
 
-				// Khổ trang vừa đủ nội dung, không bị cắt
+				// ── Tạo PDF ────────────────────────────────────────────────────
 				Rectangle pageSize = new Rectangle(240, 580);
 				File pdfFile = new File(folder, "Ve_" + maVeStr + ".pdf");
 				Document doc = new Document(pageSize, 10, 10, 12, 12);
-				PdfWriter writer = PdfWriter.getInstance(doc, new FileOutputStream(pdfFile));
+				PdfWriter.getInstance(doc, new FileOutputStream(pdfFile));
 				doc.open();
 
-				// ── WRAPPER ────────────────────────────────────────────────────
 				PdfPTable wrap = new PdfPTable(1);
 				wrap.setWidthPercentage(100);
 				PdfPCell wc = new PdfPCell();
@@ -999,7 +956,7 @@ public class DatVeGUI3 extends JPanel {
 				wc.setPaddingTop(10);
 				wc.setPaddingBottom(10);
 
-				// ── 1. HEADER ──────────────────────────────────────────────────
+				// ── Header ─────────────────────────────────────────────────────
 				Paragraph pCty = new Paragraph("TỔNG CÔNG TY ĐƯỜNG SẮT VIỆT NAM", fCongTy);
 				pCty.setAlignment(Element.ALIGN_CENTER);
 				wc.addElement(pCty);
@@ -1008,7 +965,6 @@ public class DatVeGUI3 extends JPanel {
 				pGaTen.setAlignment(Element.ALIGN_CENTER);
 				wc.addElement(pGaTen);
 
-				// Đường kẻ ngang mỏng
 				PdfPTable lineTable = new PdfPTable(1);
 				lineTable.setWidthPercentage(100);
 				lineTable.setSpacingBefore(4);
@@ -1030,7 +986,7 @@ public class DatVeGUI3 extends JPanel {
 				pBoarding.setSpacingAfter(5);
 				wc.addElement(pBoarding);
 
-				// ── 2. BARCODE ─────────────────────────────────────────────────
+				// ── Barcode ────────────────────────────────────────────────────
 				com.itextpdf.text.pdf.Barcode128 barcode = new com.itextpdf.text.pdf.Barcode128();
 				barcode.setCode(maVeStr);
 				barcode.setBarHeight(32f);
@@ -1043,19 +999,17 @@ public class DatVeGUI3 extends JPanel {
 				imgBar.scaleToFit(240f, 38f);
 				wc.addElement(imgBar);
 
-				// Mã vé dưới barcode
 				Paragraph pMaVe = new Paragraph("Mã vé/TicketID: " + maVeStr, fMaVe);
 				pMaVe.setAlignment(Element.ALIGN_CENTER);
 				pMaVe.setSpacingAfter(6);
 				wc.addElement(pMaVe);
 
-				// ── 3. GA ĐI / GA ĐẾN ─────────────────────────────────────────
+				// ── Ga đi / Ga đến ─────────────────────────────────────────────
 				PdfPTable gaTable = new PdfPTable(2);
 				gaTable.setWidthPercentage(100);
 				gaTable.setSpacingBefore(2);
 				gaTable.setSpacingAfter(2);
 
-				// Ga đi — căn trái, padding trái
 				PdfPCell cGaDi = new PdfPCell();
 				cGaDi.setBorder(Rectangle.NO_BORDER);
 				cGaDi.setPaddingLeft(16);
@@ -1068,7 +1022,6 @@ public class DatVeGUI3 extends JPanel {
 				cGaDi.addElement(pDiVal);
 				gaTable.addCell(cGaDi);
 
-				// Ga đến — căn phải, padding phải
 				PdfPCell cGaDen = new PdfPCell();
 				cGaDen.setBorder(Rectangle.NO_BORDER);
 				cGaDen.setPaddingRight(16);
@@ -1081,7 +1034,6 @@ public class DatVeGUI3 extends JPanel {
 				cGaDen.addElement(pDenVal);
 				gaTable.addCell(cGaDen);
 
-				// Đường kẻ dưới ga đi/đến
 				PdfPCell cSep = new PdfPCell(new Phrase(""));
 				cSep.setColspan(2);
 				cSep.setBorder(Rectangle.BOTTOM);
@@ -1089,10 +1041,9 @@ public class DatVeGUI3 extends JPanel {
 				cSep.setBorderColor(BaseColor.LIGHT_GRAY);
 				cSep.setPaddingBottom(3);
 				gaTable.addCell(cSep);
-
 				wc.addElement(gaTable);
 
-				// ── 4. THÔNG TIN CHI TIẾT ──────────────────────────────────────
+				// ── Chi tiết ───────────────────────────────────────────────────
 				PdfPTable infoTable = new PdfPTable(2);
 				infoTable.setWidthPercentage(100);
 				infoTable.setWidths(new float[] { 1.35f, 1.65f });
@@ -1242,7 +1193,9 @@ public class DatVeGUI3 extends JPanel {
 
 			String tenKH = modelFromGUI2.getRowCount() > 0 ? modelFromGUI2.getValueAt(0, 5).toString() : "Khách lẻ";
 			String sdtKH = modelFromGUI2.getRowCount() > 0 ? modelFromGUI2.getValueAt(0, 7).toString() : "";
-			document.add(new Paragraph("Họ tên người mua hàng: " + tenKH, fontBold));
+			document.add(new Paragraph("Họ tên người bán: " + service.AuthService.getCurrentHoTen()
+					+ "          Mã NV: " + service.AuthService.getCurrentMaNV(), fontNormal));
+			document.add(new Paragraph("Họ tên người mua: " + tenKH, fontBold));
 			document.add(new Paragraph("Điện thoại: " + sdtKH, fontNormal));
 			document.add(new Paragraph("Hình thức thanh toán: " + hinhThuc + "          Mã HĐ: " + maHD, fontNormal));
 			document.add(new Paragraph(" ", fontNormal));
@@ -1330,7 +1283,12 @@ public class DatVeGUI3 extends JPanel {
 			Paragraph pConLai = new Paragraph("Còn lại: " + DF.format(tongThanhToan) + " VNĐ", fontBold);
 			pConLai.setAlignment(Element.ALIGN_RIGHT);
 			document.add(pConLai);
-
+			Font fontVAT = new Font(bf, 13, Font.ITALIC, BaseColor.DARK_GRAY);
+			Paragraph pVAT = new Paragraph("(Hóa đơn đã bao gồm thuế VAT (thuế giá trị gia tăng))", fontVAT);
+			pVAT.setAlignment(Element.ALIGN_CENTER);
+			pVAT.setSpacingBefore(6);
+			pVAT.setSpacingAfter(4);
+			document.add(pVAT);
 			document.add(new Paragraph(" ", fontNormal));
 
 			Phrase phraseTienChu = new Phrase();
@@ -1338,9 +1296,10 @@ public class DatVeGUI3 extends JPanel {
 			phraseTienChu.add(new com.itextpdf.text.Chunk(docTien((long) tongThanhToan), fontItalic));
 			document.add(new Paragraph(phraseTienChu));
 
-			document.add(new Paragraph(
-					"Ghi chú: ......................................................................................................................................",
-					fontNormal));
+			String ghiChuHienThi = (ghiChu != null && !ghiChu.isEmpty()) ? ghiChu
+					: "......................................................................................................................................";
+			document.add(new Paragraph("Ghi chú: " + ghiChuHienThi, fontNormal));
+
 			document.add(new Paragraph(" ", fontNormal));
 			document.add(new Paragraph(" ", fontNormal));
 
@@ -1390,83 +1349,62 @@ public class DatVeGUI3 extends JPanel {
 		try {
 			con = connect_DB.Connect_DB.getInstance().getConnection();
 			con.setAutoCommit(false);
+
 			String maNV = service.AuthService.getCurrentMaNV();
+
+			// --- Lấy maKH qua DAO ---
 			String maKH = null;
 			String sdtKhach = modelFromGUI2.getRowCount() > 0 ? modelFromGUI2.getValueAt(0, 7).toString() : "";
 			try {
 				entity.KhachHang kh = new dao.KhachHangDAO().timTheoSDT(sdtKhach);
 				if (kh != null)
 					maKH = kh.getMaKH();
-			} catch (Exception e2) {
-				maKH = null;
+			} catch (Exception ignored) {
 			}
-			String sqlHD = "INSERT INTO HoaDon (maHoaDon, ngayLapHD, maNV, maKH, tongTien, tienNhan, phuongThucThanhToan) VALUES (?, GETDATE(), ?, ?, ?, ?, ?)";
-			try (java.sql.PreparedStatement psHD = con.prepareStatement(sqlHD)) {
-				psHD.setString(1, maHD);
-				psHD.setString(2, maNV);
-				if (maKH != null)
-					psHD.setString(3, maKH);
-				else
-					psHD.setNull(3, java.sql.Types.VARCHAR);
 
-				// Đảm bảo cập nhật tổng tiền bằng đúng số tiền "Còn lại"
-				psHD.setDouble(4, tongThanhToan);
+			// --- Tính tiền nhận ---
+			double tienKhach = hinhThucThanhToan.contains("Chuyển khoản") ? tongThanhToan
+					: parseMoney(txtTienKhachDua.getText());
+			if (tienKhach <= 0)
+				tienKhach = tongThanhToan;
 
-				double tienKhach = hinhThucThanhToan.contains("Chuyển khoản") ? tongThanhToan
-						: parseMoney(txtTienKhachDua.getText());
-				if (tienKhach <= 0)
-					tienKhach = tongThanhToan;
-				psHD.setDouble(5, tienKhach);
-				String pt = hinhThucThanhToan.contains("Tiền mặt") ? "TIEN_MAT"
-						: hinhThucThanhToan.equals("Lưu tạm") ? "LUU_TAM" : "CHUYEN_KHOAN";
-				psHD.setString(6, pt);
-				psHD.executeUpdate();
-			}
-			String sqlVe = "INSERT INTO Ve (maVe, ngayMua, loaiVe, trangThaiVe, giaVe, maGhe, maHoaDon, maChuyenTau, maKH, maKhuyenMai) VALUES (?, GETDATE(), ?, ?, ?, ?, ?, ?, ?, NULL)";
-			try (java.sql.PreparedStatement psVe = con.prepareStatement(sqlVe)) {
-				String trangThai = hinhThucThanhToan.equals("Lưu tạm") ? "Chờ thanh toán" : "Đã thanh toán";
+			// --- Map phương thức ---
+			String pt = hinhThucThanhToan.contains("Tiền mặt") ? "TIEN_MAT"
+					: hinhThucThanhToan.equals("Lưu tạm") ? "LUU_TAM" : "CHUYEN_KHOAN";
 
-				int totalTickets = modelChiTiet.getRowCount();
-				boolean isKhuHoi = modelFromGUI2.getRowCount() > 0
-						&& modelFromGUI2.getValueAt(0, 2).toString().toLowerCase().contains("hồi");
+			// --- Insert HoaDon qua DAO ---
+			boolean hdOk = new dao.HoaDonDAO().insertTrongTransaction(con, maHD, maNV, maKH, tongThanhToan, tienKhach,
+					pt);
+			if (!hdOk)
+				throw new Exception("Insert HoaDon thất bại");
 
-				for (int i = 0; i < totalTickets; i++) {
-					String maVeHienTai = modelChiTiet.getValueAt(i, 1).toString();
+			// --- Insert danh sách Ve qua DAO ---
+			String trangThai = hinhThucThanhToan.equals("Lưu tạm") ? "Chờ thanh toán" : "Đã thanh toán";
+			boolean isKhuHoi = modelFromGUI2.getRowCount() > 0
+					&& modelFromGUI2.getValueAt(0, 2).toString().toLowerCase().contains("hồi");
 
-					psVe.setString(1, maVeHienTai);
-					psVe.setString(2, isKhuHoi ? "KHU_HOI" : "MOT_CHIEU");
-					psVe.setString(3, trangThai);
+			boolean veOk = new dao.VeDAO().insertBatchTrongTransaction(con, modelChiTiet, modelFromGUI2, maHD, maKH,
+					trangThai, isKhuHoi);
+			if (!veOk)
+				throw new Exception("Insert Ve thất bại");
 
-					// Cập nhật giá vé trong bảng chi tiết khớp với "Thành tiền" đã giảm
-					psVe.setDouble(4, parseMoney(modelChiTiet.getValueAt(i, 7).toString()));
-
-					psVe.setString(5, modelFromGUI2.getValueAt(i, 4).toString());
-					psVe.setString(6, maHD);
-					psVe.setString(7, modelFromGUI2.getValueAt(i, 12).toString());
-					if (maKH != null)
-						psVe.setString(8, maKH);
-					else
-						psVe.setNull(8, java.sql.Types.VARCHAR);
-
-					psVe.addBatch();
-				}
-				psVe.executeBatch();
-			}
 			con.commit();
 			return true;
+
 		} catch (Exception e) {
 			if (con != null)
 				try {
 					con.rollback();
-				} catch (Exception ex) {
+				} catch (Exception ignored) {
 				}
+			e.printStackTrace();
 			return false;
 		} finally {
 			if (con != null)
 				try {
 					con.setAutoCommit(true);
 					con.close();
-				} catch (Exception ex) {
+				} catch (Exception ignored) {
 				}
 		}
 	}
@@ -1516,79 +1454,72 @@ public class DatVeGUI3 extends JPanel {
 	}
 
 	private void nhapKhuyenMai() {
-	    java.util.Set<String> MA_CO_DINH = new java.util.HashSet<>(
-	            java.util.Arrays.asList("KM001","KM002","KM003","KM208603"));
+		java.util.Set<String> MA_CO_DINH = new java.util.HashSet<>(
+				java.util.Arrays.asList("KM001", "KM002", "KM003", "KM208603"));
 
-	    java.util.List<entity.KhuyenMai> dsKM = new dao.KhuyenMaiDAO().selectAll()
-	            .stream()
-	            .filter(km ->
-	                !MA_CO_DINH.contains(km.getMaKhuyenMai())
-	                && km.getLoaiKhachHang() == null
-	                && "Đang áp dụng".equals(KhuyenMaiGUI.computeStatus(
-	                        km.getThoiGianBatDau(), km.getThoiGianKetThuc()))
-	                && tongGiaGoc >= km.getDieuKienToiThieu()
-	            )
-	            .collect(java.util.stream.Collectors.toList());
+		java.util.List<entity.KhuyenMai> dsKM = new dao.KhuyenMaiDAO().selectAll().stream()
+				.filter(km -> !MA_CO_DINH.contains(km.getMaKhuyenMai()) && km.getLoaiKhachHang() == null
+						&& "Đang áp dụng"
+								.equals(KhuyenMaiGUI.computeStatus(km.getThoiGianBatDau(), km.getThoiGianKetThuc()))
+						&& tongGiaGoc >= km.getDieuKienToiThieu())
+				.collect(java.util.stream.Collectors.toList());
 
-	    // Build JPopupMenu
-	    JPopupMenu popup = new JPopupMenu();
-	    popup.setBorder(BorderFactory.createCompoundBorder(
-	            new LineBorder(new Color(180, 205, 230), 1),
-	            new EmptyBorder(4, 0, 4, 0)));
+		// Build JPopupMenu
+		JPopupMenu popup = new JPopupMenu();
+		popup.setBorder(BorderFactory.createCompoundBorder(new LineBorder(new Color(180, 205, 230), 1),
+				new EmptyBorder(4, 0, 4, 0)));
 
-	    ButtonGroup bg = new ButtonGroup();
+		ButtonGroup bg = new ButtonGroup();
 
-	    // Dòng "Không áp dụng"
-	    JRadioButtonMenuItem rbNone = new JRadioButtonMenuItem("Không áp dụng khuyến mãi");
-	    rbNone.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 14));
-	    rbNone.setSelected(selectedVoucher == null);
-	    rbNone.addActionListener(e -> {
-	        selectedVoucher = null;
-	        giamVoucher = 0;
-	        tinhToanTaiChinh();
-	    });
-	    bg.add(rbNone);
-	    popup.add(rbNone);
+		// Dòng "Không áp dụng"
+		JRadioButtonMenuItem rbNone = new JRadioButtonMenuItem("Không áp dụng khuyến mãi");
+		rbNone.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 14));
+		rbNone.setSelected(selectedVoucher == null);
+		rbNone.addActionListener(e -> {
+			selectedVoucher = null;
+			giamVoucher = 0;
+			tinhToanTaiChinh();
+		});
+		bg.add(rbNone);
+		popup.add(rbNone);
 
-	    if (dsKM.isEmpty()) {
-	        popup.addSeparator();
-	        JMenuItem lblEmpty = new JMenuItem("Không có khuyến mãi phù hợp");
-	        lblEmpty.setFont(new java.awt.Font("Segoe UI", java.awt.Font.ITALIC, 14));
-	        lblEmpty.setForeground(Color.GRAY);
-	        lblEmpty.setEnabled(false);
-	        popup.add(lblEmpty);
-	    } else {
-	        popup.addSeparator();
-	        for (entity.KhuyenMai km : dsKM) {
-	            int pct = (int) Math.round(km.getTiLeGiamGia() * 100);
-	            String label = String.format("[%s] %s — giảm %d%%",
-	                    km.getMaKhuyenMai(), km.getTenKhuyenMai(), pct);
-	            JRadioButtonMenuItem rb = new JRadioButtonMenuItem(label);
-	            rb.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 14));
-	            if (selectedVoucher != null
-	                    && km.getMaKhuyenMai().equals(selectedVoucher.getMaKhuyenMai()))
-	                rb.setSelected(true);
-	            final entity.KhuyenMai kmFinal = km;
-	            rb.addActionListener(e -> {
-	                selectedVoucher = kmFinal;
-	                giamVoucher = kmFinal.getTiLeGiamGia() * tongGiaGoc;
-	                tinhToanTaiChinh();
-	            });
-	            bg.add(rb);
-	            popup.add(rb);
-	        }
-	    }
+		if (dsKM.isEmpty()) {
+			popup.addSeparator();
+			JMenuItem lblEmpty = new JMenuItem("Không có khuyến mãi phù hợp");
+			lblEmpty.setFont(new java.awt.Font("Segoe UI", java.awt.Font.ITALIC, 14));
+			lblEmpty.setForeground(Color.GRAY);
+			lblEmpty.setEnabled(false);
+			popup.add(lblEmpty);
+		} else {
+			popup.addSeparator();
+			for (entity.KhuyenMai km : dsKM) {
+				int pct = (int) Math.round(km.getTiLeGiamGia() * 100);
+				String label = String.format("[%s] %s — giảm %d%%", km.getMaKhuyenMai(), km.getTenKhuyenMai(), pct);
+				JRadioButtonMenuItem rb = new JRadioButtonMenuItem(label);
+				rb.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 14));
+				if (selectedVoucher != null && km.getMaKhuyenMai().equals(selectedVoucher.getMaKhuyenMai()))
+					rb.setSelected(true);
+				final entity.KhuyenMai kmFinal = km;
+				rb.addActionListener(e -> {
+					selectedVoucher = kmFinal;
+					giamVoucher = kmFinal.getTiLeGiamGia() * tongGiaGoc;
+					tinhToanTaiChinh();
+				});
+				bg.add(rb);
+				popup.add(rb);
+			}
+		}
 
-	    // Tìm nút "Thêm khuyến mãi" để hiện popup ngay phía trên nút
-	    Component source = null;
-	    for (Component c : pnlBtns.getComponents()) {
-	        if (c instanceof JButton && ((JButton)c).getText().contains("khuyến mãi")) {
-	            source = c;
-	            break;
-	        }
-	    }
-	    if (source != null)
-	        popup.show(source, 0, -popup.getPreferredSize().height - 2);
+		// Tìm nút "Thêm khuyến mãi" để hiện popup ngay phía trên nút
+		Component source = null;
+		for (Component c : pnlBtns.getComponents()) {
+			if (c instanceof JButton && ((JButton) c).getText().contains("khuyến mãi")) {
+				source = c;
+				break;
+			}
+		}
+		if (source != null)
+			popup.show(source, 0, -popup.getPreferredSize().height - 2);
 	}
 
 	private void toggleQRCode() {

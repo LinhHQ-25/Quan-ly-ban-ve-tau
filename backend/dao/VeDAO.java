@@ -282,4 +282,35 @@ public class VeDAO {
         }
         return res;
     }
+    /**
+     * Insert danh sách vé theo batch trong một transaction đang mở.
+     * modelChiTiet và modelFromGUI2 truyền vào từ DatVeGUI3.
+     */
+    public boolean insertBatchTrongTransaction(Connection con,
+            javax.swing.table.DefaultTableModel modelChiTiet,
+            javax.swing.table.DefaultTableModel modelFromGUI2,
+            String maHD, String maKH, String trangThai, boolean isKhuHoi) throws Exception {
+        String sql = "INSERT INTO Ve (maVe, ngayMua, loaiVe, trangThaiVe, giaVe, "
+                   + "maGhe, maHoaDon, maChuyenTau, maKH, maKhuyenMai) "
+                   + "VALUES (?, GETDATE(), ?, ?, ?, ?, ?, ?, ?, NULL)";
+        try (PreparedStatement ps = con.prepareStatement(sql)) {
+            for (int i = 0; i < modelChiTiet.getRowCount(); i++) {
+                ps.setString(1, modelChiTiet.getValueAt(i, 1).toString());
+                ps.setString(2, isKhuHoi ? "KHU_HOI" : "MOT_CHIEU");
+                ps.setString(3, trangThai);
+                // giaVe = "Thành tiền" đã parse số
+                String thanhTienStr = modelChiTiet.getValueAt(i, 7).toString()
+                                                  .replaceAll("[^0-9]", "");
+                ps.setDouble(4, thanhTienStr.isEmpty() ? 0 : Double.parseDouble(thanhTienStr));
+                ps.setString(5, modelFromGUI2.getValueAt(i, 4).toString());  // maGhe
+                ps.setString(6, maHD);
+                ps.setString(7, modelFromGUI2.getValueAt(i, 12).toString()); // maChuyenTau
+                if (maKH != null) ps.setString(8, maKH);
+                else              ps.setNull(8, java.sql.Types.VARCHAR);
+                ps.addBatch();
+            }
+            ps.executeBatch();
+            return true;
+        }
+    }
 }

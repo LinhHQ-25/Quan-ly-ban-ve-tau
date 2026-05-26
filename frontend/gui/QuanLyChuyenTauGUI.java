@@ -83,10 +83,10 @@ final class QuanLyChuyenTauGUI extends JPanel {
         return mapGa.get(tenGa);
     }
     private void initData() {
+        // Ga: giữ thứ tự địa lý theo tuyến Bắc-Nam
         Connection conn = Connect_DB.getInstance().getConnection();
         if (conn == null) return;
         try {
-            // Load Ga in geographical order matching DatVeGUI
             String sqlGa = "SELECT maGa, tenGa FROM Ga ORDER BY " +
                 "CASE tenGa " +
                 "WHEN N'Hà Nội' THEN 1 " +
@@ -112,18 +112,15 @@ final class QuanLyChuyenTauGUI extends JPanel {
                 "WHEN N'Sài Gòn' THEN 21 " +
                 "ELSE 22 END ASC";
             ResultSet rsGa = conn.createStatement().executeQuery(sqlGa);
-            while (rsGa.next()) {
+            while (rsGa.next())
                 mapGa.put(rsGa.getString("tenGa"), rsGa.getString("maGa"));
-            }
-            
-            String sqlTau = "SELECT tenTau FROM Tau";
-            ResultSet rsTau = conn.createStatement().executeQuery(sqlTau);
-            while (rsTau.next()) {
-                listTau.add(rsTau.getString("tenTau"));
-            }
         } catch (SQLException e) {
             e.printStackTrace();
         }
+
+        // Tàu: dùng DAO
+        new dao.tauDAO().selectAll()
+            .forEach(tau -> listTau.add(tau.getTenTau()));
     }
     private JPanel buildSectionTitle(String title) {
         JPanel pnl = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
@@ -328,66 +325,30 @@ final class QuanLyChuyenTauGUI extends JPanel {
         pnlOuter.add(scroll, BorderLayout.CENTER);
         return pnlOuter;
     }
-
     private void loadIdleTrains() {
         if (pnlIdleCards == null) return;
         pnlIdleCards.removeAll();
 
-        Connection conn = Connect_DB.getInstance().getConnection();
-        if (conn == null) return;
-
         java.util.Date selectedDate = dcNgayDi.getDate();
-        String sql;
-        PreparedStatement stmt = null;
-        
-        try {
-            if (selectedDate != null) {
-                // Tàu chưa có lịch di chuyển vào ngày này
-                sql = "SELECT t.* FROM Tau t " +
-                      "WHERE t.trangThai = N'Đang hoạt động' " +
-                      "AND NOT EXISTS ( " +
-                      "    SELECT 1 FROM ChuyenTau ct " +
-                      "    JOIN ChiTietChuyenTau cct ON ct.maChuyenTau = cct.maChuyenTau " +
-                      "    WHERE ct.maTau = t.maTau " +
-                      "      AND CAST(cct.thoiGianKhoiHanh AS DATE) = ? " +
-                      ")";
-                stmt = conn.prepareStatement(sql);
-                stmt.setDate(1, new java.sql.Date(selectedDate.getTime()));
-            } else {
-                // Mặc định hiện các tàu đang rảnh trong tương lai
-                sql = "SELECT t.* FROM Tau t " +
-                      "WHERE t.trangThai = N'Đang hoạt động' " +
-                      "AND NOT EXISTS ( " +
-                      "    SELECT 1 FROM ChuyenTau ct " +
-                      "    JOIN ChiTietChuyenTau cct ON ct.maChuyenTau = cct.maChuyenTau " +
-                      "    WHERE ct.maTau = t.maTau " +
-                      "      AND cct.thoiGianKhoiHanh > GETDATE() " +
-                      ")";
-                stmt = conn.prepareStatement(sql);
-            }
+        dao.tauDAO tauDao = new dao.tauDAO();
 
-            ResultSet rs = stmt.executeQuery();
-            boolean hasIdle = false;
-            while (rs.next()) {
-                hasIdle = true;
+        java.util.List<entity.Tau> listTauRanh = (selectedDate != null)
+                ? tauDao.getTauRanhTheoNgay(new java.sql.Date(selectedDate.getTime()))
+                : tauDao.getTauRanhMacDinh();
+
+        if (listTauRanh.isEmpty()) {
+            JLabel lbl = new JLabel("Hiện không có tàu nào rảnh phù hợp.");
+            lbl.setFont(GuiTheme.font("Segoe UI", Font.ITALIC, 13));
+            lbl.setForeground(GuiTheme.SUB_TEXT);
+            pnlIdleCards.add(lbl);
+        } else {
+            for (entity.Tau t : listTauRanh) {
                 pnlIdleCards.add(new TrainCard(
-                    rs.getString("maTau"),
-                    rs.getString("tenTau"),
-                    rs.getInt("soToa"),
-                    rs.getInt("tongSoGhe")
+                    t.getMaTau(),
+                    t.getTenTau(),
+                    t.getSoToa(),
+                    t.getTongSoGhe()
                 ));
-            }
-            if (!hasIdle) {
-                JLabel lbl = new JLabel("Hiện không có tàu nào rảnh phù hợp.");
-                lbl.setFont(GuiTheme.font("Segoe UI", Font.ITALIC, 13));
-                lbl.setForeground(GuiTheme.SUB_TEXT);
-                pnlIdleCards.add(lbl);
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        } finally {
-            if (stmt != null) {
-                try { stmt.close(); } catch (SQLException ignored) {}
             }
         }
 
@@ -580,38 +541,12 @@ final class QuanLyChuyenTauGUI extends JPanel {
         dialog.setVisible(true);
     }
 
-    private boolean saveDieuDong(String maChuyenTau, String maTau, String maGaDi, String maGaDen, Timestamp tsDi, Timestamp tsDen) {
-        Connection conn = Connect_DB.getInstance().getConnection();
-        if (conn == null) return false;
-        try {
-            conn.setAutoCommit(false);
-            String sql1 = "INSERT INTO ChuyenTau(maChuyenTau, ghiChu, maTau, trangThai) VALUES (?, ?, ?, ?)";
-            PreparedStatement pst1 = conn.prepareStatement(sql1);
-            pst1.setString(1, maChuyenTau);
-            pst1.setString(2, "Điều động mới");
-            pst1.setString(3, maTau);
-            pst1.setString(4, "CHUAN_BI");
-            pst1.executeUpdate();
-            
-            String sql2 = "INSERT INTO ChiTietChuyenTau(maChuyenTau, thoiGianKhoiHanh, thoiGianDuKien, maGaDi, maGaDen) VALUES (?, ?, ?, ?, ?)";
-            PreparedStatement pst2 = conn.prepareStatement(sql2);
-            pst2.setString(1, maChuyenTau);
-            pst2.setTimestamp(2, tsDi);
-            pst2.setTimestamp(3, tsDen);
-            pst2.setString(4, maGaDi);
-            pst2.setString(5, maGaDen);
-            pst2.executeUpdate();
-            
-            conn.commit();
-            return true;
-        } catch (SQLException e) {
-            e.printStackTrace();
-            try { conn.rollback(); } catch(Exception ex){}
-            return false;
-        } finally {
-            try { conn.setAutoCommit(true); } catch(Exception ex){}
-        }
-    }
+    private boolean saveDieuDong(String maChuyenTau, String maTau,
+            String maGaDi, String maGaDen,
+            Timestamp tsDi, Timestamp tsDen) {
+return new dao.ChuyenTauDAO().saveDieuDong(
+maChuyenTau, maTau, maGaDi, maGaDen, tsDi, tsDen);
+}
 
     private JPanel buildTablePanel() {
         RoundedPanel pnlOuter = new RoundedPanel(12, Color.WHITE, GuiTheme.SEARCH_FIELD_BORDER, 1.0f);
@@ -724,80 +659,66 @@ final class QuanLyChuyenTauGUI extends JPanel {
     private void deleteSelectedTrip() {
         int row = tblData.getSelectedRow();
         if (row < 0) {
-            JOptionPane.showMessageDialog(this, "Vui lòng chọn một chuyến đi trên bảng để xóa!", "Thông báo", JOptionPane.WARNING_MESSAGE);
+            JOptionPane.showMessageDialog(this,
+                    "Vui lòng chọn một chuyến đi trên bảng để xóa!",
+                    "Thông báo", JOptionPane.WARNING_MESSAGE);
             return;
         }
-        
+
         int modelRow = tblData.convertRowIndexToModel(row);
         String maChuyenTau = (String) tblModel.getValueAt(modelRow, 8);
-        String tenTau = (String) tblModel.getValueAt(modelRow, 6);
-        
-        int confirm = JOptionPane.showConfirmDialog(this, "Bạn có chắc chắn muốn xóa chuyến đi của tàu " + tenTau + "?\nHành động này không thể hoàn tác.", "Xác nhận xóa", JOptionPane.YES_NO_OPTION);
+        String tenTau      = (String) tblModel.getValueAt(modelRow, 6);
+
+        int confirm = JOptionPane.showConfirmDialog(this,
+                "Bạn có chắc chắn muốn xóa chuyến đi của tàu " + tenTau
+                + "?\nHành động này không thể hoàn tác.",
+                "Xác nhận xóa", JOptionPane.YES_NO_OPTION);
         if (confirm != JOptionPane.YES_OPTION) return;
-        
-        Connection conn = Connect_DB.getInstance().getConnection();
-        if (conn == null) return;
-        try {
-            conn.setAutoCommit(false);
-            
-            String sql1 = "DELETE FROM ChiTietChuyenTau WHERE maChuyenTau = ?";
-            PreparedStatement pst1 = conn.prepareStatement(sql1);
-            pst1.setString(1, maChuyenTau);
-            pst1.executeUpdate();
-            
-            String sql2 = "DELETE FROM ChuyenTau WHERE maChuyenTau = ?";
-            PreparedStatement pst2 = conn.prepareStatement(sql2);
-            pst2.setString(1, maChuyenTau);
-            pst2.executeUpdate();
-            
-            conn.commit();
-            JOptionPane.showMessageDialog(this, "Xóa chuyến đi thành công!", "Thành công", JOptionPane.INFORMATION_MESSAGE);
+
+        boolean ok = new dao.ChuyenTauDAO().deleteChuyenTau(maChuyenTau);
+        if (ok) {
+            JOptionPane.showMessageDialog(this,
+                    "Xóa chuyến đi thành công!", "Thành công",
+                    JOptionPane.INFORMATION_MESSAGE);
             loadDataToTable();
             loadIdleTrains();
-        } catch (SQLException ex) {
-            try { conn.rollback(); } catch(Exception ignored){}
-            JOptionPane.showMessageDialog(this, "Không thể xóa chuyến đi này vì đã có vé hoặc hóa đơn liên kết với chuyến đi này!", "Lỗi Xóa", JOptionPane.ERROR_MESSAGE);
-        } finally {
-            try { conn.setAutoCommit(true); } catch(Exception ignored){}
+        } else {
+            JOptionPane.showMessageDialog(this,
+                    "Không thể xóa chuyến đi này vì đã có vé hoặc hóa đơn liên kết!",
+                    "Lỗi Xóa", JOptionPane.ERROR_MESSAGE);
         }
     }
 
     private void updateSelectedTrip() {
         int row = tblData.getSelectedRow();
         if (row < 0) {
-            JOptionPane.showMessageDialog(this, "Vui lòng chọn một chuyến đi trên bảng để cập nhật!", "Thông báo", JOptionPane.WARNING_MESSAGE);
+            JOptionPane.showMessageDialog(this,
+                    "Vui lòng chọn một chuyến đi trên bảng để cập nhật!",
+                    "Thông báo", JOptionPane.WARNING_MESSAGE);
             return;
         }
-        
+
         int modelRow = tblData.convertRowIndexToModel(row);
         String maChuyenTau = (String) tblModel.getValueAt(modelRow, 8);
-        
-        Connection conn = Connect_DB.getInstance().getConnection();
-        if (conn == null) return;
-        
-        try {
-            String sql = "SELECT ct.maTau, t.tenTau, dt.maGaDi, dt.maGaDen, dt.thoiGianKhoiHanh, dt.thoiGianDuKien, ct.trangThai " +
-                         "FROM ChuyenTau ct " +
-                         "JOIN ChiTietChuyenTau dt ON ct.maChuyenTau = dt.maChuyenTau " +
-                         "JOIN Tau t ON ct.maTau = t.maTau " +
-                         "WHERE ct.maChuyenTau = ?";
-            PreparedStatement pst = conn.prepareStatement(sql);
-            pst.setString(1, maChuyenTau);
-            ResultSet rs = pst.executeQuery();
-            if (rs.next()) {
-                String maTau = rs.getString("maTau");
-                String tenTau = rs.getString("tenTau");
-                String maGaDi = rs.getString("maGaDi");
-                String maGaDen = rs.getString("maGaDen");
-                Timestamp thoiGianKhoiHanh = rs.getTimestamp("thoiGianKhoiHanh");
-                Timestamp thoiGianDuKien = rs.getTimestamp("thoiGianDuKien");
-                String trangThai = rs.getString("trangThai");
-                
-                showUpdateDialog(maChuyenTau, maTau, tenTau, maGaDi, maGaDen, thoiGianKhoiHanh, thoiGianDuKien, trangThai);
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
+
+        Object[] data = new dao.ChuyenTauDAO().getChuyenTauForUpdate(maChuyenTau);
+        if (data == null) {
+            JOptionPane.showMessageDialog(this,
+                    "Không tìm thấy thông tin chuyến tàu!", "Lỗi",
+                    JOptionPane.ERROR_MESSAGE);
+            return;
         }
+
+        showUpdateDialog(
+            maChuyenTau,
+            (String)    data[0],   // maTau
+            (String)    data[1],   // tenTau
+            (String)    data[2],   // maGaDi
+            (String)    data[3],   // maGaDen
+            (Timestamp) data[4],   // thoiGianKhoiHanh
+            (Timestamp) data[5],   // thoiGianDuKien
+            (String)    data[6]    // trangThai
+        );
     }
 
     private void showUpdateDialog(String maChuyenTau, String maTau, String tenTau, String maGaDi, String maGaDen, Timestamp thoiGianKhoiHanh, Timestamp thoiGianDuKien, String trangThai) {
@@ -971,34 +892,20 @@ final class QuanLyChuyenTauGUI extends JPanel {
             
             String selectedTT = mapTrangThai.get((String) cboTrangThai.getSelectedItem());
             
-            Connection con = Connect_DB.getInstance().getConnection();
-            try {
-                con.setAutoCommit(false);
-                String u1 = "UPDATE ChuyenTau SET trangThai = ? WHERE maChuyenTau = ?";
-                PreparedStatement pu1 = con.prepareStatement(u1);
-                pu1.setString(1, selectedTT);
-                pu1.setString(2, maChuyenTau);
-                pu1.executeUpdate();
-                
-                String u2 = "UPDATE ChiTietChuyenTau SET thoiGianKhoiHanh = ?, thoiGianDuKien = ?, maGaDi = ?, maGaDen = ? WHERE maChuyenTau = ?";
-                PreparedStatement pu2 = con.prepareStatement(u2);
-                pu2.setTimestamp(1, tsDi);
-                pu2.setTimestamp(2, tsDen);
-                pu2.setString(3, getMaGa(gaDi));
-                pu2.setString(4, getMaGa(gaDen));
-                pu2.setString(5, maChuyenTau);
-                pu2.executeUpdate();
-                
-                con.commit();
-                JOptionPane.showMessageDialog(dialog, "Cập nhật chuyến đi thành công!", "Thành công", JOptionPane.INFORMATION_MESSAGE);
+            boolean ok = new dao.ChuyenTauDAO().updateChuyenTau(
+                    maChuyenTau,
+                    getMaGa(gaDi), getMaGa(gaDen),
+                    tsDi, tsDen,
+                    mapTrangThai.get((String) cboTrangThai.getSelectedItem()));
+            if (ok) {
+                JOptionPane.showMessageDialog(dialog, "Cập nhật chuyến đi thành công!",
+                        "Thành công", JOptionPane.INFORMATION_MESSAGE);
                 dialog.dispose();
                 loadDataToTable();
                 loadIdleTrains();
-            } catch (SQLException ex) {
-                try { con.rollback(); } catch(Exception ignored){}
-                JOptionPane.showMessageDialog(dialog, "Có lỗi xảy ra khi cập nhật!", "Lỗi", JOptionPane.ERROR_MESSAGE);
-            } finally {
-                try { con.setAutoCommit(true); } catch(Exception ignored){}
+            } else {
+                JOptionPane.showMessageDialog(dialog, "Có lỗi xảy ra khi cập nhật!",
+                        "Lỗi", JOptionPane.ERROR_MESSAGE);
             }
         });
         
@@ -1013,78 +920,32 @@ final class QuanLyChuyenTauGUI extends JPanel {
     private void loadDataToTable() {
         if (tblModel == null) return;
         tblModel.setRowCount(0);
-        Connection conn = Connect_DB.getInstance().getConnection();
-        if (conn == null) return;
 
-        try {
-            String sql = "SELECT ct.maChuyenTau, gDi.tenGa AS gaDi, gDen.tenGa AS gaDen, " +
-                         "dt.thoiGianKhoiHanh, dt.thoiGianDuKien, t.tenTau, ct.trangThai " +
-                         "FROM ChuyenTau ct " +
-                         "JOIN ChiTietChuyenTau dt ON ct.maChuyenTau = dt.maChuyenTau " +
-                         "JOIN Ga gDi ON dt.maGaDi = gDi.maGa " +
-                         "JOIN Ga gDen ON dt.maGaDen = gDen.maGa " +
-                         "JOIN Tau t ON ct.maTau = t.maTau " +
-                         "WHERE gDi.tenGa LIKE ? AND gDen.tenGa LIKE ? AND t.tenTau LIKE ?";
-            
-            if (dcNgayDi.getDate() != null) {
-                sql += " AND CAST(dt.thoiGianKhoiHanh AS DATE) = ?";
-            }
-            
-            sql += " ORDER BY dt.thoiGianKhoiHanh DESC";
+        String filterGaDi  = cboGaDiFilter.getSelectedItem()  != null
+                             ? cboGaDiFilter.getSelectedItem().toString()  : "";
+        String filterGaDen = cboGaDenFilter.getSelectedItem() != null
+                             ? cboGaDenFilter.getSelectedItem().toString() : "";
+        String filterTau   = cboTauFilter.getSelectedItem()   != null
+                             ? cboTauFilter.getSelectedItem().toString()   : "";
+        java.sql.Date ngayDi = dcNgayDi.getDate() != null
+                               ? new java.sql.Date(dcNgayDi.getDate().getTime()) : null;
 
-            PreparedStatement stmt = conn.prepareStatement(sql);
-            
-            String filterGaDi = (cboGaDiFilter.getSelectedItem() != null) ? cboGaDiFilter.getSelectedItem().toString() : "";
-            String filterGaDen = (cboGaDenFilter.getSelectedItem() != null) ? cboGaDenFilter.getSelectedItem().toString() : "";
-            String filterTau = (cboTauFilter.getSelectedItem() != null) ? cboTauFilter.getSelectedItem().toString() : "";
-            
-            stmt.setString(1, "%" + filterGaDi + "%");
-            stmt.setString(2, "%" + filterGaDen + "%");
-            stmt.setString(3, "%" + filterTau + "%");
-            
-            if (dcNgayDi.getDate() != null) {
-                stmt.setDate(4, new java.sql.Date(dcNgayDi.getDate().getTime()));
-            }
+        java.util.List<Object[]> rows = new dao.ChuyenTauDAO()
+                .searchChuyenTau(filterGaDi, filterGaDen, filterTau, ngayDi);
 
-            ResultSet rs = stmt.executeQuery();
-            int stt = 1;
-            SimpleDateFormat sdfDate = new SimpleDateFormat("dd/MM/yyyy");
-            SimpleDateFormat sdfTime = new SimpleDateFormat("HH:mm");
-            
-            while (rs.next()) {
-                java.sql.Timestamp khoiHanh = rs.getTimestamp("thoiGianKhoiHanh");
-                java.sql.Timestamp denDuKien = rs.getTimestamp("thoiGianDuKien");
-                
-                String ngayDi = khoiHanh != null ? sdfDate.format(khoiHanh) : "";
-                String ngayDen = denDuKien != null ? sdfDate.format(denDuKien) : "";
-                String gioDiGioDen = (khoiHanh != null ? sdfTime.format(khoiHanh) : "") + " - " + 
-                                     (denDuKien != null ? sdfTime.format(denDuKien) : "");
-
-                String dbStatus = rs.getString("trangThai");
-                String localizedStatus = dbStatus;
-                if (dbStatus != null) {
-                    switch (dbStatus) {
-                        case "CHUAN_BI": localizedStatus = "Chuẩn bị"; break;
-                        case "DANG_CHAY": localizedStatus = "Đang chạy"; break;
-                        case "DA_DEN": localizedStatus = "Đã đến"; break;
-                        case "HUY": localizedStatus = "Bị hủy"; break;
-                    }
-                }
-
-                tblModel.addRow(new Object[] {
-                    stt++,
-                    rs.getString("gaDi"),
-                    rs.getString("gaDen"),
-                    ngayDi,
-                    ngayDen,
-                    gioDiGioDen,
-                    rs.getString("tenTau"),
-                    localizedStatus,
-                    rs.getString("maChuyenTau")
-                });
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
+        int stt = 1;
+        for (Object[] r : rows) {
+            tblModel.addRow(new Object[]{
+                stt++,
+                r[0],  // gaDi
+                r[1],  // gaDen
+                r[2],  // ngayDi
+                r[3],  // ngayDen
+                r[4],  // gioDiGioDen
+                r[5],  // tenTau
+                r[6],  // trangThaiLocalized
+                r[7]   // maChuyenTau (ẩn)
+            });
         }
     }
 

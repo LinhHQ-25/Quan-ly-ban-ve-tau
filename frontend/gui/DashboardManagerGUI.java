@@ -15,6 +15,7 @@ public class DashboardManagerGUI extends JPanel {
     private static final Color LIGHT_BG = new Color(245, 247, 251);
     private static final Color BORDER_C = new Color(210, 215, 224);
 
+    private JLabel lblDoanhThuCmp, lblVeBanCmp, lblVeHuyCmp;
     private JLabel lblDoanhThu, lblVeBan, lblVeHuy;
     private RealtimeOccupancyChart barChart;
     private RealtimeDonutChart donutChart;
@@ -50,24 +51,33 @@ public class DashboardManagerGUI extends JPanel {
     }
 
     private JPanel buildRow1_KPI() {
-        JPanel row = new JPanel(new GridLayout(1, 3, 15, 0)); // Chia làm 3 phần bằng nhau
+        JPanel row = new JPanel(new GridLayout(1, 3, 15, 0));
         row.setOpaque(false);
-        
-        lblDoanhThu = new JLabel("0 đ");
-        lblVeBan = new JLabel("0 vé");
-        lblVeHuy = new JLabel("0 vé");
 
-        row.add(createKpiCard("DOANH THU HÔM NAY", lblDoanhThu, new Color(46, 204, 113)));
-        row.add(createKpiCard("VÉ BÁN RA HÔM NAY", lblVeBan, new Color(52, 152, 219)));
-        row.add(createKpiCard("VÉ HỦY / TRẢ HÔM NAY", lblVeHuy, new Color(231, 76, 60)));
+        lblDoanhThu = new JLabel("0 đ");
+        lblVeBan    = new JLabel("0 vé");
+        lblVeHuy    = new JLabel("0 vé");
+
+        lblDoanhThuCmp = new JLabel("--");
+        lblVeBanCmp    = new JLabel("--");
+        lblVeHuyCmp    = new JLabel("--");
+
+        row.add(createKpiCard("DOANH THU HÔM NAY",      lblDoanhThu, new Color(46, 204, 113),  lblDoanhThuCmp));
+        row.add(createKpiCard("VÉ BÁN RA HÔM NAY",      lblVeBan,    new Color(52, 152, 219),  lblVeBanCmp));
+        row.add(createKpiCard("VÉ HỦY / TRẢ HÔM NAY",   lblVeHuy,    new Color(231, 76, 60),   lblVeHuyCmp));
         return row;
     }
 
-    private JPanel createKpiCard(String title, JLabel valueLabel, Color accent) {
+    private JPanel createKpiCard(String title, JLabel valueLabel, Color accent, JLabel cmpLabel) {
         RoundedPanel card = new RoundedPanel(15, Color.WHITE);
-        card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
-        card.setBorder(BorderFactory.createCompoundBorder(
-            new MatteBorder(0, 5, 0, 0, accent), new EmptyBorder(12, 20, 12, 10))); // Giảm nhẹ padding dọc
+        card.setLayout(new BorderLayout());
+        card.setBorder(new MatteBorder(0, 5, 0, 0, accent));
+
+        // Phần trên: title + giá trị
+        JPanel topPanel = new JPanel();
+        topPanel.setOpaque(false);
+        topPanel.setLayout(new BoxLayout(topPanel, BoxLayout.Y_AXIS));
+        topPanel.setBorder(new EmptyBorder(12, 20, 4, 10)); // padding trên
 
         JLabel lblTitle = new JLabel(title);
         lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 12));
@@ -76,12 +86,22 @@ public class DashboardManagerGUI extends JPanel {
         valueLabel.setFont(new Font("Segoe UI", Font.BOLD, 22));
         valueLabel.setForeground(NAVY);
 
-        card.add(lblTitle);
-        card.add(Box.createVerticalStrut(6));
-        card.add(valueLabel);
+        topPanel.add(lblTitle);
+        topPanel.add(Box.createVerticalStrut(5));
+        topPanel.add(valueLabel);
+
+        // Phần dưới: cmp label sát đáy
+        JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        bottomPanel.setOpaque(false);
+        bottomPanel.setBorder(new EmptyBorder(0, 20, 8, 10)); // padding dưới
+
+        cmpLabel.setFont(new Font("Segoe UI", Font.BOLD, 11));
+        bottomPanel.add(cmpLabel);
+
+        card.add(topPanel,    BorderLayout.CENTER);
+        card.add(bottomPanel, BorderLayout.SOUTH); // Sát đáy thật sự
         return card;
     }
-
     private JPanel buildRow2_Charts() {
         JPanel row = new JPanel(new GridBagLayout());
         row.setOpaque(false);
@@ -123,67 +143,102 @@ public class DashboardManagerGUI extends JPanel {
     private void loadRealtimeData() {
         new Thread(() -> {
             try (Connection con = Connect_DB.getConnection()) {
-                if(con == null) return;
-                
-                // Query tổng hợp KPI Doanh thu và lượng vé của riêng ngày hôm nay
+                if (con == null) return;
+
+                // Khai báo NGOÀI cả 2 block để dùng chung
+                long dt = 0;
+                int vb = 0, vh = 0;
+
+                // Query KPI hôm nay
                 String sqlKPI = "SELECT " +
                     "(SELECT ISNULL(SUM(tongTien),0) FROM HoaDon WHERE CAST(ngayLapHD AS DATE) = CAST(GETDATE() AS DATE)) as doanhThu, " +
                     "(SELECT COUNT(*) FROM Ve WHERE CAST(ngayMua AS DATE) = CAST(GETDATE() AS DATE) AND trangThaiVe = N'Đã thanh toán') as veBan, " +
                     "(SELECT COUNT(*) FROM Ve WHERE CAST(ngayMua AS DATE) = CAST(GETDATE() AS DATE) AND trangThaiVe = N'Đã hủy') as veHuy";
                 ResultSet rsKPI = con.prepareStatement(sqlKPI).executeQuery();
-                if(rsKPI.next()) {
-                    long dt = rsKPI.getLong("doanhThu");
-                    int vb = rsKPI.getInt("veBan"), vh = rsKPI.getInt("veHuy");
+                if (rsKPI.next()) {
+                    dt = rsKPI.getLong("doanhThu");
+                    vb = rsKPI.getInt("veBan");
+                    vh = rsKPI.getInt("veHuy");
+                    final long fDt = dt; final int fVb = vb, fVh = vh;
                     SwingUtilities.invokeLater(() -> {
-                        lblDoanhThu.setText(String.format("%,d đ", dt).replace(",", "."));
-                        lblVeBan.setText(vb + " vé"); 
-                        lblVeHuy.setText(vh + " vé");
+                        lblDoanhThu.setText(String.format("%,d đ", fDt).replace(",", "."));
+                        lblVeBan.setText(fVb + " vé");
+                        lblVeHuy.setText(fVh + " vé");
                     });
                 }
 
-                // Query lấy dữ liệu 5 chuyến tàu kế tiếp để tính tỷ lệ lấp đầy
+                // Query KPI hôm qua để so sánh
+                String sqlYesterday = "SELECT " +
+                    "(SELECT ISNULL(SUM(tongTien),0) FROM HoaDon WHERE CAST(ngayLapHD AS DATE) = CAST(DATEADD(day,-1,GETDATE()) AS DATE)) as dtHQ, " +
+                    "(SELECT COUNT(*) FROM Ve WHERE CAST(ngayMua AS DATE) = CAST(DATEADD(day,-1,GETDATE()) AS DATE) AND trangThaiVe = N'Đã thanh toán') as vbHQ, " +
+                    "(SELECT COUNT(*) FROM Ve WHERE CAST(ngayMua AS DATE) = CAST(DATEADD(day,-1,GETDATE()) AS DATE) AND trangThaiVe = N'Đã hủy') as vhHQ";
+                ResultSet rsYest = con.prepareStatement(sqlYesterday).executeQuery();
+                if (rsYest.next()) {
+                    long dtHQ = rsYest.getLong("dtHQ");
+                    int  vbHQ = rsYest.getInt("vbHQ");
+                    int  vhHQ = rsYest.getInt("vhHQ");
+                    final long fDt = dt; final int fVb = vb, fVh = vh;
+                    final long fDtHQ = dtHQ; final int fVbHQ = vbHQ, fVhHQ = vhHQ;
+                    SwingUtilities.invokeLater(() -> {
+                        // Doanh thu → hiện %
+                        lblDoanhThuCmp.setText(formatPct(fDt, fDtHQ) + " vs Hôm qua");
+                        colorCmp(lblDoanhThuCmp, fDt, fDtHQ, false);
+
+                        // Vé bán → hiện số nguyên
+                        lblVeBanCmp.setText(formatInt(fVb, fVbHQ) + " vs Hôm qua");
+                        colorCmp(lblVeBanCmp, fVb, fVbHQ, false);
+
+                        // Vé hủy → hiện số nguyên, đảo màu
+                        lblVeHuyCmp.setText(formatInt(fVh, fVhHQ) + " vs Hôm qua");
+                        colorCmp(lblVeHuyCmp, fVh, fVhHQ, true);
+                    });
+                }
+
+                // Query 5 chuyến tàu tỷ lệ lấp đầy
                 String sqlTau = "SELECT TOP 5 ct.maChuyenTau, t.tongSoGhe, " +
-                	    "ISNULL((SELECT COUNT(*) FROM Ve v WHERE v.maChuyenTau = ct.maChuyenTau AND v.trangThaiVe = N'Đã thanh toán'), 0) as veDaBan " +
-                	    "FROM ChuyenTau ct JOIN Tau t ON ct.maTau = t.maTau " +
-                	    "JOIN ChiTietChuyenTau cct ON ct.maChuyenTau = cct.maChuyenTau " +
-                	    "ORDER BY veDaBan DESC, cct.thoiGianKhoiHanh ASC";
+                    "ISNULL((SELECT COUNT(*) FROM Ve v WHERE v.maChuyenTau = ct.maChuyenTau AND v.trangThaiVe = N'Đã thanh toán'), 0) as veDaBan " +
+                    "FROM ChuyenTau ct JOIN Tau t ON ct.maTau = t.maTau " +
+                    "JOIN ChiTietChuyenTau cct ON ct.maChuyenTau = cct.maChuyenTau " +
+                    "ORDER BY veDaBan DESC, cct.thoiGianKhoiHanh ASC";
                 ResultSet rsTau = con.prepareStatement(sqlTau).executeQuery();
-                List<String> tauNames = new ArrayList<>(); List<Integer> tauCap = new ArrayList<>(); List<Integer> tauSold = new ArrayList<>();
-                while(rsTau.next()) {
+                List<String> tauNames = new ArrayList<>();
+                List<Integer> tauCap = new ArrayList<>();
+                List<Integer> tauSold = new ArrayList<>();
+                while (rsTau.next()) {
                     tauNames.add(rsTau.getString("maChuyenTau"));
                     tauCap.add(rsTau.getInt("tongSoGhe"));
                     tauSold.add(rsTau.getInt("veDaBan"));
                 }
                 SwingUtilities.invokeLater(() -> barChart.setData(tauNames, tauCap, tauSold));
 
-             // Sửa SQL để đếm số lượng vé theo loại chỗ (loaiGhe)
+                // Query phân loại ghế
                 String sqlGhe = "SELECT g.loaiGhe, COUNT(v.maVe) as soLuong " +
-                                "FROM Ve v JOIN Ghe g ON v.maGhe = g.maGhe " +
-                                "WHERE v.trangThaiVe = N'Đã thanh toán' " +
-                                "GROUP BY g.loaiGhe";
+                    "FROM Ve v JOIN Ghe g ON v.maGhe = g.maGhe " +
+                    "WHERE v.trangThaiVe = N'Đã thanh toán' " +
+                    "GROUP BY g.loaiGhe";
                 ResultSet rsGhe = con.prepareStatement(sqlGhe).executeQuery();
                 int gc = 0, gn = 0, gm = 0;
-                while(rsGhe.next()) {
+                while (rsGhe.next()) {
                     String loai = rsGhe.getString(1); int count = rsGhe.getInt(2);
-                    if(loai != null && loai.contains("giường")) gn += count;
-                    else if(loai != null && loai.contains("cứng")) gc += count;
+                    if (loai != null && loai.contains("giường")) gn += count;
+                    else if (loai != null && loai.contains("cứng")) gc += count;
                     else gm += count;
                 }
                 final int fgc = gc, fgn = gn, fgm = gm;
                 SwingUtilities.invokeLater(() -> donutChart.setData(fgc, fgn, fgm));
 
-                // Query đếm số lượng vé bán theo từng nấc giờ (0 - 23h) trong ngày hôm nay
+                // Query vé bán theo giờ hôm nay
                 String sqlGio = "SELECT DATEPART(hour, ngayMua) as gio, COUNT(*) FROM Ve " +
-                                "WHERE CAST(ngayMua AS DATE) = CAST(GETDATE() AS DATE) AND trangThaiVe = N'Đã thanh toán' GROUP BY DATEPART(hour, ngayMua)";
+                    "WHERE CAST(ngayMua AS DATE) = CAST(GETDATE() AS DATE) AND trangThaiVe = N'Đã thanh toán' " +
+                    "GROUP BY DATEPART(hour, ngayMua)";
                 ResultSet rsGio = con.prepareStatement(sqlGio).executeQuery();
                 int[] hourlyData = new int[24];
-                while(rsGio.next()) hourlyData[rsGio.getInt(1)] = rsGio.getInt(2);
+                while (rsGio.next()) hourlyData[rsGio.getInt(1)] = rsGio.getInt(2);
                 SwingUtilities.invokeLater(() -> lineChart.setData(hourlyData));
 
             } catch (SQLException e) { e.printStackTrace(); }
         }).start();
     }
-
     // ===================================================================================
     // INNER GRAPHICS CLASSES
     // ===================================================================================
@@ -336,59 +391,99 @@ public class DashboardManagerGUI extends JPanel {
     }
     class RealtimeHourlyLineChart extends JPanel {
         private int[] hourlyData = new int[24];
+        
+        private static final int HOUR_START = 6;
+        private static final int HOUR_END = 18;
+        private static final int HOUR_COUNT = HOUR_END - HOUR_START + 1; // 13 điểm: 6h->18h
+
         public RealtimeHourlyLineChart() { setOpaque(false); }
         public void setData(int[] data) { this.hourlyData = data; repaint(); }
 
-        @Override protected void paintComponent(Graphics g) {
+        @Override
+        protected void paintComponent(Graphics g) {
             super.paintComponent(g);
-            Graphics2D g2 = (Graphics2D) g; g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            Graphics2D g2 = (Graphics2D) g;
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
             int w = getWidth(), h = getHeight();
-            int padL = 40, padB = 30, padT = 15, padR = 25;
-            
-            int max = 5; 
-            for(int v : hourlyData) if(v > max) max = v; 
-            max = (int)(max * 1.2); // Tăng khoảng trần đồ thị lên 20%
-            
+            int padL = 45, padB = 30, padT = 15, padR = 15;
+
+            // Tìm max trong khung 6h-18h
+            int rawMax = 0;
+            for (int i = HOUR_START; i <= HOUR_END; i++)
+                if (hourlyData[i] > rawMax) rawMax = hourlyData[i];
+
+         // Tính step Y đẹp
+            int step = 1;
+            if (rawMax == 0)      step = 10; // ← thêm dòng này lên đầu
+            else if (rawMax > 50)  step = 20;
+            else if (rawMax > 20) step = 10;
+            else if (rawMax > 10) step = 5;
+            else if (rawMax > 5)  step = 2;
+            else step = 1;
+
+            // Làm tròn max lên bội số của step, thêm 1 bậc trên đỉnh
+            int max = (rawMax == 0) ? 50 : ((rawMax / step) + 2) * step;
+            int gridLines = max / step; // số đường lưới ngang
+
+            // Vẽ trục
             g2.setColor(new Color(220, 225, 235));
             g2.drawLine(padL, padT, padL, h - padB);
             g2.drawLine(padL, h - padB, w - padR, h - padB);
-            
-            int stepX = (w - padL - padR) / 23;
+
+            int chartW = w - padL - padR;
             int chartH = h - padB - padT;
-            
-            // Vẽ các đường lưới ngang và nhãn trục Y
+            int stepX = chartW / (HOUR_COUNT - 1);
+
+            // Lưới ngang + nhãn trục Y (số nguyên đẹp)
             g2.setFont(new Font("Segoe UI", Font.PLAIN, 10));
-            g2.setColor(new Color(240, 240, 240));
-            for(int i = 1; i <= 4; i++) {
-                int yGrid = h - padB - (chartH * i / 4);
+            for (int i = 1; i <= gridLines; i++) {
+                int val = i * step;
+                int yGrid = h - padB - (int)((double) val / max * chartH);
+                if (yGrid < padT) break; // Không vẽ ra ngoài vùng
                 g2.setColor(new Color(230, 235, 245));
                 g2.drawLine(padL, yGrid, w - padR, yGrid);
                 g2.setColor(Color.GRAY);
-                g2.drawString(String.valueOf(max * i / 4), padL - 25, yGrid + 4);
+                String lbl = String.valueOf(val);
+                int lw = g2.getFontMetrics().stringWidth(lbl);
+                g2.drawString(lbl, padL - lw - 5, yGrid + 4);
             }
 
+            // Tính tọa độ 6h -> 18h
+            int[] xs = new int[HOUR_COUNT];
+            int[] ys = new int[HOUR_COUNT];
             Path2D path = new Path2D.Float();
-            int[] xs = new int[24]; int[] ys = new int[24];
-            
-            for(int i=0; i<24; i++) {
+
+            for (int i = 0; i < HOUR_COUNT; i++) {
+                int hour = HOUR_START + i;
                 xs[i] = padL + i * stepX;
-                ys[i] = h - padB - (int)((double)hourlyData[i] / max * chartH);
-                if(i == 0) path.moveTo(xs[i], ys[i]); else path.lineTo(xs[i], ys[i]);
-                
-                if(i % 2 == 0) {
-                    g2.setColor(Color.GRAY);
-                    g2.drawString(i + "h", xs[i] - 6, h - padB + 16);
-                }
+                ys[i] = h - padB - (int)((double) hourlyData[hour] / max * chartH);
+
+                if (i == 0) path.moveTo(xs[i], ys[i]);
+                else path.lineTo(xs[i], ys[i]);
+
+                // Nhãn trục X: mỗi giờ (6,7,8,...,18)
+                g2.setFont(new Font("Segoe UI", Font.PLAIN, 10));
+                g2.setColor(Color.GRAY);
+                String lbl = hour + "h";
+                int lw = g2.getFontMetrics().stringWidth(lbl);
+                g2.drawString(lbl, xs[i] - lw / 2, h - padB + 16);
             }
+
+            // Vẽ đường line
             g2.setColor(new Color(46, 204, 113));
             g2.setStroke(new BasicStroke(2.8f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
             g2.draw(path);
-            
-            // Vẽ các chấm điểm mốc tọa độ giờ
-            for(int i=0; i<24; i++) {
-                if(hourlyData[i] > 0) {
-                    g2.setColor(Color.WHITE); g2.fillOval(xs[i]-4, ys[i]-4, 8, 8);
-                    g2.setColor(new Color(46, 204, 113)); g2.drawOval(xs[i]-4, ys[i]-4, 8, 8);
+
+            // Chấm tròn tại các giờ có dữ liệu
+            for (int i = 0; i < HOUR_COUNT; i++) {
+                int hour = HOUR_START + i;
+                if (hourlyData[hour] > 0) {
+                    g2.setColor(Color.WHITE);
+                    g2.fillOval(xs[i] - 4, ys[i] - 4, 8, 8);
+                    g2.setColor(new Color(46, 204, 113));
+                    g2.setStroke(new BasicStroke(2f));
+                    g2.drawOval(xs[i] - 4, ys[i] - 4, 8, 8);
                 }
             }
         }
@@ -401,5 +496,23 @@ public class DashboardManagerGUI extends JPanel {
             Graphics2D g2 = (Graphics2D) g; g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
             g2.setColor(bgColor); g2.fillRoundRect(0, 0, getWidth(), getHeight(), radius, radius); super.paintComponent(g);
         }
+    }
+ // Doanh thu: hiển thị % thay đổi
+    private String formatPct(long today, long yesterday) {
+        if (yesterday == 0) return "--";
+        double pct = (double)(today - yesterday) / yesterday * 100;
+        return String.format("%s %.1f%%", pct >= 0 ? "↗" : "↘", Math.abs(pct));
+    }
+
+    private String formatInt(long today, long yesterday) {
+        long diff = today - yesterday;
+        return String.format("%s %d vé", diff >= 0 ? "↗" : "↘", Math.abs(diff));
+    }
+    // Tô màu: xanh = tốt, đỏ = xấu
+    private void colorCmp(JLabel lbl, long today, long yesterday, boolean invertColor) {
+        if (yesterday == 0) { lbl.setForeground(Color.GRAY); return; }
+        boolean isUp = today >= yesterday;
+        boolean isGood = invertColor ? !isUp : isUp;
+        lbl.setForeground(isGood ? new Color(39, 174, 96) : new Color(192, 57, 43));
     }
 }

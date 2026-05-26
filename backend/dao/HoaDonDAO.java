@@ -364,4 +364,24 @@ public class HoaDonDAO implements DAO<HoaDon, String> {
         }
         return rows;
     }
+    /**
+     * Insert hóa đơn trong một transaction đang mở (con truyền vào, không tự đóng).
+     * Dùng trong luuDuLieuVaoDatabase() của DatVeGUI3.
+     */
+    public boolean insertTrongTransaction(Connection con, String maHD, String maNV, String maKH,
+                                          double tongTien, double tienNhan,
+                                          String phuongThucThanhToan) throws Exception {
+        String sql = "INSERT INTO HoaDon (maHoaDon, ngayLapHD, maNV, maKH, tongTien, tienNhan, phuongThucThanhToan) "
+                   + "VALUES (?, GETDATE(), ?, ?, ?, ?, ?)";
+        try (PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setString(1, maHD);
+            ps.setString(2, maNV);
+            if (maKH != null) ps.setString(3, maKH);
+            else              ps.setNull(3, java.sql.Types.VARCHAR);
+            ps.setDouble(4, tongTien);
+            ps.setDouble(5, tienNhan);
+            ps.setString(6, phuongThucThanhToan);
+            return ps.executeUpdate() > 0;
+        }
+    }
 }
