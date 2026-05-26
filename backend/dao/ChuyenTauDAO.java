@@ -244,7 +244,11 @@ public class ChuyenTauDAO {
                     });
                 }
             }
-            /**
+        } catch (Exception e) { e.printStackTrace(); }
+        return result;
+    }
+
+    /**
      * Lấy ra thời gian đến dự kiến gần nhất của tàu trước mốc thời gian targetTime
      */
     public Timestamp getThoiGianDenGanNhat(String maTau, Timestamp targetTime) {
