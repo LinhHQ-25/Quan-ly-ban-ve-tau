@@ -416,7 +416,7 @@ public final class QuanLyTauGUI extends JPanel {
         scroll.getViewport().setOpaque(false);
         scroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
         scroll.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_NEVER);
-        scroll.setPreferredSize(new Dimension(0, 77));
+        scroll.setPreferredSize(new Dimension(0, 100));
         scroll.getHorizontalScrollBar().setUnitIncrement(15);
 
         JPanel pnlContent = new JPanel(new BorderLayout(0, 12));
@@ -1701,13 +1701,13 @@ public final class QuanLyTauGUI extends JPanel {
             this.loaiToa = loaiToa;
             this.isSelected = isSelected;
 
-            setPreferredSize(new Dimension(53, 76));
+            setPreferredSize(new Dimension(85, 90));
             setOpaque(false);
             setLayout(new BorderLayout(0, 4));
-            setBorder(new EmptyBorder(34, 4, 5, 4));
+            setBorder(new EmptyBorder(46, 5, 5, 5));
 
             JLabel lblToa = new JLabel("Toa " + String.format("%02d", soToa), SwingConstants.CENTER);
-            lblToa.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 9));
+            lblToa.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 11));
             lblToa.setForeground(isSelected ? new Color(40, 100, 220) : new Color(80, 90, 100));
             add(lblToa, BorderLayout.CENTER);
 
@@ -1744,11 +1744,11 @@ public final class QuanLyTauGUI extends JPanel {
             Color iconColor = isSelected ? new Color(40, 100, 220) : new Color(156, 163, 175);
             boolean isVip = "TOA_VIP".equals(loaiToa) || (loaiToa != null && loaiToa.toUpperCase().contains("VIP"));
             String iconPath = isVip ? "/Images/logoToaVip.png" : "/Images/logoToaThuong.png";
-            ImageIcon imgIcon = GuiIcons.loadIcon(QuanLyTauGUI.class, iconPath, 20, 24);
+            ImageIcon imgIcon = GuiIcons.loadIcon(QuanLyTauGUI.class, iconPath, 32, 36);
             if (imgIcon != null) {
-                g2.drawImage(imgIcon.getImage(), (getWidth() - 20) / 2, 7, null);
+                g2.drawImage(imgIcon.getImage(), (getWidth() - 32) / 2, 8, null);
             } else {
-                drawToaIcon(g2, (getWidth() - 20) / 2, 7, 20, 24, iconColor);
+                drawToaIcon(g2, (getWidth() - 32) / 2, 8, 32, 36, iconColor);
             }
 
             g2.dispose();

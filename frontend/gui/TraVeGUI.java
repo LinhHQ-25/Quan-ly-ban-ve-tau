@@ -3,6 +3,9 @@ package gui;
 import javax.swing.*;
 import javax.swing.border.*;
 import java.awt.*;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
@@ -278,7 +281,7 @@ public class TraVeGUI extends JPanel {
             updateStatTitle(statPanelPhi, "Phí trả (" + phiPct + "%)");
             lbStatPhi.setText(fmtTien(phiTien)); lbStatPhi.setForeground(new Color(160,100,0));
             lbStatHoan.setText(fmtTien(tongTien - phiTien)); lbStatHoan.setForeground(OK_FG);
-            lbWarning.setText("Vé hợp lệ. Nhấn 'Tiếp tục' để xác nhận."); lbWarning.setForeground(OK_FG);
+            lbWarning.setText("Vé hợp lệ. Nhấn 'Xác nhận trả vé' để tiến hành hoàn tiền."); lbWarning.setForeground(OK_FG);
             btnXacNhan.setEnabled(true);
         } else {
             updateStatTitle(statPanelPhi, "Phí trả");
@@ -295,23 +298,19 @@ public class TraVeGUI extends JPanel {
     }
 
     private void handleTiepTuc() {
-        String lyDo = cbLyDo.getSelectedItem().toString();
-        if ("Khác".equals(lyDo)) {
-            if (txtLyDoKhac.getText().trim().isEmpty()) {
-                JOptionPane.showMessageDialog(this,"Vui lòng nhập lý do!","Yêu cầu nhập liệu",JOptionPane.WARNING_MESSAGE);
-                txtLyDoKhac.requestFocus(); return;
-            }
-            lyDo = txtLyDoKhac.getText().trim();
-        }
-
         int choice = JOptionPane.showConfirmDialog(this,
                 "Xác nhận trả vé " + s_maVe + "?", "Xác nhận", JOptionPane.YES_NO_OPTION);
         if (choice != JOptionPane.YES_OPTION) return;
 
         String maDon;
-        try (java.sql.Connection conn = connect_DB.Connect_DB.getInstance().getConnection()) {
-            maDon = util.MaTuDong.taoMaDon(conn, java.time.LocalDate.now());
+        try (Connection conn = connect_DB.Connect_DB.getInstance().getConnection()) {
+            maDon = util.MaTuDong.taoMaDon(conn, LocalDate.now());
         } catch (Exception e) { return; }
+
+        String currentNV = service.AuthService.getCurrentMaNV();
+        if (currentNV == null || currentNV.trim().isEmpty()) {
+            currentNV = "NV001";
+        }
 
         long tienHoanKhach = 0;
         try { tienHoanKhach = Long.parseLong(lbStatHoan.getText().replaceAll("[^0-9]", "")); } catch (Exception ignored) {}
@@ -320,21 +319,22 @@ public class TraVeGUI extends JPanel {
         try { phiHuyVe = Long.parseLong(lbStatPhi.getText().replaceAll("[^0-9]", "")); } catch (Exception ignored) {}
 
         String sqlInsertHD = "INSERT INTO HoaDon (maHoaDon, ngayLapHD, maNV, maKH, tongTien, tienNhan, phuongThucThanhToan) " +
-                "SELECT ?, GETDATE(), hd.maNV, hd.maKH, ?, 0, N'Hoàn tiền' " +
+                "SELECT ?, GETDATE(), ?, hd.maKH, ?, 0, N'Hoàn tiền' " +
                 "FROM HoaDon hd JOIN Ve v ON v.maHoaDon = hd.maHoaDon WHERE v.maVe = ?";
 
         String sqlUpdateVe  = "UPDATE Ve SET trangThaiVe = N'Đã hủy', maHoaDon = ? WHERE maVe = ?";
         String sqlInsertDon = "INSERT INTO DonDoiTraVe (maDon, tienBu, ngayLap, tienHoanTra, loaiDon, maVe) VALUES (?, ?, GETDATE(), ?, 'DON_TRA', ?)";
 
-        try (java.sql.Connection conn = connect_DB.Connect_DB.getInstance().getConnection()) {
+        try (Connection conn = connect_DB.Connect_DB.getInstance().getConnection()) {
             conn.setAutoCommit(false);
-            try (java.sql.PreparedStatement psHD  = conn.prepareStatement(sqlInsertHD);
-                 java.sql.PreparedStatement psVe  = conn.prepareStatement(sqlUpdateVe);
-                 java.sql.PreparedStatement psDon = conn.prepareStatement(sqlInsertDon)) {
+            try (PreparedStatement psHD  = conn.prepareStatement(sqlInsertHD);
+                 PreparedStatement psVe  = conn.prepareStatement(sqlUpdateVe);
+                 PreparedStatement psDon = conn.prepareStatement(sqlInsertDon)) {
 
                 psHD.setString(1, maDon);
-                psHD.setLong  (2, phiHuyVe);
-                psHD.setString(3, s_maVe);
+                psHD.setString(2, currentNV);
+                psHD.setLong  (3, phiHuyVe);
+                psHD.setString(4, s_maVe);
                 int hdRows = psHD.executeUpdate();
                 if (hdRows == 0) throw new Exception("Không tìm được hóa đơn gốc của vé " + s_maVe);
 
@@ -349,7 +349,8 @@ public class TraVeGUI extends JPanel {
                 psDon.executeUpdate();
 
                 conn.commit();
-                xuatHoaDonPDF(maDon);
+
+                xuatHoaDonPDF(maDon, tienHoanKhach, phiHuyVe);
 
                 JOptionPane.showMessageDialog(this,
                         "<html><div style='padding:6px'><b>Trả vé thành công!</b><br><br>" +
@@ -358,11 +359,7 @@ public class TraVeGUI extends JPanel {
                                 "Hoàn trả khách: <b>" + fmtTien(tienHoanKhach) + "</b></div></html>",
                         "Hoàn tất", JOptionPane.PLAIN_MESSAGE);
                 appFrame.showCard("doi-tra");
-
-            } catch (Exception ex) {
-                conn.rollback();
-                throw ex;
-            }
+            } catch (Exception ex) { conn.rollback(); throw ex; }
         } catch (Exception e) {
             e.printStackTrace();
             JOptionPane.showMessageDialog(this, "Lỗi: " + e.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
@@ -444,34 +441,19 @@ public class TraVeGUI extends JPanel {
         b.setPreferredSize(new Dimension(w,h)); b.setContentAreaFilled(false); b.setBorderPainted(false); b.setFocusPainted(false); b.setCursor(new Cursor(Cursor.HAND_CURSOR)); return b;
     }
 
-    private void xuatHoaDonPDF(String maDon) {
-        try (java.sql.Connection conn = connect_DB.Connect_DB.getConnection()) {
-            String sqlHD = "SELECT h.tongTien, h.tienNhan, h.phuongThucThanhToan, k.hoTenKH, k.sdt FROM HoaDon h LEFT JOIN KhachHang k ON h.maKH = k.maKH WHERE h.maHoaDon = ?";
-            String tenKH = "Khách vãng lai", sdtKH = "", hinhThuc = "";
-            try (java.sql.PreparedStatement ps = conn.prepareStatement(sqlHD)) {
+    private void xuatHoaDonPDF(String maDon, long tienHoanKhach, long phiHuyVe) {
+        try (Connection conn = connect_DB.Connect_DB.getConnection()) {
+            String sqlHD = "SELECT h.phuongThucThanhToan, k.hoTenKH, k.sdt FROM HoaDon h LEFT JOIN KhachHang k ON h.maKH = k.maKH WHERE h.maHoaDon = ?";
+            String tenKH = "Khách vãng lai", sdtKH = "", hinhThuc = "Tiền mặt";
+            try (PreparedStatement ps = conn.prepareStatement(sqlHD)) {
                 ps.setString(1, maDon);
                 try (java.sql.ResultSet rs = ps.executeQuery()) {
                     if (rs.next()) {
                         tenKH = rs.getString("hoTenKH") != null ? rs.getString("hoTenKH") : "Khách vãng lai";
                         sdtKH = rs.getString("sdt") != null ? rs.getString("sdt") : "";
-                        hinhThuc = rs.getString("phuongThucThanhToan") != null ? rs.getString("phuongThucThanhToan") : "";
                     }
                 }
             }
-
-            String sqlDon = "SELECT tienBu, tienHoanTra FROM DonDoiTraVe WHERE maDon = ?";
-            double phiTraVe = 0, tienHoanThucTe = 0;
-            try (java.sql.PreparedStatement ps = conn.prepareStatement(sqlDon)) {
-                ps.setString(1, maDon);
-                try (java.sql.ResultSet rs = ps.executeQuery()) {
-                    if (rs.next()) {
-                        phiTraVe = rs.getDouble("tienBu");
-                        tienHoanThucTe = rs.getDouble("tienHoanTra");
-                    }
-                }
-            }
-
-            String sqlVe = "SELECT v.maVe, v.loaiVe, v.giaVe, g.loaiGhe, gaDi.tenGa AS gaDi, gaDen.tenGa AS gaDen FROM Ve v JOIN Ghe g ON v.maGhe = g.maGhe JOIN ChiTietChuyenTau dt ON v.maChuyenTau = dt.maChuyenTau JOIN Ga gaDi ON dt.maGaDi = gaDi.maGa JOIN Ga gaDen ON dt.maGaDen = gaDen.maGa WHERE v.maHoaDon = ?";
 
             java.io.File folder = new java.io.File("HoaDon");
             if (!folder.exists()) folder.mkdir();
@@ -501,6 +483,7 @@ public class TraVeGUI extends JPanel {
             document.add(new com.itextpdf.text.Paragraph("Đơn vị bán hàng: CÔNG TY CỔ PHẦN VẬN TẢI ĐƯỜNG SẮT", fontBold));
             document.add(new com.itextpdf.text.Paragraph("Mã số thuế: 0100106264", fontNormal));
             document.add(new com.itextpdf.text.Paragraph("Địa chỉ: 113 Nguyễn Đình Thụ, Tuy Phước, Gia Lai", fontNormal));
+            document.add(new com.itextpdf.text.Paragraph("Nhân viên thực hiện trả vé: " + (service.AuthService.getCurrentHoTen() != null ? service.AuthService.getCurrentHoTen() : "N/A"), fontItalic));
             document.add(new com.itextpdf.text.Paragraph(" ", fontNormal));
 
             document.add(new com.itextpdf.text.Paragraph("Họ tên người mua hàng: " + tenKH, fontBold));
@@ -521,58 +504,46 @@ public class TraVeGUI extends JPanel {
             }
 
             java.text.DecimalFormat df = new java.text.DecimalFormat("#,###");
-            int stt = 1;
-            double tongTienVe = 0;
-            double tongPhuPhi = 0;
+            long tongTienVe = 0;
+            try { tongTienVe = Long.parseLong(s_data[8].replaceAll("[^0-9]", "")); } catch(Exception ignored){}
 
-            try (java.sql.PreparedStatement ps = conn.prepareStatement(sqlVe)) {
-                ps.setString(1, maDon);
-                try (java.sql.ResultSet rs = ps.executeQuery()) {
-                    while (rs.next()) {
-                        double giaVe = rs.getDouble("giaVe");
-                        double phuPhiDong = phiTraVe;
-                        double thanhTien = giaVe - phuPhiDong;
-                        tongTienVe += giaVe;
-                        tongPhuPhi += phuPhiDong;
+            String loaiVe = s_data.length > 3 ? s_data[3] : "";
+            String loaiVeHienThi = "MOT_CHIEU".equals(loaiVe) ? "Một chiều" : "KHU_HOI".equals(loaiVe) ? "Khứ hồi" : loaiVe;
+            String chieu = s_data.length > 4 ? s_data[4] : "";
 
-                        String lv = rs.getString("loaiVe");
-                        String loaiVeHienThi = "MOT_CHIEU".equals(lv) ? "Một chiều" : "KHU_HOI".equals(lv) ? "Khứ hồi" : (lv != null ? lv : "");
-
-                        pdfAddCell(table, fontNormal, String.valueOf(stt++), com.itextpdf.text.Element.ALIGN_CENTER);
-                        pdfAddCell(table, fontNormal, "Vé HK trực tiếp tại nhà ga", com.itextpdf.text.Element.ALIGN_LEFT);
-                        pdfAddCell(table, fontNormal, loaiVeHienThi, com.itextpdf.text.Element.ALIGN_CENTER);
-                        pdfAddCell(table, fontNormal, rs.getString("maVe") != null ? rs.getString("maVe") : "", com.itextpdf.text.Element.ALIGN_CENTER);
-                        pdfAddCell(table, fontNormal, rs.getString("gaDi") + " → " + rs.getString("gaDen"), com.itextpdf.text.Element.ALIGN_CENTER);
-                        pdfAddCell(table, fontNormal, df.format(giaVe), com.itextpdf.text.Element.ALIGN_RIGHT);
-                        pdfAddCell(table, fontNormal, "Vé", com.itextpdf.text.Element.ALIGN_CENTER);
-                        pdfAddCell(table, fontNormal, "1", com.itextpdf.text.Element.ALIGN_CENTER);
-                        pdfAddCell(table, fontNormal, df.format(phuPhiDong), com.itextpdf.text.Element.ALIGN_RIGHT);
-                        pdfAddCell(table, fontNormal, df.format(thanhTien), com.itextpdf.text.Element.ALIGN_RIGHT);
-                    }
-                }
-            }
+            pdfAddCell(table, fontNormal, "1", com.itextpdf.text.Element.ALIGN_CENTER);
+            pdfAddCell(table, fontNormal, "Hủy vé HK trực tiếp", com.itextpdf.text.Element.ALIGN_LEFT);
+            pdfAddCell(table, fontNormal, loaiVeHienThi, com.itextpdf.text.Element.ALIGN_CENTER);
+            pdfAddCell(table, fontNormal, s_maVe, com.itextpdf.text.Element.ALIGN_CENTER);
+            pdfAddCell(table, fontNormal, chieu, com.itextpdf.text.Element.ALIGN_CENTER);
+            pdfAddCell(table, fontNormal, df.format(tongTienVe), com.itextpdf.text.Element.ALIGN_RIGHT);
+            pdfAddCell(table, fontNormal, "Vé", com.itextpdf.text.Element.ALIGN_CENTER);
+            pdfAddCell(table, fontNormal, "1", com.itextpdf.text.Element.ALIGN_CENTER);
+            pdfAddCell(table, fontNormal, df.format(phiHuyVe), com.itextpdf.text.Element.ALIGN_RIGHT);
+            pdfAddCell(table, fontNormal, df.format(tienHoanKhach), com.itextpdf.text.Element.ALIGN_RIGHT);
 
             document.add(table);
             document.add(new com.itextpdf.text.Paragraph(" ", fontNormal));
 
-            double tongTienHoan = tongTienVe - tongPhuPhi;
-            com.itextpdf.text.Paragraph pGiaVe = new com.itextpdf.text.Paragraph("Tiền vé: " + df.format(tongTienVe), fontNormal);
+            com.itextpdf.text.Paragraph pGiaVe = new com.itextpdf.text.Paragraph("Tổng tiền: " + df.format(tongTienVe) + " VNĐ", fontBold);
             pGiaVe.setAlignment(com.itextpdf.text.Element.ALIGN_RIGHT);
             document.add(pGiaVe);
 
-            com.itextpdf.text.Paragraph pPhi = new com.itextpdf.text.Paragraph("Phụ phí (phí trả vé): " + df.format(tongPhuPhi), fontNormal);
+            com.itextpdf.text.Paragraph pPhi = new com.itextpdf.text.Paragraph("Tổng phụ phí (phí trả vé): " + df.format(phiHuyVe) + " VNĐ", fontBold);
             pPhi.setAlignment(com.itextpdf.text.Element.ALIGN_RIGHT);
             document.add(pPhi);
 
-            com.itextpdf.text.Paragraph pTong = new com.itextpdf.text.Paragraph("Tổng tiền hoàn: " + df.format(tongTienHoan), fontBold);
+            com.itextpdf.text.Paragraph pTong = new com.itextpdf.text.Paragraph("Còn lại (Tiền hoàn khách): " + df.format(tienHoanKhach) + " VNĐ", fontBold);
             pTong.setAlignment(com.itextpdf.text.Element.ALIGN_RIGHT);
             document.add(pTong);
 
-            com.itextpdf.text.Paragraph pChu = new com.itextpdf.text.Paragraph("Bằng chữ: " + docSoThanh((long) tongTienHoan), fontItalic);
-            pChu.setAlignment(com.itextpdf.text.Element.ALIGN_RIGHT);
-            document.add(pChu);
-
             document.add(new com.itextpdf.text.Paragraph(" ", fontNormal));
+
+            com.itextpdf.text.Phrase phraseTienChu = new com.itextpdf.text.Phrase();
+            phraseTienChu.add(new com.itextpdf.text.Chunk("Số tiền viết bằng chữ: ", fontNormal));
+            phraseTienChu.add(new com.itextpdf.text.Chunk(docTien(tienHoanKhach), fontItalic));
+            document.add(new com.itextpdf.text.Paragraph(phraseTienChu));
+
             document.add(new com.itextpdf.text.Paragraph("Ghi chú: ......................................................................................................................................", fontNormal));
             document.add(new com.itextpdf.text.Paragraph(" ", fontNormal));
             document.add(new com.itextpdf.text.Paragraph(" ", fontNormal));
@@ -604,39 +575,26 @@ public class TraVeGUI extends JPanel {
         table.addCell(cell);
     }
 
-    private String docSoThanh(long so) {
-        if (so == 0) return "Không đồng";
-        String[] donVi = {"", "nghìn", "triệu", "tỷ"};
-        String[] chu = {"", "một", "hai", "ba", "bốn", "năm", "sáu", "bảy", "tám", "chín"};
-        if (so < 0) return "Âm " + docSoThanh(-so);
-        StringBuilder sb = new StringBuilder();
-        int i = 0;
-        while (so > 0) {
-            int nhom = (int)(so % 1000);
-            if (nhom != 0) {
-                String phan = docNhom(nhom, chu) + (donVi[i].isEmpty() ? "" : " " + donVi[i]);
-                sb.insert(0, (sb.length() > 0 ? " " : "") + phan);
-            }
-            so /= 1000; i++;
-        }
-        String result = sb.toString().trim();
-        return Character.toUpperCase(result.charAt(0)) + result.substring(1) + " đồng";
+    private String docBaSo(int n, boolean hasPrefix) {
+        String[] digits = { "không", "một", "hai", "ba", "bốn", "năm", "sáu", "bảy", "tám", "chín" };
+        int t = n / 100, c = (n % 100) / 10, d = n % 10; StringBuilder res = new StringBuilder();
+        if (hasPrefix || t > 0) { res.append(digits[t]).append(" trăm "); if (c == 0 && d > 0) res.append("lẻ "); }
+        if (c > 1) { res.append(digits[c]).append(" mươi "); if (d == 1) res.append("mốt"); else if (d == 5) res.append("lăm"); else if (d > 0) res.append(digits[d]); }
+        else if (c == 1) { res.append("mười "); if (d == 5) res.append("lăm"); else if (d > 0) res.append(digits[d]); }
+        else if (d > 0) { res.append(digits[d]); }
+        return res.toString().trim();
     }
 
-    private String docNhom(int n, String[] chu) {
-        int tram = n / 100, chuc = (n % 100) / 10, dv = n % 10;
-        StringBuilder s = new StringBuilder();
-        if (tram > 0) s.append(chu[tram]).append(" trăm");
-        if (chuc > 1) {
-            s.append(s.length() > 0 ? " " : "").append(chu[chuc]).append(" mươi");
-            if (dv > 0) s.append(" ").append(dv == 1 ? "mốt" : dv == 5 ? "lăm" : chu[dv]);
-        } else if (chuc == 1) {
-            s.append(s.length() > 0 ? " " : "").append("mười");
-            if (dv > 0) s.append(" ").append(dv == 5 ? "lăm" : chu[dv]);
-        } else if (dv > 0) {
-            if (tram > 0) s.append(" lẻ");
-            s.append(" ").append(chu[dv]);
+    private String docTien(long number) {
+        if (number == 0) return "Không đồng";
+        String[] units = { "", "nghìn", "triệu", "tỷ" }; StringBuilder result = new StringBuilder();
+        long temp = number; int unitIndex = 0;
+        while (temp > 0) {
+            int group = (int) (temp % 1000); temp /= 1000;
+            if (group > 0) { String groupStr = docBaSo(group, temp > 0); result.insert(0, groupStr + " " + units[unitIndex] + " "); }
+            unitIndex++;
         }
-        return s.toString().trim();
+        String finalStr = result.toString().replaceAll("\\s+", " ").trim();
+        return finalStr.substring(0, 1).toUpperCase() + finalStr.substring(1) + " đồng";
     }
 }

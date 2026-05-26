@@ -1,5 +1,16 @@
 package gui;
-
+import com.itextpdf.text.Document;
+import com.itextpdf.text.Element;
+import com.itextpdf.text.Font;
+import com.itextpdf.text.PageSize;
+import com.itextpdf.text.Paragraph;
+import com.itextpdf.text.Phrase;
+import com.itextpdf.text.Chunk;
+import com.itextpdf.text.pdf.BaseFont;
+import com.itextpdf.text.pdf.PdfPCell;
+import com.itextpdf.text.pdf.PdfPTable;
+import com.itextpdf.text.pdf.PdfWriter;
+import com.itextpdf.text.BaseColor;
 import java.awt.*;
 import java.awt.event.*;
 import java.io.BufferedReader;
@@ -80,7 +91,6 @@ public class DoiVeGUI2 extends JPanel {
     private JTable            tblChiTiet;
     private DefaultTableModel modelChiTiet;
 
-    // Các label tài chính
     private JLabel            lblMaNV_Val, lblTenNV_Val, lblMaKH_Val, lblTenKH_Val, lblSdtKH_Val;
     private JLabel            lblGiaVeCu, lblGiaVeMoi, lblPhiDoiVe, lblKhachBu, lblTongTienTT;
     private JLabel            lblQR, lblCountdown;
@@ -247,9 +257,6 @@ public class DoiVeGUI2 extends JPanel {
 
         JPanel content = new JPanel(); content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS)); content.setOpaque(false); content.setBorder(new EmptyBorder(10, 10, 10, 10));
 
-        String maNV = AuthService.getCurrentMaNV() != null ? AuthService.getCurrentMaNV() : "N/A";
-        String tenNV = AuthService.getCurrentHoTen() != null ? AuthService.getCurrentHoTen() : "N/A";
-
         lblMaNV_Val  = new JLabel("N/A"); lblMaNV_Val.setFont(FONT_B14); lblMaNV_Val.setForeground(Color.BLACK);
         lblTenNV_Val = new JLabel("N/A"); lblTenNV_Val.setFont(FONT_B14); lblTenNV_Val.setForeground(Color.BLACK);
         lblMaKH_Val  = new JLabel("N/A"); lblMaKH_Val.setFont(FONT_B14); lblMaKH_Val.setForeground(Color.BLACK);
@@ -264,7 +271,6 @@ public class DoiVeGUI2 extends JPanel {
         content.add(new JSeparator()); content.add(Box.createVerticalStrut(10));
 
         JPanel pnlPTTTTitle = new JPanel(new BorderLayout()) { @Override public Dimension getMaximumSize() { return new Dimension(Integer.MAX_VALUE, super.getPreferredSize().height); } };
-        // ... (Giữ nguyên đoạn từ Phương thức thanh toán trở xuống)
         pnlPTTTTitle.setOpaque(false); pnlPTTTTitle.add(new JLabel("Phương thức thanh toán:") {{ setFont(FONT_14); }}, BorderLayout.WEST); content.add(pnlPTTTTitle); content.add(Box.createVerticalStrut(5));
 
         btnTienMat = createToggleBtn("Tiền mặt"); btnChuyenKhoan = createToggleBtn("Chuyển khoản");
@@ -477,7 +483,6 @@ public class DoiVeGUI2 extends JPanel {
     private double parseMoney(String str) { try { return Double.parseDouble(str.replaceAll("[^0-9]", "")); } catch (Exception e) { return 0; } }
     private String taoMaHoaDon() { try (Connection con = Connect_DB.getInstance().getConnection()) { return MaTuDong.taoMaDon(con, LocalDate.now()); } catch (Exception e) { return "DT" + new SimpleDateFormat("MMyy").format(new Date()) + "-" + String.format("%04d", System.currentTimeMillis() % 10000); } }
 
-    private JPanel createDetailLabel(String title, String value) { JPanel p = new JPanel(new BorderLayout()) { @Override public Dimension getMaximumSize() { return new Dimension(Integer.MAX_VALUE, super.getPreferredSize().height); } }; p.setOpaque(false); JLabel l1 = new JLabel(title); l1.setFont(FONT_14); l1.setForeground(new Color(80, 80, 80)); JLabel l2 = new JLabel(value); l2.setFont(FONT_B14); l2.setForeground(Color.BLACK); p.add(l1, BorderLayout.WEST); p.add(l2, BorderLayout.EAST); return p; }
     private JToggleButton createToggleBtn(String text) { JToggleButton b = new JToggleButton(text) { @Override protected void paintComponent(Graphics g) { Graphics2D g2 = (Graphics2D) g.create(); g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON); if (isSelected()) { g2.setColor(new Color(240, 246, 255)); g2.fillRoundRect(0, 0, getWidth(), getHeight(), 4, 4); g2.setColor(NAVY); g2.setStroke(new BasicStroke(1.8f)); g2.drawRoundRect(1, 1, getWidth() - 3, getHeight() - 3, 4, 4); } else { g2.setColor(Color.WHITE); g2.fillRoundRect(0, 0, getWidth(), getHeight(), 4, 4); g2.setColor(BORDER_C); g2.setStroke(new BasicStroke(1f)); g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 4, 4); } g2.dispose(); super.paintComponent(g); } }; b.addChangeListener(e -> { b.setFont(b.isSelected() ? FONT_B14 : FONT_14); b.setForeground(b.isSelected() ? NAVY : new Color(80, 80, 80)); }); b.setFont(FONT_14); b.setContentAreaFilled(false); b.setBorderPainted(false); b.setFocusPainted(false); b.setCursor(new Cursor(Cursor.HAND_CURSOR)); b.setBorder(new EmptyBorder(6, 12, 6, 12)); return b; }
     private JButton makeNavyBtn(String text, Icon icon) { JButton b = new JButton(text) { @Override protected void paintComponent(Graphics g) { Graphics2D g2 = (Graphics2D) g.create(); g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON); g2.setColor(getModel().isPressed() ? new Color(18, 42, 85) : getModel().isRollover() ? new Color(38, 68, 128) : NAVY); g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8); g2.dispose(); super.paintComponent(g); } }; if (icon != null) { b.setIcon(icon); b.setHorizontalTextPosition(SwingConstants.LEFT); } b.setFont(FONT_B14); b.setForeground(Color.WHITE); b.setIconTextGap(8); b.setBorder(new EmptyBorder(6, 18, 6, 18)); b.setContentAreaFilled(false); b.setBorderPainted(false); b.setFocusPainted(false); b.setCursor(new Cursor(Cursor.HAND_CURSOR)); return b; }
     private JButton makeOutlineBtn(String text, Icon icon) { JButton b = new JButton(text) { @Override protected void paintComponent(Graphics g) { Graphics2D g2 = (Graphics2D) g.create(); g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON); g2.setColor(getModel().isPressed() ? new Color(220, 230, 245) : getModel().isRollover() ? new Color(230, 240, 250) : new Color(242, 247, 252)); g2.fillRoundRect(0, 0, getWidth(), getHeight(), 6, 6); g2.setColor(NAVY); g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 6, 6); g2.dispose(); super.paintComponent(g); } }; if (icon != null) b.setIcon(icon); b.setFont(FONT_14); b.setForeground(NAVY); b.setIconTextGap(8); b.setContentAreaFilled(false); b.setFocusPainted(false); b.setCursor(new Cursor(Cursor.HAND_CURSOR)); return b; }
@@ -488,7 +493,7 @@ public class DoiVeGUI2 extends JPanel {
     // ========================================================================================
     private void xuLyHoanTatThanhToan(String hinhThuc) {
         stopAllTimers();
-
+        String maDonMoi = taoMaHoaDon();
         // Tự động sinh Mã Vé Mới tinh
         String maVeMoi = maVeMoiHienThi.isEmpty() ? ("VE" + UUID.randomUUID().toString().replace("-", "").substring(0, 7).toUpperCase()) : maVeMoiHienThi;
 
@@ -585,6 +590,7 @@ public class DoiVeGUI2 extends JPanel {
         } catch (Exception e) {
             JOptionPane.showMessageDialog(this, "Lỗi: " + e.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
         }
+
     }
 
     private void taoHoaDonPDF(String maDonLuu, String hinhThuc, String maVeMoi) {
@@ -603,18 +609,21 @@ public class DoiVeGUI2 extends JPanel {
             Font fontNormal = new Font(bf, 11, Font.NORMAL);
             Font fontItalic = new Font(bf, 11, Font.ITALIC);
 
-            Paragraph title = new Paragraph("HÓA ĐƠN GIÁ TRỊ GIA TĂNG (ĐỔI VÉ)", fontTitle);
+            Paragraph title = new Paragraph("HÓA ĐƠN GIÁ TRỊ GIA TĂNG", fontTitle);
             title.setAlignment(Element.ALIGN_CENTER);
             document.add(title);
 
             String dateStr = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss").format(new Date());
             Paragraph dateP = new Paragraph("Ngày xuất: " + dateStr, fontItalic);
             dateP.setAlignment(Element.ALIGN_CENTER);
-            document.add(dateP); document.add(new Paragraph(" ", fontNormal));
+            document.add(dateP);
+            document.add(new Paragraph(" ", fontNormal));
+            document.add(new Paragraph(" ", fontNormal));
 
             document.add(new Paragraph("Đơn vị bán hàng: CÔNG TY CỔ PHẦN VẬN TẢI ĐƯỜNG SẮT", fontBold));
             document.add(new Paragraph("Mã số thuế: 0100106264", fontNormal));
             document.add(new Paragraph("Địa chỉ: 113 Nguyễn Đình Thụ, Tuy Phước, Gia Lai", fontNormal));
+            document.add(new Paragraph("Nhân viên thực hiện đổi vé: " + (AuthService.getCurrentHoTen() != null ? AuthService.getCurrentHoTen() : "N/A"), fontItalic));
             document.add(new Paragraph(" ", fontNormal));
 
             document.add(new Paragraph("Họ tên người mua hàng: " + tenKH, fontBold));
@@ -622,16 +631,16 @@ public class DoiVeGUI2 extends JPanel {
             document.add(new Paragraph("Hình thức thanh toán: " + hinhThuc + "          Mã HĐ: " + maDonLuu, fontNormal));
             document.add(new Paragraph(" ", fontNormal));
 
-            PdfPTable table = new PdfPTable(9);
+            PdfPTable table = new PdfPTable(10);
             table.setWidthPercentage(100);
-            table.setWidths(new float[] { 0.6f, 1.8f, 1.6f, 1.6f, 1.4f, 1.6f, 1.8f, 1.8f, 1.8f });
+            table.setWidths(new float[] { 1f, 3.5f, 2f, 2.3f, 1.8f, 2f, 1f, 1f, 2f, 2.2f });
 
-            for (String h : new String[]{"STT", "Dịch vụ", "Vé cũ", "Vé mới", "Phí đổi", "Tiền bù", "Giá vé cũ", "Giá vé mới", "Tổng tiền"}) {
+            for (String h : new String[]{"STT", "Tên dịch vụ", "Loại vé", "Mã vé mới", "Chiều", "Giá vé mới", "ĐVT", "SL", "Phí đổi", "Tổng tiền bù"}) {
                 PdfPCell cell = new PdfPCell(new Phrase(h, fontBold));
                 cell.setHorizontalAlignment(Element.ALIGN_CENTER);
                 cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
                 cell.setPaddingBottom(6);
-                cell.setBackgroundColor(new com.itextpdf.text.BaseColor(245, 245, 245));
+                cell.setBackgroundColor(new BaseColor(245, 245, 245));
                 table.addCell(cell);
             }
 
@@ -641,23 +650,42 @@ public class DoiVeGUI2 extends JPanel {
                 try { giaVeCu = Long.parseLong(s_dataCu[7].replaceAll("[^0-9]", "")); } catch (Exception ex) {}
             }
             long phiDoi  = 30000L;
-            long tongCuoi = giaVeCu + s_tongThu;
+            long tienBuThuc = s_giaVeMoi - giaVeCu;  // Chênh lệch giá vé
+            long tienBuTotal = phiDoi + tienBuThuc;  // Tổng = Phí đổi + Chênh lệch
 
-            String[] rowData = {"1", "Đổi vé tàu", s_maVe, maVeMoi,
-                    DF.format(phiDoi),  DF.format(s_tongThu),
-                    DF.format(giaVeCu), DF.format(s_giaVeMoi),
-                    DF.format(tongCuoi)};
-            for (int i = 0; i < rowData.length; i++) {
-                PdfPCell c = new PdfPCell(new Phrase(rowData[i], fontNormal));
-                c.setHorizontalAlignment(i >= 4 ? Element.ALIGN_RIGHT : Element.ALIGN_CENTER);
-                c.setVerticalAlignment(Element.ALIGN_MIDDLE);
-                table.addCell(c);
-            }
-            document.add(table); document.add(new Paragraph(" ", fontNormal));
+            String loaiVe = s_dataCu.length > 3 ? s_dataCu[3] : "";
+            String loaiVeHienThi = "MOT_CHIEU".equals(loaiVe) ? "Một chiều" : "KHU_HOI".equals(loaiVe) ? "Khứ hồi" : loaiVe;
+            String chieu = s_dataCu.length > 4 ? s_dataCu[4] : "";
 
-            Paragraph pTongCuoi = new Paragraph("Tổng tiền: " + DF.format(tongCuoi), fontBold);
-            pTongCuoi.setAlignment(Element.ALIGN_RIGHT);
-            document.add(pTongCuoi);
+            pdfAddCell(table, fontNormal, "1", Element.ALIGN_CENTER);
+            pdfAddCell(table, fontNormal, "Đổi vé HK trực tiếp", Element.ALIGN_LEFT);
+            pdfAddCell(table, fontNormal, loaiVeHienThi, Element.ALIGN_CENTER);
+            pdfAddCell(table, fontNormal, maVeMoi, Element.ALIGN_CENTER);
+            pdfAddCell(table, fontNormal, chieu, Element.ALIGN_CENTER);
+            pdfAddCell(table, fontNormal, DF_NO_CURRENCY.format(s_giaVeMoi), Element.ALIGN_RIGHT);
+            pdfAddCell(table, fontNormal, "Vé", Element.ALIGN_CENTER);
+            pdfAddCell(table, fontNormal, "1", Element.ALIGN_CENTER);
+            pdfAddCell(table, fontNormal, DF_NO_CURRENCY.format(phiDoi), Element.ALIGN_RIGHT);
+            pdfAddCell(table, fontNormal, DF_NO_CURRENCY.format(tienBuTotal), Element.ALIGN_RIGHT);
+
+            document.add(table);
+            document.add(new Paragraph(" ", fontNormal));
+
+            Paragraph pGiaMoi = new Paragraph("Giá vé mới: " + DF_NO_CURRENCY.format(s_giaVeMoi) + " VNĐ", fontBold);
+            pGiaMoi.setAlignment(Element.ALIGN_RIGHT);
+            document.add(pGiaMoi);
+
+            Paragraph pPhi = new Paragraph("Phí đổi vé: " + DF_NO_CURRENCY.format(phiDoi) + " VNĐ", fontBold);
+            pPhi.setAlignment(Element.ALIGN_RIGHT);
+            document.add(pPhi);
+
+            Paragraph pGiaCu = new Paragraph("Giá vé cũ: " + DF_NO_CURRENCY.format(giaVeCu) + " VNĐ", fontBold);
+            pGiaCu.setAlignment(Element.ALIGN_RIGHT);
+            document.add(pGiaCu);
+
+            Paragraph pConLai = new Paragraph("Tổng tiền bù (Tiền chênh lệch vé + Phí đổi vé): " + DF_NO_CURRENCY.format(tienBuTotal) + " VNĐ", fontBold);
+            pConLai.setAlignment(Element.ALIGN_RIGHT);
+            document.add(pConLai);
 
             document.add(new Paragraph(" ", fontNormal));
 
@@ -668,6 +696,7 @@ public class DoiVeGUI2 extends JPanel {
 
             document.add(new Paragraph("Ghi chú: ......................................................................................................................................", fontNormal));
             document.add(new Paragraph(" ", fontNormal));
+            document.add(new Paragraph(" ", fontNormal));
 
             PdfPTable signTable = new PdfPTable(2); signTable.setWidthPercentage(100);
             PdfPCell cellBuyer = new PdfPCell(new Phrase("Người mua hàng\n(Ký, ghi rõ họ tên)", fontNormal)); cellBuyer.setHorizontalAlignment(Element.ALIGN_CENTER); cellBuyer.setBorder(PdfPCell.NO_BORDER);
@@ -677,6 +706,14 @@ public class DoiVeGUI2 extends JPanel {
             document.close();
             if (Desktop.isDesktopSupported()) Desktop.getDesktop().open(pdfFile);
         } catch (Exception e) {}
+    }
+
+    private void pdfAddCell(PdfPTable table, Font font, String text, int align) {
+        PdfPCell cell = new PdfPCell(new Phrase(text != null ? text : "", font));
+        cell.setHorizontalAlignment(align);
+        cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+        cell.setPaddingBottom(4);
+        table.addCell(cell);
     }
 
     private void taoVePDF(String maVeLuu) {
