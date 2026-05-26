@@ -358,16 +358,30 @@ public class DoiVeGUI extends JPanel {
     }
 
     // --- LOAD TỪ DB ---
+
+    // --- LOAD TỪ DB ---
     private String[] loadDanhSachGa() {
-        List<String> listGa = new ArrayList<>();
-        String sql = "SELECT tenGa FROM Ga ORDER BY tenGa ASC";
-        try (Connection conn = Connect_DB.getInstance().getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
-            while (rs.next()) listGa.add(rs.getString("tenGa"));
-        } catch (SQLException e) { e.printStackTrace(); }
-        if (listGa.isEmpty()) return new String[]{"Sài Gòn", "Nha Trang", "Đà Nẵng", "Huế", "Hà Nội"};
-        return listGa.toArray(new String[0]);
+        List<String> listTenGa = new ArrayList<>();
+
+        // Tạo đối tượng DAO (nếu cần thiết có thể khai báo toàn cục trên class DoiVeGUI)
+        dao.GaDAO gaDAO = new dao.GaDAO();
+
+        // Gọi DAO để lấy danh sách tất cả các Ga
+        List<entity.Ga> listGa = gaDAO.selectAll();
+
+        // Lấy danh sách tên Ga từ danh sách đối tượng Ga trả về
+        if (listGa != null) {
+            for (entity.Ga ga : listGa) {
+                listTenGa.add(ga.getTenGa());
+            }
+        }
+
+        // Trả về fallback nếu database không có dữ liệu
+        if (listTenGa.isEmpty()) {
+            return new String[]{"Sài Gòn", "Nha Trang", "Đà Nẵng", "Huế", "Hà Nội"};
+        }
+
+        return listTenGa.toArray(new String[0]);
     }
 
     // --- UI HELPERS ---

@@ -195,23 +195,30 @@ public class QLyNhanVienGUI extends JPanel {
             return lbl;
         });
 
-        // Render cột Trạng thái (7) - badge màu
+        // Render cột Trạng thái (7) - badge màu rounded như KhuyenMaiGUI
         table.getColumnModel().getColumn(7).setCellRenderer((tbl, val, sel, foc, row, col) -> {
             String txt = val == null ? "" : val.toString();
-            JLabel lbl = new JLabel(txt, SwingConstants.CENTER);
+            final Color bg = "Đang làm việc".equals(txt) ? TAG_ACT_BG : TAG_OFF_BG;
+            final Color fg = "Đang làm việc".equals(txt) ? TAG_ACT_FG : TAG_OFF_FG;
+            JLabel lbl = new JLabel(txt, SwingConstants.CENTER) {
+                @Override protected void paintComponent(Graphics g) {
+                    Graphics2D g2 = (Graphics2D) g.create();
+                    g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                    g2.setColor(bg);
+                    g2.fillRoundRect(2, 4, getWidth() - 4, getHeight() - 8, 10, 10);
+                    g2.setColor(fg);
+                    g2.setFont(getFont());
+                    FontMetrics fm = g2.getFontMetrics();
+                    g2.drawString(getText(), (getWidth() - fm.stringWidth(getText())) / 2,
+                            (getHeight() + fm.getAscent() - fm.getDescent()) / 2);
+                    g2.dispose();
+                }
+            };
             lbl.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 12));
-            lbl.setOpaque(true);
-            lbl.setBorder(new EmptyBorder(6, 12, 6, 12));
-            boolean isSelected = tbl.isRowSelected(row);
-            if (isSelected) {
-                lbl.setBackground(new Color(219, 234, 254));
-                lbl.setForeground(GuiTheme.TEXT);
-            } else {
-                Color bg = "Đang làm việc".equals(txt) ? TAG_ACT_BG : TAG_OFF_BG;
-                Color fg = "Đang làm việc".equals(txt) ? TAG_ACT_FG : TAG_OFF_FG;
-                lbl.setBackground(bg);
-                lbl.setForeground(fg);
-            }
+            lbl.setBorder(new EmptyBorder(5, 8, 5, 8));
+            lbl.setOpaque(false);
+            lbl.setBackground(tbl.isRowSelected(row) ? new Color(219, 234, 254)
+                    : (row % 2 == 0 ? Color.WHITE : new Color(248, 250, 252)));
             return lbl;
         });
 
@@ -469,7 +476,7 @@ public class QLyNhanVienGUI extends JPanel {
         private final String editMaNV;
 
         private JTextField    tfMaNV, tfHoTen, tfSoDT, tfEmail, tfDiaChi, tfCCCD;
-        private JComboBox<String> cbGioiTinh, cbLoaiNV;
+        private JComboBox<String> cbGioiTinh, cbLoaiNV, cbTrangThai;
         private JDateChooser  dcNgaySinh;
 
         NhanVienFormDialog(Frame owner, String maNV) {
@@ -533,6 +540,13 @@ public class QLyNhanVienGUI extends JPanel {
             addRow(p, g, 6, "Địa chỉ",        tfDiaChi);
             addRow(p, g, 7, "CCCD",           tfCCCD);
             addRow(p, g, 8, "Chức vụ",        cbLoaiNV);
+
+            // Trạng thái — chỉ hiển thị khi Sửa nhân viên
+            if (editMaNV != null) {
+                cbTrangThai = new JComboBox<>(new String[]{"Đang làm việc", "Ngừng làm việc"});
+                styleCombo(cbTrangThai);
+                addRow(p, g, 9, "Trạng thái", cbTrangThai);
+            }
 
             return p;
         }
@@ -661,6 +675,23 @@ public class QLyNhanVienGUI extends JPanel {
                         ps.setString(7, cccd);
                         ps.setString(8, editMaNV);
                         ps.executeUpdate();
+                    }
+                    // Cập nhật trạng thái trong TaiKhoan
+                    boolean dangLamViec = "Đang làm việc".equals(cbTrangThai.getSelectedItem());
+                    if (dangLamViec) {
+                        // Đặt ngayDangNhap = NOW, ngayDangXuat = NULL → trạng thái ACTIVE
+                        String sqlTK = "UPDATE TaiKhoan SET ngayDangNhap = GETDATE(), ngayDangXuat = NULL WHERE maNV = ?";
+                        try (PreparedStatement ps2 = con.prepareStatement(sqlTK)) {
+                            ps2.setString(1, editMaNV);
+                            ps2.executeUpdate();
+                        }
+                    } else {
+                        // Đặt ngayDangXuat = NOW (sau ngayDangNhap) → trạng thái INACTIVE
+                        String sqlTK = "UPDATE TaiKhoan SET ngayDangXuat = GETDATE() WHERE maNV = ?";
+                        try (PreparedStatement ps2 = con.prepareStatement(sqlTK)) {
+                            ps2.setString(1, editMaNV);
+                            ps2.executeUpdate();
+                        }
                     }
                 }
                 confirmed = true;
