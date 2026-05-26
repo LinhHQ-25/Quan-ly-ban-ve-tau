@@ -11,7 +11,7 @@ import java.util.*;
 import java.util.List;
 import javax.swing.*;
 import javax.swing.border.*;
-
+import dao.ChuyenTauDAO;
 import connect_DB.Connect_DB;
 import dao.VeDAO;
 
@@ -25,7 +25,7 @@ public class DatVeGUI1 extends JPanel {
 	private static final Color SEAT_OK = new Color(28, 57, 110);
 	private static final Color SEAT_TAKEN = new Color(180, 190, 210);
 	private static final Color SEAT_SEL = new Color(140, 185, 255);
-
+	private final ChuyenTauDAO chuyenTauDAO = new ChuyenTauDAO();
 	private final String gaDi, gaDen, loaiVe, ngayDi, ngayVe;
 	private final int soLuong;
 	private final boolean motChieu;
@@ -67,7 +67,7 @@ public class DatVeGUI1 extends JPanel {
 	private String activeMaToa = null;
 
 	private JLabel lblGheTrong, lblGheDaChon, lblChieuHeader;
-	private JButton btnPrev, btnNext, btnAction, btnHuy, btnChieuToggle;
+	private JButton btnPrev, btnNext, btnAction, btnHuy, btnChieuToggle,btnLamMoi;
 	private JComboBox<String> cbKhungGio, cbLoaiToa;
 	private JPanel pnlChuyen;
 
@@ -85,14 +85,14 @@ public class DatVeGUI1 extends JPanel {
 		this.onQuayLai = onQuayLai;
 		this.motChieu = loaiVe.contains("chiều") || loaiVe.contains("Chiều");
 
-		CHUYEN_FULL = loadChuyenFromDB(gaDi, gaDen, ngayDi);
+		CHUYEN_FULL = chuyenTauDAO.loadChuyenFromDB(gaDi, gaDen, ngayDi);
 		CHUYEN_FULL = filterChuyenDi(CHUYEN_FULL, ngayDi);
 		if (CHUYEN_FULL == null || CHUYEN_FULL.length == 0)
 			CHUYEN_FULL = new String[][] { { "Không có chuyến", "--:--", "--:--", ngayDi, ngayDi, "" } };
 		CHUYEN_FILTERED = CHUYEN_FULL;
 
 		if (!motChieu && ngayVe != null && !ngayVe.isEmpty()) {
-			CHUYEN_FULL_VE = loadChuyenFromDB(gaDen, gaDi, ngayVe);
+			CHUYEN_FULL_VE = chuyenTauDAO.loadChuyenFromDB(gaDen, gaDi, ngayVe);
 			if (CHUYEN_FULL_VE == null || CHUYEN_FULL_VE.length == 0)
 				CHUYEN_FULL_VE = new String[][] { { "Không có chuyến", "--:--", "--:--", ngayVe, ngayVe, "" } };
 		} else {
@@ -160,33 +160,6 @@ public class DatVeGUI1 extends JPanel {
 		return result.toArray(new String[0][]);
 	}
 
-	private String[][] loadChuyenFromDB(String tenGaDi, String tenGaDen, String ngayDiStr) {
-		List<String[]> list = new ArrayList<>();
-		String sql = "SELECT ct.maChuyenTau AS maChuyen, t.tenTau, dt.thoiGianKhoiHanh, dt.thoiGianDuKien "
-				+ "FROM ChuyenTau ct " + "JOIN ChiTietChuyenTau dt ON ct.maChuyenTau = dt.maChuyenTau "
-				+ "JOIN Tau t ON ct.maTau = t.maTau " + "JOIN Ga gDi ON dt.maGaDi = gDi.maGa "
-				+ "JOIN Ga gDen ON dt.maGaDen = gDen.maGa " + "WHERE gDi.tenGa LIKE ? AND gDen.tenGa LIKE ? "
-				+ "AND CONVERT(VARCHAR, dt.thoiGianKhoiHanh, 103) = ? " + "ORDER BY dt.thoiGianKhoiHanh ASC";
-
-		try (Connection con = Connect_DB.getInstance().getConnection();
-				PreparedStatement ps = con.prepareStatement(sql)) {
-			ps.setNString(1, "%" + tenGaDi + "%");
-			ps.setNString(2, "%" + tenGaDen + "%");
-			ps.setString(3, ngayDiStr);
-			ResultSet rs = ps.executeQuery();
-			DateTimeFormatter dateTimeFmt = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
-			DateTimeFormatter dateFmt = DateTimeFormatter.ofPattern("dd/MM/yyyy");
-			while (rs.next()) {
-				LocalDateTime tgDi = rs.getTimestamp("thoiGianKhoiHanh").toLocalDateTime();
-				LocalDateTime tgDen = rs.getTimestamp("thoiGianDuKien").toLocalDateTime();
-				list.add(new String[] { rs.getString("tenTau"), tgDi.format(dateTimeFmt), tgDen.format(dateTimeFmt),
-						tgDi.format(dateFmt), tgDen.format(dateFmt), rs.getString("maChuyen") });
-			}
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-		return list.toArray(new String[0][]);
-	}
 
 	private void applyFilter(String khungGio) {
 		String[][] dataToFilter = dangXemChieuVe ? CHUYEN_FULL_VE : CHUYEN_FULL;
@@ -363,16 +336,35 @@ public class DatVeGUI1 extends JPanel {
 				switchToChieuDi();
 		});
 
-		JButton btnLamMoi = buildStyledButton("Làm mới", loadAndScaleIcon("/Images/logoLammoi.png", 14, 14));
+		btnLamMoi = buildStyledButton("Làm mới", loadAndScaleIcon("/Images/logoLammoi.png", 14, 14));
 		btnLamMoi.setPreferredSize(new Dimension(btnLamMoi.getPreferredSize().width, 28));
 		btnLamMoi.addActionListener(e -> {
-			CHUYEN_FULL = loadChuyenFromDB(gaDi, gaDen, ngayDi);
-			if (!motChieu) {
-				CHUYEN_FULL_VE = loadChuyenFromDB(gaDen, gaDi, ngayVe);
-				selectedArrivalDi = null;
-			}
-			if (cbKhungGio != null)
-				cbKhungGio.setSelectedIndex(0);
+		    CHUYEN_FULL = chuyenTauDAO.loadChuyenFromDB(gaDi, gaDen, ngayDi);
+		    CHUYEN_FULL = filterChuyenDi(CHUYEN_FULL, ngayDi);  // ← THÊM DÒNG NÀY
+		    if (CHUYEN_FULL == null || CHUYEN_FULL.length == 0)
+		        CHUYEN_FULL = new String[][] { { "Không có chuyến", "--:--", "--:--", ngayDi, ngayDi, "" } };
+		    CHUYEN_FILTERED = CHUYEN_FULL;
+
+		    if (!motChieu) {
+		        CHUYEN_FULL_VE = chuyenTauDAO.loadChuyenFromDB(gaDen, gaDi, ngayVe);
+		        // Không filter theo selectedArrivalDi vì làm mới = reset
+		        // nhưng vẫn lọc theo giờ thực nếu là hôm nay:
+		        if (selectedArrivalDi != null)
+		            CHUYEN_FULL_VE = filterChuyenVe(CHUYEN_FULL_VE, selectedArrivalDi);
+		        if (CHUYEN_FULL_VE == null || CHUYEN_FULL_VE.length == 0)
+		            CHUYEN_FULL_VE = new String[][] { { "Không có chuyến", "--:--", "--:--", ngayVe, ngayVe, "" } };
+		        CHUYEN_FILTERED_VE = CHUYEN_FULL_VE;
+		        selectedArrivalDi = null;  // reset sau khi đã dùng
+		    }
+		    trang = 0;
+		    chuyenIdx = -1;
+		    activeMaToa = null;
+		    gheChon.clear();
+		    if (cbKhungGio != null) cbKhungGio.setSelectedIndex(0);
+		    refreshChuyen();
+		    refreshToaGhe();
+		    updateActionBtn();
+		    updateGheDaChon();
 		});
 
 		buttonPanel.add(btnChieuToggle);
@@ -833,7 +825,7 @@ public class DatVeGUI1 extends JPanel {
 								if (!dangXemChieuVe) {
 									selectedArrivalDi = LocalDateTime.parse(ch[2], fmt);
 									// Lọc lại CHUYEN_FULL_VE theo thời gian đến của chuyến đi
-									CHUYEN_FULL_VE = loadChuyenFromDB(gaDen, gaDi, ngayVe);
+									CHUYEN_FULL_VE = chuyenTauDAO.loadChuyenFromDB(gaDen, gaDi, ngayVe);
 									CHUYEN_FULL_VE = filterChuyenVe(CHUYEN_FULL_VE, selectedArrivalDi);
 									if (CHUYEN_FULL_VE == null || CHUYEN_FULL_VE.length == 0)
 										CHUYEN_FULL_VE = new String[][] {

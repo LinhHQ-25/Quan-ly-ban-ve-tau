@@ -1194,7 +1194,7 @@ public class DatVeGUI3 extends JPanel {
 			String tenKH = modelFromGUI2.getRowCount() > 0 ? modelFromGUI2.getValueAt(0, 5).toString() : "Khách lẻ";
 			String sdtKH = modelFromGUI2.getRowCount() > 0 ? modelFromGUI2.getValueAt(0, 7).toString() : "";
 			document.add(new Paragraph("Họ tên người bán: " + service.AuthService.getCurrentHoTen()
-					+ "          Mã NV: " + service.AuthService.getCurrentMaNV(), fontNormal));
+					+ "          Mã NV: " + service.AuthService.getCurrentMaNV(), fontBold));
 			document.add(new Paragraph("Họ tên người mua: " + tenKH, fontBold));
 			document.add(new Paragraph("Điện thoại: " + sdtKH, fontNormal));
 			document.add(new Paragraph("Hình thức thanh toán: " + hinhThuc + "          Mã HĐ: " + maHD, fontNormal));
@@ -1283,7 +1283,7 @@ public class DatVeGUI3 extends JPanel {
 			Paragraph pConLai = new Paragraph("Còn lại: " + DF.format(tongThanhToan) + " VNĐ", fontBold);
 			pConLai.setAlignment(Element.ALIGN_RIGHT);
 			document.add(pConLai);
-			Font fontVAT = new Font(bf, 13, Font.ITALIC, BaseColor.DARK_GRAY);
+			Font fontVAT = new Font(bf, 10, Font.ITALIC, BaseColor.DARK_GRAY);
 			Paragraph pVAT = new Paragraph("(Hóa đơn đã bao gồm thuế VAT (thuế giá trị gia tăng))", fontVAT);
 			pVAT.setAlignment(Element.ALIGN_CENTER);
 			pVAT.setSpacingBefore(6);
