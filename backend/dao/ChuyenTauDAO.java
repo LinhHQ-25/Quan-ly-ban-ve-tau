@@ -358,4 +358,25 @@ public class ChuyenTauDAO {
         }
         return list.toArray(new String[0][]);
     }
+    // ── DASHBOARD: top 5 chuyến tàu tỷ lệ lấp đầy ──
+    public List<Object[]> getTop5ChuyenLapDay() throws SQLException {
+        List<Object[]> list = new ArrayList<>();
+        String sql = "SELECT TOP 5 ct.maChuyenTau, t.tongSoGhe, " +
+                "ISNULL((SELECT COUNT(*) FROM Ve v WHERE v.maChuyenTau = ct.maChuyenTau " +
+                "        AND v.trangThaiVe = N'Đã thanh toán'), 0) as veDaBan " +
+                "FROM ChuyenTau ct JOIN Tau t ON ct.maTau = t.maTau " +
+                "JOIN ChiTietChuyenTau cct ON ct.maChuyenTau = cct.maChuyenTau " +
+                "ORDER BY veDaBan DESC, cct.thoiGianKhoiHanh ASC";
+        try (Connection con = Connect_DB.getInstance().getConnection();
+             PreparedStatement ps = con.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next())
+                list.add(new Object[]{
+                        rs.getString("maChuyenTau"),
+                        rs.getInt("tongSoGhe"),
+                        rs.getInt("veDaBan")
+                });
+        }
+        return list;
+    }
 }

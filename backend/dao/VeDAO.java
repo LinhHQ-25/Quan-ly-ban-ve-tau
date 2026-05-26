@@ -327,4 +327,20 @@ public class VeDAO {
             return true;
         }
     }
+    // ── DASHBOARD: vé bán theo từng giờ hôm nay ──
+    public static int[] getVeBanTheoGioHomNay() throws SQLException {
+        int[] hourly = new int[24];
+        String sql = "SELECT DATEPART(hour, h.ngayLapHD) as gio, COUNT(*) as soVe " +
+                "FROM Ve v JOIN HoaDon h ON v.maHoaDon = h.maHoaDon " +
+                "WHERE CAST(h.ngayLapHD AS DATE) = CAST(GETDATE() AS DATE) " +
+                "AND v.trangThaiVe = N'Đã thanh toán' " +
+                "AND ISNULL(h.phuongThucThanhToan,'') <> 'LUU_TAM' " +
+                "GROUP BY DATEPART(hour, h.ngayLapHD)";
+        try (Connection con = Connect_DB.getInstance().getConnection();
+             PreparedStatement ps = con.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) hourly[rs.getInt("gio")] = rs.getInt("soVe");
+        }
+        return hourly;
+    }
 }
