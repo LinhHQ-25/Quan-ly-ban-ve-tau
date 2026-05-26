@@ -94,16 +94,30 @@ public class Ve implements TinhGiaVe {
 
     @Override
     public double tinhGiaGoc() {
-        return 300000 * heSoCuLy * heSoLoaiToa;
+        double giaCoBan = new dao.CauHinhGiaDAO().getGiaCoBan();
+        return giaCoBan * heSoCuLy * heSoLoaiToa;
     }
 
     @Override
     public double layTyLeGiamDoiTuong() {
         if (loaiDoiTuong == null) return 0.0;
-        if (loaiDoiTuong.contains("Sinh viên"))  return 0.08;
-        if (loaiDoiTuong.contains("<6 tuổi"))    return 1.0;
-        if (loaiDoiTuong.contains("Trẻ em"))     return 0.5;
-        if (loaiDoiTuong.contains("cao tuổi"))   return 0.3;
+
+        // Map loại đối tượng → mã KM cố định trong DB
+        String maKM = null;
+        if (loaiDoiTuong.contains("Sinh viên"))   maKM = "KM001";
+        else if (loaiDoiTuong.contains("cao tuổi")) maKM = "KM002";
+        else if (loaiDoiTuong.contains("6-10"))    maKM = "KM003";
+        else if (loaiDoiTuong.contains("Người lớn")) maKM = "KM208603";
+        else if (loaiDoiTuong.contains("<6"))      return 1.0; // miễn phí, không cần DB
+
+        if (maKM == null) return 0.0;
+
+        try {
+            entity.KhuyenMai km = new dao.KhuyenMaiDAO().selectById(maKM);
+            if (km != null) return km.getTiLeGiamGia();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         return 0.0;
     }
 

@@ -607,9 +607,7 @@ public class DatVeGUI3 extends JPanel {
 		glass.setOpaque(false);
 		JPanel box = buildPopupBox(380, 235);
 		box.setBorder(new EmptyBorder(28, 32, 24, 32));
-		JLabel lblIcon = new JLabel("⚠", SwingConstants.CENTER);
-		lblIcon.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 36));
-		lblIcon.setForeground(new Color(220, 100, 0));
+		JLabel lblIcon = new JLabel(loadIcon("/Images/logoClose.png", 48, 48), SwingConstants.CENTER);
 		JLabel lblMsg = new JLabel(
 				"<html><div style='text-align:center;'><b style='font-size:14px;color:#1c396e;'>Xác nhận hủy vé?</b><br><br><span style='font-size:13px;color:#555;'>Tất cả thông tin đặt vé sẽ bị xóa.<br>Bạn sẽ được chuyển về trang tìm chuyến.</span></div></html>",
 				SwingConstants.CENTER);
@@ -1194,7 +1192,7 @@ public class DatVeGUI3 extends JPanel {
 			String tenKH = modelFromGUI2.getRowCount() > 0 ? modelFromGUI2.getValueAt(0, 5).toString() : "Khách lẻ";
 			String sdtKH = modelFromGUI2.getRowCount() > 0 ? modelFromGUI2.getValueAt(0, 7).toString() : "";
 			document.add(new Paragraph("Họ tên người bán: " + service.AuthService.getCurrentHoTen()
-					+ "          Mã NV: " + service.AuthService.getCurrentMaNV(), fontNormal));
+					+ "          Mã NV: " + service.AuthService.getCurrentMaNV(), fontBold));
 			document.add(new Paragraph("Họ tên người mua: " + tenKH, fontBold));
 			document.add(new Paragraph("Điện thoại: " + sdtKH, fontNormal));
 			document.add(new Paragraph("Hình thức thanh toán: " + hinhThuc + "          Mã HĐ: " + maHD, fontNormal));
@@ -1283,7 +1281,7 @@ public class DatVeGUI3 extends JPanel {
 			Paragraph pConLai = new Paragraph("Còn lại: " + DF.format(tongThanhToan) + " VNĐ", fontBold);
 			pConLai.setAlignment(Element.ALIGN_RIGHT);
 			document.add(pConLai);
-			Font fontVAT = new Font(bf, 13, Font.ITALIC, BaseColor.DARK_GRAY);
+			Font fontVAT = new Font(bf, 10, Font.ITALIC, BaseColor.DARK_GRAY);
 			Paragraph pVAT = new Paragraph("(Hóa đơn đã bao gồm thuế VAT (thuế giá trị gia tăng))", fontVAT);
 			pVAT.setAlignment(Element.ALIGN_CENTER);
 			pVAT.setSpacingBefore(6);
