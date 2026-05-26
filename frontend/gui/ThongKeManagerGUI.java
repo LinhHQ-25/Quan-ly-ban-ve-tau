@@ -1,5 +1,5 @@
 package gui;
-
+import service.AuthService;
 import connect_DB.Connect_DB;
 import dao.HoaDonDAO;
 import dao.VeDAO;
@@ -9,7 +9,9 @@ import java.sql.*;
 import java.time.LocalDate;
 import java.util.*;
 import java.util.List;
-
+import java.awt.Desktop;
+import java.io.File;
+import javax.swing.border.LineBorder;
 import javax.swing.*;
 import javax.swing.border.*;
 import javax.swing.table.*;
@@ -309,7 +311,7 @@ public class ThongKeManagerGUI extends JPanel {
         tbl.setFont(GuiTheme.font("Segoe UI",Font.PLAIN,14));
         tbl.getTableHeader().setFont(GuiTheme.font("Segoe UI",Font.BOLD,14));
         tbl.setShowVerticalLines(false);
-        tbl.setSelectionBackground(PRIMARY); tbl.setSelectionForeground(Color.WHITE);
+        tbl.setSelectionBackground(new Color(207, 222, 243)); tbl.setSelectionForeground(Color.BLACK);
         tbl.getTableHeader().setReorderingAllowed(false);
         tbl.getTableHeader().setResizingAllowed(false);
 
@@ -329,7 +331,28 @@ public class ThongKeManagerGUI extends JPanel {
 
         int[] colW={120,130,130,110,55,110};
         for(int i=0;i<colW.length;i++) tbl.getColumnModel().getColumn(i).setPreferredWidth(colW[i]);
-
+        tbl.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                int row = tbl.getSelectedRow();
+                if (row < 0) return;
+                String maHD = (String) tblModel.getValueAt(row, 0);
+                if (maHD == null) return;
+                boolean isHuy = "huy".equals(currentFilter);
+                new Thread(() -> {
+                    try {
+                        Object[] hdInfo       = HoaDonDAO.getThongTinHoaDon(maHD);
+                        List<Object[]> veList = HoaDonDAO.getDanhSachVeTheoHoaDon(maHD);
+                        SwingUtilities.invokeLater(() -> buildAndShowDialog(maHD, hdInfo, veList, isHuy));
+                    } catch (Exception ex) {
+                        ex.printStackTrace();
+                        SwingUtilities.invokeLater(() ->
+                                JOptionPane.showMessageDialog(ThongKeManagerGUI.this,
+                                        "Chi tiết lỗi:\n" + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE));
+                    }
+                }).start();
+            }
+        });
         JScrollPane sp=new JScrollPane(tbl);
         sp.setBorder(null); sp.getViewport().setBackground(Color.WHITE);
         return wrapCard(sp,"Danh sách giao dịch");
@@ -352,6 +375,8 @@ public class ThongKeManagerGUI extends JPanel {
             @Override public boolean isCellEditable(int r,int c){return false;}
         };
         JTable tbl=new JTable(staffModel);
+        tbl.setSelectionBackground(new Color(207, 222, 243));
+        tbl.setSelectionForeground(Color.BLACK);
         tbl.setRowHeight(34);
         tbl.setFont(GuiTheme.font("Segoe UI",Font.PLAIN,13));
         tbl.getTableHeader().setFont(GuiTheme.font("Segoe UI",Font.BOLD,13));
@@ -411,7 +436,6 @@ public class ThongKeManagerGUI extends JPanel {
         bar.add(right,BorderLayout.EAST);
         return bar;
     }
-
     // =========================================================================
     // LOAD DATA
     // =========================================================================
@@ -496,15 +520,17 @@ public class ThongKeManagerGUI extends JPanel {
         String strFrom=filterFrom!=null?filterFrom.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")):"";
         String strTo  =filterTo  !=null?filterTo  .format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")):"";
 
-        // Gom data nhân viên (bỏ dòng TỔNG CỘNG cuối)
+        // Lấy tên quản lý thật
+        String tenQL = AuthService.getCurrentHoTen() != null ? AuthService.getCurrentHoTen() : "Quản lý";
+
         List<Object[]> staffRows=new ArrayList<>();
         for(int i=0;i<staffModel.getRowCount()-1;i++)
             staffRows.add(new Object[]{
-                staffModel.getValueAt(i,0), staffModel.getValueAt(i,1),
-                staffModel.getValueAt(i,2), staffModel.getValueAt(i,3)
+                    staffModel.getValueAt(i,0), staffModel.getValueAt(i,1),
+                    staffModel.getValueAt(i,2), staffModel.getValueAt(i,3)
             });
 
-        BaoCaoPDF.exportManager("Quản lý",strFrom,strTo,
+        BaoCaoPDF.exportManager(tenQL,strFrom,strTo,
                 kLoiNhuan,kVeBan,kVeHuy,kTienMat,kCK,
                 d[1],d[2],d[0],staffRows);
     }
@@ -613,6 +639,210 @@ public class ThongKeManagerGUI extends JPanel {
     private static boolean isCK(String s){
         if(s==null)return false;String l=s.toLowerCase();
         return l.contains("chuyen_khoan")||l.contains("chuyển khoản")||l.contains("vietqr");
+    }
+    private void buildAndShowDialog(String maHD, Object[] d, List<Object[]> veList, boolean isHuy) {
+        JDialog dlg = new JDialog((Frame) SwingUtilities.getWindowAncestor(this), "Chi tiết hóa đơn", true);
+        dlg.setSize(660, 560);
+        dlg.setLocationRelativeTo(this);
+        dlg.setResizable(false);
+
+        JPanel root = new JPanel(new BorderLayout(0, 10));
+        root.setBackground(Color.WHITE);
+        root.setBorder(new EmptyBorder(20, 28, 16, 28));
+
+        // ── Badge trạng thái ──
+        JPanel pnlBadge = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        pnlBadge.setOpaque(false);
+        JLabel badge = new JLabel(isHuy ? "  Đã hủy  " : "  Đã thanh toán  ");
+        badge.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 12));
+        badge.setOpaque(true);
+        badge.setBackground(isHuy ? new Color(220, 53, 69) : new Color(34, 139, 87));
+        badge.setForeground(Color.WHITE);
+        badge.setBorder(new EmptyBorder(4, 12, 4, 12));
+        pnlBadge.add(badge);
+
+        // ── Thông tin 2 cột ──
+        String pttt = d != null && d[2] != null ? d[2].toString() : "—";
+        if ("TIEN_MAT".equalsIgnoreCase(pttt))          pttt = "Tiền mặt";
+        else if ("CHUYEN_KHOAN".equalsIgnoreCase(pttt))  pttt = "Chuyển khoản";
+        String tongTien = d != null
+                ? String.format("%,.0f VNĐ", (Double) d[3]).replace(",", ".")
+                : "—";
+        String thoiGianLap = d != null && d[1] != null
+                ? new java.text.SimpleDateFormat("dd/MM/yyyy HH:mm").format(d[1])
+                : "—";
+
+        JPanel pnlCols = new JPanel(new GridLayout(1, 2, 24, 0));
+        pnlCols.setOpaque(false);
+
+        JPanel pnlLeft = buildInfoSection("THÔNG TIN KHÁCH HÀNG", new String[][]{
+                {"Họ và tên:",     d != null && d[4] != null ? d[4].toString() : "—"},
+                {"Số điện thoại:", d != null && d[5] != null ? d[5].toString() : "—"},
+                {"Đối tượng:",     d != null && d[6] != null ? d[6].toString() : "—"},
+        }, false);
+
+        JPanel pnlRight = buildInfoSection("THÔNG TIN GIAO DỊCH", new String[][]{
+                {"Thời gian lập:", thoiGianLap},
+                {"Hình thức TT:",  pttt},
+                {"Tổng tiền:",     tongTien},
+        }, false);
+
+        pnlCols.add(pnlLeft);
+        pnlCols.add(pnlRight);
+
+        // ── Separator ──
+        JSeparator sep = new JSeparator();
+        sep.setForeground(new Color(210, 215, 224));
+
+        // ── Label danh sách vé ──
+        JLabel lbVe = new JLabel("DANH SÁCH VÉ (" + veList.size() + " vé)");
+        lbVe.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 13));
+        lbVe.setForeground(new Color(40, 45, 70));
+        lbVe.setBorder(new EmptyBorder(8, 0, 6, 0));
+
+        // ── Bảng vé ──
+        DefaultTableModel veModel = new DefaultTableModel(
+                new Object[]{"Mã vé", "Tàu", "Lộ trình", "Khởi hành", "Ghế", "Giá vé"}, 0) {
+            @Override public boolean isCellEditable(int r, int c) { return false; }
+        };
+
+        java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("dd/MM HH:mm");
+        for (Object[] ve : veList) {
+            String giaVe = String.format("%,.0f đ", (Double) ve[2]).replace(",", ".");
+            String gioKH = ve[8] != null ? sdf.format(ve[8]) : "—";
+            String soGhe = ve[4] != null
+                    ? "Ghế " + ve[4] + " (" + formatLoaiGhe(ve[5] != null ? ve[5].toString() : "") + ")"
+                    : "—";
+            veModel.addRow(new Object[]{ ve[0], ve[6], ve[7], gioKH, soGhe, giaVe });
+        }
+
+        JTable tblVe = new JTable(veModel);
+        tblVe.setRowHeight(32);
+        tblVe.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 12));
+        tblVe.getTableHeader().setFont(GuiTheme.font("Segoe UI", Font.BOLD, 12));
+        tblVe.setShowVerticalLines(false);
+        tblVe.setSelectionBackground(new Color(207, 222, 243));
+        tblVe.setSelectionForeground(Color.BLACK);
+        tblVe.getTableHeader().setReorderingAllowed(false);
+
+        DefaultTableCellRenderer center = new DefaultTableCellRenderer();
+        center.setHorizontalAlignment(SwingConstants.CENTER);
+        for (int i = 0; i < tblVe.getColumnCount(); i++)
+            tblVe.getColumnModel().getColumn(i).setCellRenderer(center);
+
+        tblVe.getColumnModel().getColumn(0).setPreferredWidth(90);
+        tblVe.getColumnModel().getColumn(1).setPreferredWidth(70);
+        tblVe.getColumnModel().getColumn(2).setPreferredWidth(130);
+        tblVe.getColumnModel().getColumn(3).setPreferredWidth(80);
+        tblVe.getColumnModel().getColumn(4).setPreferredWidth(110);
+        tblVe.getColumnModel().getColumn(5).setPreferredWidth(70);
+
+        JScrollPane spVe = new JScrollPane(tblVe);
+        spVe.setBorder(new LineBorder(new Color(210, 215, 224), 1, true));
+        spVe.setPreferredSize(new Dimension(600, Math.min(veList.size() * 32 + 30, 160)));
+
+        // ── Gom giữa ──
+        JPanel pnlMid = new JPanel();
+        pnlMid.setLayout(new BoxLayout(pnlMid, BoxLayout.Y_AXIS));
+        pnlMid.setOpaque(false);
+        pnlMid.add(pnlCols);
+        pnlMid.add(Box.createVerticalStrut(10));
+        pnlMid.add(sep);
+        pnlMid.add(lbVe);
+        pnlMid.add(spVe);
+
+        // ── Nút ──
+        JPanel pnlBtn = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
+        pnlBtn.setOpaque(false);
+        pnlBtn.setBorder(new EmptyBorder(10, 0, 0, 0));
+
+        JButton btnIn = buildNavyButton("In lại hoá đơn");
+        btnIn.addActionListener(e -> openPDF(maHD));
+
+        JButton btnDong = new JButton("Đóng") {
+            @Override protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(getModel().isPressed() ? new Color(80,85,100) : new Color(100,105,120));
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 15, 15);
+                g2.setColor(Color.WHITE);
+                g2.setFont(getFont());
+                FontMetrics fm = g2.getFontMetrics();
+                g2.drawString(getText(), (getWidth() - fm.stringWidth(getText())) / 2,
+                        (getHeight() + fm.getAscent() - fm.getDescent()) / 2);
+                g2.dispose();
+            }
+        };
+        btnDong.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 13));
+        btnDong.setContentAreaFilled(false);
+        btnDong.setBorderPainted(false);
+        btnDong.setFocusPainted(false);
+        btnDong.setPreferredSize(new Dimension(90, 34));
+        btnDong.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btnDong.addActionListener(e -> dlg.dispose());
+
+        pnlBtn.add(btnIn);
+        pnlBtn.add(btnDong);
+
+        root.add(pnlBadge, BorderLayout.NORTH);
+        root.add(pnlMid,   BorderLayout.CENTER);
+        root.add(pnlBtn,   BorderLayout.SOUTH);
+
+        dlg.setContentPane(root);
+        dlg.setVisible(true);
+    }
+
+    private JPanel buildInfoSection(String title, String[][] rows, boolean highlightLast) {
+        JPanel pnl = new JPanel();
+        pnl.setLayout(new BoxLayout(pnl, BoxLayout.Y_AXIS));
+        pnl.setOpaque(false);
+
+        JLabel lbTitle = new JLabel(title);
+        lbTitle.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 13));
+        lbTitle.setForeground(new Color(40, 45, 70));
+        pnl.add(lbTitle);
+        pnl.add(Box.createVerticalStrut(8));
+
+        for (int i = 0; i < rows.length; i++) {
+            JPanel row = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 2));
+            row.setOpaque(false);
+            JLabel lbKey = new JLabel(rows[i][0] + " ");
+            lbKey.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 13));
+            lbKey.setForeground(new Color(70, 75, 95));
+            JLabel lbVal = new JLabel(rows[i][1]);
+            lbVal.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 13));
+            lbVal.setForeground(new Color(30, 35, 55));
+            row.add(lbKey);
+            row.add(lbVal);
+            pnl.add(row);
+        }
+        return pnl;
+    }
+
+    private String formatLoaiGhe(String loai) {
+        return switch (loai.toUpperCase()) {
+            case "GHE_CUNG"   -> "Ghế cứng";
+            case "GHE_MEM"    -> "Ghế mềm";
+            case "GIUONG_NAM" -> "Giường nằm";
+            default           -> loai;
+        };
+    }
+
+    private void openPDF(String maHoaDon) {
+        File pdfFile = new File("HoaDon", maHoaDon + ".pdf");
+        if (!pdfFile.exists()) {
+            JOptionPane.showMessageDialog(this,
+                    "Không tìm thấy file hóa đơn:\n" + pdfFile.getAbsolutePath(),
+                    "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+        try {
+            Desktop.getDesktop().open(pdfFile);
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this,
+                    "Không thể mở file PDF: " + ex.getMessage(),
+                    "Lỗi", JOptionPane.ERROR_MESSAGE);
+        }
     }
 }
 

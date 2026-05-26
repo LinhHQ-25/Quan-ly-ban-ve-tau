@@ -250,8 +250,6 @@ public class DoiVeGUI extends JPanel {
         tfLoai   .setText("MOT_CHIEU".equalsIgnoreCase(_rawLoai) ? "Một chiều"
                 : "KHU_HOI".equalsIgnoreCase(_rawLoai)   ? "Khứ hồi"
                   : _rawLoai);
-        tfNgayGio.setText(s_data[5]);
-        tfNgayVe .setText("—");
         tfSoLuong.setText(s_data[6]);
 
         // Auto select the new fields
@@ -266,7 +264,13 @@ public class DoiVeGUI extends JPanel {
 
         boolean isKhuHoi = "KHU_HOI".equalsIgnoreCase(s_data[3]) || "Khứ hồi".equalsIgnoreCase(s_data[3]);
         boolean isChieuVe = "Chiều về".equals(s_data[4]);
-
+        if (isChieuVe) {
+            tfNgayGio.setText("—");
+            tfNgayVe .setText(s_data[5]);
+        } else {
+            tfNgayGio.setText(s_data[5]);
+            tfNgayVe .setText("—");
+        }
         boolean ngayDiEnabled = !isChieuVe;
         boolean ngayVeEnabled = isKhuHoi && isChieuVe;
 

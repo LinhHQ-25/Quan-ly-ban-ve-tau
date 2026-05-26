@@ -1,5 +1,7 @@
 package gui;
 
+import java.awt.Dialog;
+import javax.swing.KeyStroke;
 import javax.swing.*;
 import javax.swing.border.*;
 import java.awt.*;
@@ -304,7 +306,7 @@ public class TraVeGUI extends JPanel {
 
         String maDon;
         try (Connection conn = connect_DB.Connect_DB.getInstance().getConnection()) {
-            maDon = util.MaTuDong.taoMaDon(conn, LocalDate.now());
+            maDon = util.MaTuDong.taoMaDon(conn, java.time.LocalDate.now());
         } catch (Exception e) { return; }
 
         String currentNV = service.AuthService.getCurrentMaNV();
@@ -325,11 +327,15 @@ public class TraVeGUI extends JPanel {
         String sqlUpdateVe  = "UPDATE Ve SET trangThaiVe = N'Đã hủy', maHoaDon = ? WHERE maVe = ?";
         String sqlInsertDon = "INSERT INTO DonDoiTraVe (maDon, tienBu, ngayLap, tienHoanTra, loaiDon, maVe) VALUES (?, ?, GETDATE(), ?, 'DON_TRA', ?)";
 
+        final String maDonFinal = maDon;
+        final long tienHoanFinal = tienHoanKhach;
+        final long phiFinal = phiHuyVe;
+
         try (Connection conn = connect_DB.Connect_DB.getInstance().getConnection()) {
             conn.setAutoCommit(false);
-            try (PreparedStatement psHD  = conn.prepareStatement(sqlInsertHD);
-                 PreparedStatement psVe  = conn.prepareStatement(sqlUpdateVe);
-                 PreparedStatement psDon = conn.prepareStatement(sqlInsertDon)) {
+            try (java.sql.PreparedStatement psHD  = conn.prepareStatement(sqlInsertHD);
+                 java.sql.PreparedStatement psVe  = conn.prepareStatement(sqlUpdateVe);
+                 java.sql.PreparedStatement psDon = conn.prepareStatement(sqlInsertDon)) {
 
                 psHD.setString(1, maDon);
                 psHD.setString(2, currentNV);
@@ -352,13 +358,105 @@ public class TraVeGUI extends JPanel {
 
                 xuatHoaDonPDF(maDon, tienHoanKhach, phiHuyVe);
 
-                JOptionPane.showMessageDialog(this,
-                        "<html><div style='padding:6px'><b>Trả vé thành công!</b><br><br>" +
-                                "Mã đơn: <b>" + maDon + "</b><br>" +
-                                "Phí giữ lại: <b>" + fmtTien(phiHuyVe) + "</b><br>" +
-                                "Hoàn trả khách: <b>" + fmtTien(tienHoanKhach) + "</b></div></html>",
-                        "Hoàn tất", JOptionPane.PLAIN_MESSAGE);
-                appFrame.showCard("doi-tra");
+                // ── Popup thành công (giống DatVeGUI3) ──────────────────────────
+                java.awt.Window ancestor = javax.swing.SwingUtilities.getWindowAncestor(this);
+                javax.swing.JDialog dialog = new javax.swing.JDialog(ancestor, "",
+                        java.awt.Dialog.ModalityType.APPLICATION_MODAL);
+                dialog.setUndecorated(true);
+
+                final float[] alpha = { 0f };
+                final int[] frame   = { 0 };
+                final int TOTAL_FRAMES = 30;
+
+                javax.swing.JPanel glass = new javax.swing.JPanel(new java.awt.GridBagLayout()) {
+                    @Override protected void paintComponent(java.awt.Graphics g) {
+                        java.awt.Graphics2D g2 = (java.awt.Graphics2D) g.create();
+                        g2.setComposite(java.awt.AlphaComposite.getInstance(
+                                java.awt.AlphaComposite.SRC_OVER, 0.25f));
+                        g2.setColor(new java.awt.Color(10, 20, 50));
+                        g2.fillRect(0, 0, getWidth(), getHeight());
+                        g2.dispose();
+                    }
+                };
+                glass.setOpaque(false);
+
+                javax.swing.JPanel box = new javax.swing.JPanel(
+                        new java.awt.BorderLayout(0, 12)) {
+                    @Override protected void paintComponent(java.awt.Graphics g) {
+                        java.awt.Graphics2D g2 = (java.awt.Graphics2D) g.create();
+                        g2.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING,
+                                java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
+                        g2.setComposite(java.awt.AlphaComposite.getInstance(
+                                java.awt.AlphaComposite.SRC_OVER, alpha[0]));
+                        g2.setColor(java.awt.Color.WHITE);
+                        g2.fillRoundRect(0, 0, getWidth(), getHeight(), 20, 20);
+
+                        int cx = getWidth() / 2, cy = 70, r = 38;
+                        float progress = Math.min(1f, (float) frame[0] / TOTAL_FRAMES);
+                        g2.setColor(new java.awt.Color(220, 245, 220));
+                        g2.fillOval(cx - r, cy - r, r * 2, r * 2);
+                        g2.setColor(new java.awt.Color(34, 170, 70));
+                        g2.setStroke(new java.awt.BasicStroke(3f));
+                        g2.drawOval(cx - r, cy - r, r * 2, r * 2);
+                        if (progress > 0) {
+                            g2.setStroke(new java.awt.BasicStroke(4f,
+                                    java.awt.BasicStroke.CAP_ROUND,
+                                    java.awt.BasicStroke.JOIN_ROUND));
+                            int x1 = cx - 18, y1 = cy,
+                                    xMid = cx - 6, yMid = cy + 14,
+                                    x2 = cx + 20, y2 = cy - 16;
+                            float p1 = Math.min(1f, progress / 0.5f);
+                            g2.drawLine(x1, y1,
+                                    (int)(x1 + (xMid - x1) * p1),
+                                    (int)(y1 + (yMid - y1) * p1));
+                            if (progress > 0.5f) {
+                                float p2 = (progress - 0.5f) / 0.5f;
+                                g2.drawLine(xMid, yMid,
+                                        (int)(xMid + (x2 - xMid) * p2),
+                                        (int)(yMid + (y2 - yMid) * p2));
+                            }
+                        }
+                        g2.dispose();
+                    }
+                };
+                box.setOpaque(false);
+                box.setPreferredSize(new java.awt.Dimension(320, 240));
+                box.setBorder(new javax.swing.border.EmptyBorder(140, 24, 24, 24));
+
+                javax.swing.JLabel lblMsg = new javax.swing.JLabel(
+                        "<html><div style='text-align:center;'>" +
+                                "<b style='font-size:15px;color:#1c396e;'>Trả vé thành công!</b><br>" +
+                                "<span style='font-size:13px;color:#888;'>Đang xuất hóa đơn hoàn tiền...</span>" +
+                                "</div></html>",
+                        javax.swing.SwingConstants.CENTER);
+                box.add(lblMsg, java.awt.BorderLayout.CENTER);
+                glass.add(box);
+
+                dialog.setContentPane(glass);
+                dialog.setSize(ancestor.getSize());
+                dialog.setLocation(ancestor.getLocation());
+
+                javax.swing.Timer animTimer = new javax.swing.Timer(16, null);
+                animTimer.addActionListener(ev -> {
+                    frame[0]++;
+                    alpha[0] = Math.min(1f, frame[0] / 20f);
+                    glass.repaint();
+                    box.repaint();
+                    if (frame[0] >= TOTAL_FRAMES) animTimer.stop();
+                });
+                animTimer.start();
+
+                javax.swing.Timer closeTimer = new javax.swing.Timer(2500, ev -> {
+                    animTimer.stop();
+                    dialog.dispose();
+                    appFrame.showCard("doi-tra");
+                });
+                closeTimer.setRepeats(false);
+                closeTimer.start();
+
+                dialog.setVisible(true);
+                // ────────────────────────────────────────────────────────────────
+
             } catch (Exception ex) { conn.rollback(); throw ex; }
         } catch (Exception e) {
             e.printStackTrace();
@@ -512,7 +610,7 @@ public class TraVeGUI extends JPanel {
             String chieu = s_data.length > 4 ? s_data[4] : "";
 
             pdfAddCell(table, fontNormal, "1", com.itextpdf.text.Element.ALIGN_CENTER);
-            pdfAddCell(table, fontNormal, "Hủy vé HK trực tiếp", com.itextpdf.text.Element.ALIGN_LEFT);
+            pdfAddCell(table, fontNormal, "Hủy vé trực tiếp", com.itextpdf.text.Element.ALIGN_LEFT);
             pdfAddCell(table, fontNormal, loaiVeHienThi, com.itextpdf.text.Element.ALIGN_CENTER);
             pdfAddCell(table, fontNormal, s_maVe, com.itextpdf.text.Element.ALIGN_CENTER);
             pdfAddCell(table, fontNormal, chieu, com.itextpdf.text.Element.ALIGN_CENTER);

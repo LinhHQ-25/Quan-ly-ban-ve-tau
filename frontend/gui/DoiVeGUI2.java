@@ -153,10 +153,12 @@ public class DoiVeGUI2 extends JPanel {
         long tienBu   = s_tongThu;
         long tongTien = giaVeCu + tienBu;
 
+        long phiDoiVe = 30000L;
+        long giaVeMoiThuc = s_giaVeMoi - phiDoiVe; // tách phí ra
         modelChiTiet.addRow(new Object[]{
                 1, s_maVe, maVeMoiHienThi, s_chuyenMoi, s_gheMoiHienThi, s_ngayMoi,
                 DF.format(giaVeCu),
-                DF.format(s_giaVeMoi),
+                DF.format(giaVeMoiThuc),
                 DF.format(tongTien)
         });
 
@@ -347,7 +349,10 @@ public class DoiVeGUI2 extends JPanel {
         dialog.setUndecorated(true);
         JPanel glass = new JPanel(new GridBagLayout()) { @Override protected void paintComponent(Graphics g) { Graphics2D g2 = (Graphics2D) g.create(); g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.45f)); g2.setColor(new Color(10, 20, 50)); g2.fillRect(0, 0, getWidth(), getHeight()); g2.dispose(); } }; glass.setOpaque(false);
         JPanel box = buildPopupBox(380, 235); box.setBorder(new EmptyBorder(28, 32, 24, 32));
-        JLabel lblIcon = new JLabel("⚠", SwingConstants.CENTER); lblIcon.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 36)); lblIcon.setForeground(new Color(220, 100, 0));
+        JLabel lblIcon = new JLabel(new ImageIcon(
+                new ImageIcon(getClass().getResource("/images/warning-logo.png"))
+                        .getImage().getScaledInstance(48, 48, java.awt.Image.SCALE_SMOOTH)),
+                SwingConstants.CENTER);
         JLabel lblMsg = new JLabel("<html><div style='text-align:center;'><b style='font-size:14px;color:#1c396e;'>Xác nhận hủy quá trình đổi vé?</b><br><br><span style='font-size:13px;color:#555;'>Bạn sẽ được đưa về trang chủ quản lý đổi trả.</span></div></html>", SwingConstants.CENTER);
         JPanel topContent = new JPanel(new BorderLayout(0, 10)); topContent.setOpaque(false); topContent.add(lblIcon, BorderLayout.NORTH); topContent.add(lblMsg, BorderLayout.CENTER);
         JPanel btnRow = new JPanel(new GridLayout(1, 2, 12, 0)); btnRow.setOpaque(false);
@@ -405,11 +410,12 @@ public class DoiVeGUI2 extends JPanel {
 
     private void tinhToanTaiChinh(long giaVeCu) {
         long phiDoiVe = 30000L;
+        long giaVeMoiThuc = s_giaVeMoi - phiDoiVe; // tách phí ra
         long tienKhachBu = s_tongThu;
         long tongTien = giaVeCu + tienKhachBu;
 
         lblGiaVeCu.setText("Giá vé cũ: " + DF.format(giaVeCu));
-        lblGiaVeMoi.setText("Giá vé mới: " + DF.format(s_giaVeMoi));
+        lblGiaVeMoi.setText("Giá vé mới: " + DF.format(giaVeMoiThuc));
         lblPhiDoiVe.setText("Phí đổi vé: " + DF.format(phiDoiVe));
 
         lblKhachBu.setText("Tiền khách bù: " + DF.format(tienKhachBu));
