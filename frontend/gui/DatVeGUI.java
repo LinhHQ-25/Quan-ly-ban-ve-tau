@@ -353,20 +353,19 @@ public class DatVeGUI extends JPanel {
 
 			@Override
 			public void focusLost(FocusEvent e) {
-				gaDenWrap.repaint();
-				SwingUtilities.invokeLater(() -> {
-					if (autocompletePopup == null || !autocompletePopup.isVisible()) {
-						String cur = txtGaDen.getText().trim();
-						String sel = (String) cbGaDen.getSelectedItem();
-						boolean exact = Arrays.stream(gaDenList).anyMatch(g -> g.equalsIgnoreCase(cur))
-								|| Arrays.stream(gaDenDisplayList).anyMatch(g -> g.equalsIgnoreCase(cur));
-						if (!exact) {
-							suppressDocListener = true;
-							txtGaDen.setText(sel != null ? sel : "");
-							suppressDocListener = false;
-						}
-					}
-				});
+			    gaDenWrap.repaint();
+			    SwingUtilities.invokeLater(() -> SwingUtilities.invokeLater(() -> {
+			        if (autocompletePopup != null && autocompletePopup.isVisible()) return;
+			        String cur = txtGaDen.getText().trim();
+			        String sel = (String) cbGaDen.getSelectedItem();
+			        boolean exact = Arrays.stream(gaDenList).anyMatch(g -> g.equalsIgnoreCase(cur))
+			                || Arrays.stream(gaDenDisplayList).anyMatch(g -> g.equalsIgnoreCase(cur));
+			        if (!exact) {
+			            suppressDocListener = true;
+			            txtGaDen.setText(sel != null ? sel : "");
+			            suppressDocListener = false;
+			        }
+			    }));
 			}
 		});
 

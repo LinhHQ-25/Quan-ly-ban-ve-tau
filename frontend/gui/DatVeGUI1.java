@@ -1066,10 +1066,16 @@ public class DatVeGUI1 extends JPanel {
 			if (!taken) {
 				btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
 				btn.addActionListener(ev -> {
-					if (gheChon.contains(seatId))
-						gheChon.remove(seatId);
-					else if (gheChon.size() < soLuong)
-						gheChon.add(seatId);
+				    if (gheChon.contains(seatId))
+				        gheChon.remove(seatId);
+				    else {
+				        if (gheChon.size() >= soLuong) {
+				            // Xóa ghế đầu tiên (cũ nhất) trong queue
+				            String oldest = gheChon.iterator().next();
+				            gheChon.remove(oldest);
+				        }
+				        gheChon.add(seatId);
+				    }
 
 					if (!maToaFinal.equals(activeMaToa)) {
 						int idx = toaMaToas.indexOf(maToaFinal);
@@ -1093,7 +1099,7 @@ public class DatVeGUI1 extends JPanel {
 							updateVisibleToa();
 						}
 					}
-					btn.repaint();
+					SwingUtilities.invokeLater(() -> pnlAllToas.repaint());
 					updateGheDaChon();
 					updateActionBtn();
 				});

@@ -94,7 +94,8 @@ public class Ve implements TinhGiaVe {
 
     @Override
     public double tinhGiaGoc() {
-        return 300000 * heSoCuLy * heSoLoaiToa;
+        double giaCoBan = new dao.CauHinhGiaDAO().getGiaCoBan();
+        return giaCoBan * heSoCuLy * heSoLoaiToa;
     }
 
     @Override

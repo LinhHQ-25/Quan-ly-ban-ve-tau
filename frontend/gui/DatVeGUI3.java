@@ -607,9 +607,7 @@ public class DatVeGUI3 extends JPanel {
 		glass.setOpaque(false);
 		JPanel box = buildPopupBox(380, 235);
 		box.setBorder(new EmptyBorder(28, 32, 24, 32));
-		JLabel lblIcon = new JLabel("⚠", SwingConstants.CENTER);
-		lblIcon.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 36));
-		lblIcon.setForeground(new Color(220, 100, 0));
+		JLabel lblIcon = new JLabel(loadIcon("/Images/logoClose.png", 48, 48), SwingConstants.CENTER);
 		JLabel lblMsg = new JLabel(
 				"<html><div style='text-align:center;'><b style='font-size:14px;color:#1c396e;'>Xác nhận hủy vé?</b><br><br><span style='font-size:13px;color:#555;'>Tất cả thông tin đặt vé sẽ bị xóa.<br>Bạn sẽ được chuyển về trang tìm chuyến.</span></div></html>",
 				SwingConstants.CENTER);
