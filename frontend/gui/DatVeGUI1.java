@@ -985,7 +985,7 @@ public class DatVeGUI1 extends JPanel {
 		JLabel lblLogo = new JLabel();
 		lblLogo.setHorizontalAlignment(SwingConstants.CENTER);
 		boolean isVip = loaiToa.equals("VIP");
-		Icon icon = loadAndScaleIcon(isVip ? "/Images/logoToaVIP.png" : "/Images/logoToaThuong.png", 56, 36);
+		Icon icon = loadAndScaleIcon(isVip ? "/Images/logoToaVip.png" : "/Images/logoToaThuong.png", 56, 36);
 		if (icon != null)
 			lblLogo.setIcon(icon);
 		else {

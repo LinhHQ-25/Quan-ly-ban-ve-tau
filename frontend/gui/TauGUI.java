@@ -45,9 +45,11 @@ final class TauGUI extends JPanel {
     
     private DefaultTableModel tblSeatModel;
     private JTable tblSeatData;
+    private JPanel pnlSeatGridContainer;
     
     private String selectedTrainIdForDetail = "";
     private String selectedToaIdForDetail = "";
+    private JComboBox<String> cboChuyenTau;
 
     TauGUI() {
         instance = this;
@@ -106,6 +108,9 @@ final class TauGUI extends JPanel {
         lblTitle.setBorder(new EmptyBorder(6, 15, 6, 15));
         pnlHeader.add(lblTitle, BorderLayout.WEST);
 
+        JPanel pnlLegend = buildTrainStatusLegend();
+        pnlHeader.add(pnlLegend, BorderLayout.EAST);
+
         JPanel line = new JPanel();
         line.setBackground(new Color(230, 235, 245));
         line.setPreferredSize(new java.awt.Dimension(0, 1));
@@ -127,6 +132,43 @@ final class TauGUI extends JPanel {
         
         pnlOuter.add(scroll, BorderLayout.CENTER);
         return pnlOuter;
+    }
+
+    private JPanel buildTrainStatusLegend() {
+        JPanel pnlLegend = new JPanel(new FlowLayout(FlowLayout.RIGHT, 15, 0));
+        pnlLegend.setOpaque(false);
+
+        pnlLegend.add(createTrainStatusLegendItem("Sẵn sàng", new Color(222, 247, 236), new Color(3, 84, 63)));
+        pnlLegend.add(createTrainStatusLegendItem("Đang chạy", new Color(219, 234, 254), new Color(29, 78, 216)));
+        pnlLegend.add(createTrainStatusLegendItem("Bảo trì kỹ thuật", new Color(254, 243, 199), new Color(180, 83, 9)));
+        pnlLegend.add(createTrainStatusLegendItem("Bảo trì", new Color(254, 226, 226), new Color(220, 38, 38)));
+
+        return pnlLegend;
+    }
+
+    private JPanel createTrainStatusLegendItem(String text, Color bg, Color fg) {
+        JPanel pnl = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
+        pnl.setOpaque(false);
+
+        JLabel lblBadge = new JLabel(text.toUpperCase(), SwingConstants.CENTER) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(getBackground());
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), getHeight(), getHeight());
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
+        lblBadge.setOpaque(false);
+        lblBadge.setBackground(bg);
+        lblBadge.setForeground(fg);
+        lblBadge.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 8));
+        lblBadge.setBorder(new EmptyBorder(3, 8, 3, 8));
+
+        pnl.add(lblBadge);
+        return pnl;
     }
 
     private JPanel buildFilterPanel() {
@@ -223,12 +265,12 @@ final class TauGUI extends JPanel {
     }
 
     private JComboBox<String> buildStatusCombo() {
-        JComboBox<String> cbo = new JComboBox<>(new String[] { "Tất cả", "Hoạt động", "Bảo trì" });
+        JComboBox<String> cbo = new JComboBox<>(new String[] { "Tất cả", "Sẵn sàng", "Đang chạy", "Bảo trì kỹ thuật", "Bảo trì" });
         cbo.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 14));
         cbo.setBackground(GuiTheme.SEARCH_FIELD_BG);
         cbo.setForeground(GuiTheme.TEXT);
         GuiTheme.setupRoundedComponent(cbo);
-        cbo.setPreferredSize(new Dimension(104, 30));
+        cbo.setPreferredSize(new Dimension(150, 30));
         return cbo;
     }
 
@@ -417,6 +459,26 @@ final class TauGUI extends JPanel {
         lblTitle.setBorder(new EmptyBorder(6, 15, 6, 15));
         pnlHeader.add(lblTitle, BorderLayout.WEST);
 
+        JPanel pnlSeatActions = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
+        pnlSeatActions.setOpaque(false);
+        
+        cboChuyenTau = new JComboBox<>();
+        cboChuyenTau.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 13));
+        cboChuyenTau.setBackground(GuiTheme.SEARCH_FIELD_BG);
+        cboChuyenTau.setForeground(GuiTheme.TEXT);
+        GuiTheme.setupRoundedComponent(cboChuyenTau);
+        cboChuyenTau.setPreferredSize(new Dimension(300, 30));
+        cboChuyenTau.addActionListener(e -> loadSeatsOfToa());
+        
+        JLabel lblXemChuyen = new JLabel("Xem chuyến:");
+        lblXemChuyen.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 13));
+        lblXemChuyen.setForeground(GuiTheme.NAVY);
+        
+        pnlSeatActions.add(lblXemChuyen);
+        pnlSeatActions.add(cboChuyenTau);
+        
+        pnlHeader.add(pnlSeatActions, BorderLayout.EAST);
+
         JPanel line = new JPanel();
         line.setBackground(new Color(230, 235, 245));
         line.setPreferredSize(new java.awt.Dimension(0, 1));
@@ -424,45 +486,15 @@ final class TauGUI extends JPanel {
 
         pnlOuter.add(pnlHeader, BorderLayout.NORTH);
 
-        // Đồng bộ cột với QuanLyTauGUI: thêm Số ghế + Trạng thái
-        String[] cols = {"STT", "Mã ghế", "Số ghế", "Loại ghế", "Số toa", "Trạng thái"};
-        tblSeatModel = new DefaultTableModel(cols, 0) {
-            @Override public boolean isCellEditable(int r, int c) { return false; }
-        };
+        // Dummy model/table to keep compilation happy and prevent exceptions
+        tblSeatModel = new DefaultTableModel();
         tblSeatData = new JTable(tblSeatModel);
-        tblSeatData.setRowHeight(36);
-        tblSeatData.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 13));
-        tblSeatData.getTableHeader().setFont(GuiTheme.font("Segoe UI", Font.BOLD, 13));
-        tblSeatData.setShowVerticalLines(false);
-        tblSeatData.setSelectionBackground(new Color(232, 240, 254));
-        tblSeatData.setSelectionForeground(GuiTheme.TEXT);
 
-        DefaultTableCellRenderer zebraRenderer = new DefaultTableCellRenderer() {
-            @Override public Component getTableCellRendererComponent(JTable t, Object v, boolean s, boolean f, int row, int col) {
-                Component c = super.getTableCellRendererComponent(t, v, s, f, row, col);
-                if (!s) {
-                    c.setBackground(row % 2 == 0 ? Color.WHITE : new Color(250, 250, 250));
-                    c.setForeground(GuiTheme.TEXT);
-                }
-                setHorizontalAlignment(SwingConstants.CENTER);
-                return c;
-            }
-        };
+        pnlSeatGridContainer = new JPanel(new BorderLayout());
+        pnlSeatGridContainer.setOpaque(false);
+        pnlSeatGridContainer.setBorder(new EmptyBorder(10, 10, 10, 10));
 
-        for (int i = 0; i < tblSeatData.getColumnCount(); i++) {
-            if (i == 5) { // Cột Trạng thái
-                tblSeatData.getColumnModel().getColumn(i).setCellRenderer(new StatusBadgeRenderer());
-            } else {
-                tblSeatData.getColumnModel().getColumn(i).setCellRenderer(zebraRenderer);
-            }
-        }
-        ((DefaultTableCellRenderer)tblSeatData.getTableHeader().getDefaultRenderer()).setHorizontalAlignment(SwingConstants.CENTER);
-
-        JScrollPane spnScroll = new JScrollPane(tblSeatData);
-        spnScroll.setBorder(null);
-        spnScroll.getViewport().setBackground(Color.WHITE);
-
-        pnlOuter.add(spnScroll, BorderLayout.CENTER);
+        pnlOuter.add(pnlSeatGridContainer, BorderLayout.CENTER);
         return pnlOuter;
     }
 
@@ -472,6 +504,7 @@ final class TauGUI extends JPanel {
         lblDetailTitle.setText("DANH SÁCH TOA TÀU - " + trainId);
         selectedToaIdForDetail = ""; // Reset toa đã chọn
 
+        loadChuyenTauOfTrain(trainId);
         // Tải các Toa của tàu này
         loadToaCards();
 
@@ -581,63 +614,336 @@ final class TauGUI extends JPanel {
         return false;
     }
 
-    private void loadSeatsOfToa() {
-        if (tblSeatModel == null) return;
-        tblSeatModel.setRowCount(0);
-
-        if (selectedToaIdForDetail.isEmpty()) return;
+    private void loadChuyenTauOfTrain(String trainId) {
+        new dao.ChuyenTauDAO().syncVoyageStatuses();
+        if (cboChuyenTau == null) return;
+        cboChuyenTau.removeAllItems();
+        cboChuyenTau.addItem("Trạng thái kỹ thuật (Thiết lập)");
 
         Connection conn = Connect_DB.getInstance().getConnection();
         if (conn == null) return;
 
         try {
-            // Đồng bộ với QuanLyTauGUI: thêm soGhe + trangThai
-            String sql = "SELECT g.maGhe, g.soGhe, g.loaiGhe, t.soToa, g.trangThai " +
+            String sql = "SELECT ct.maChuyenTau, gDi.tenGa AS gaDi, gDen.tenGa AS gaDen, "
+                       + "cct.thoiGianKhoiHanh, cct.thoiGianDuKien "
+                       + "FROM ChuyenTau ct "
+                       + "JOIN ChiTietChuyenTau cct ON ct.maChuyenTau = cct.maChuyenTau "
+                       + "JOIN Ga gDi ON cct.maGaDi = gDi.maGa "
+                       + "JOIN Ga gDen ON cct.maGaDen = gDen.maGa "
+                       + "WHERE ct.maTau = ? AND ct.trangThai <> 'HUY' "
+                       + "ORDER BY cct.thoiGianKhoiHanh DESC";
+            PreparedStatement stmt = conn.prepareStatement(sql);
+            stmt.setString(1, trainId);
+            ResultSet rs = stmt.executeQuery();
+
+            java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("dd/MM/yyyy HH:mm");
+            while (rs.next()) {
+                String maChuyen = rs.getString("maChuyenTau");
+                String gaDi = rs.getString("gaDi");
+                String gaDen = rs.getString("gaDen");
+                Timestamp tgDi = rs.getTimestamp("thoiGianKhoiHanh");
+                
+                String display = String.format("%s | %s -> %s | %s", 
+                    maChuyen, gaDi, gaDen, sdf.format(tgDi));
+                cboChuyenTau.addItem(display);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void loadSeatsOfToa() {
+        if (pnlSeatGridContainer == null) return;
+        pnlSeatGridContainer.removeAll();
+
+        if (selectedToaIdForDetail.isEmpty()) {
+            pnlSeatGridContainer.revalidate();
+            pnlSeatGridContainer.repaint();
+            return;
+        }
+
+        Connection conn = Connect_DB.getInstance().getConnection();
+        if (conn == null) return;
+
+        String selectedTripItem = cboChuyenTau != null ? (String) cboChuyenTau.getSelectedItem() : null;
+        boolean viewTripOccupancy = selectedTripItem != null && !selectedTripItem.equals("Trạng thái kỹ thuật (Thiết lập)");
+        String maChuyenTauSelected = "";
+        java.util.Set<String> gheDaDatSet = new java.util.HashSet<>();
+        
+        if (viewTripOccupancy) {
+            int pos = selectedTripItem.indexOf(" | ");
+            if (pos > 0) {
+                maChuyenTauSelected = selectedTripItem.substring(0, pos);
+                try {
+                    gheDaDatSet.addAll(new dao.VeDAO().layDanhSachMaGheDaDat(maChuyenTauSelected));
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+
+        List<SeatInfo> seatList = new ArrayList<>();
+        int soToa = 1;
+        String loaiToa = "";
+
+        try {
+            String sql = "SELECT g.maGhe, g.soGhe, g.loaiGhe, t.soToa, t.loaiToa, g.trangThai " +
                          "FROM Ghe g " +
                          "JOIN ToaTau t ON g.maToaTau = t.maToaTau " +
                          "WHERE t.maToaTau = ? " +
                          "ORDER BY CAST(g.soGhe AS INT) ASC";
-            PreparedStatement stmt = conn.prepareStatement(sql);
-            stmt.setString(1, selectedToaIdForDetail);
-            ResultSet rs = stmt.executeQuery();
-
-            int stt = 1;
-            while (rs.next()) {
-                tblSeatModel.addRow(new Object[] {
-                    stt++,
-                    rs.getString("maGhe"),
-                    rs.getString("soGhe"),
-                    loaiGheToVietnamese(rs.getString("loaiGhe")),
-                    rs.getInt("soToa"),
-                    TrangThaiGhe.tuMoTa(rs.getString("trangThai")).toString()
-                });
+            try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+                stmt.setString(1, selectedToaIdForDetail);
+                try (ResultSet rs = stmt.executeQuery()) {
+                    while (rs.next()) {
+                        SeatInfo s = new SeatInfo();
+                        s.maGhe = rs.getString("maGhe");
+                        s.soGhe = rs.getString("soGhe");
+                        s.loaiGhe = rs.getString("loaiGhe");
+                        s.soToa = rs.getInt("soToa");
+                        s.loaiToa = rs.getString("loaiToa");
+                        s.trangThai = rs.getString("trangThai");
+                        seatList.add(s);
+                        
+                        soToa = s.soToa;
+                        loaiToa = s.loaiToa;
+                    }
+                }
             }
         } catch (SQLException e) {
             try {
-                String sql = "SELECT g.maGhe, g.soGhe, g.loaiGhe, t.soToa, g.trangThai " +
+                String sql = "SELECT g.maGhe, g.soGhe, g.loaiGhe, t.soToa, t.loaiToa, g.trangThai " +
                              "FROM Ghe g " +
                              "JOIN ToaTau t ON g.maToaTau = t.maToaTau " +
                              "WHERE t.maToaTau = ? " +
                              "ORDER BY g.soGhe ASC";
-                PreparedStatement stmt = conn.prepareStatement(sql);
-                stmt.setString(1, selectedToaIdForDetail);
-                ResultSet rs = stmt.executeQuery();
-
-                int stt = 1;
-                while (rs.next()) {
-                    tblSeatModel.addRow(new Object[] {
-                        stt++,
-                        rs.getString("maGhe"),
-                        rs.getString("soGhe"),
-                        loaiGheToVietnamese(rs.getString("loaiGhe")),
-                        rs.getInt("soToa"),
-                        TrangThaiGhe.tuMoTa(rs.getString("trangThai")).toString()
-                    });
+                try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+                    stmt.setString(1, selectedToaIdForDetail);
+                    try (ResultSet rs = stmt.executeQuery()) {
+                        while (rs.next()) {
+                            SeatInfo s = new SeatInfo();
+                            s.maGhe = rs.getString("maGhe");
+                            s.soGhe = rs.getString("soGhe");
+                            s.loaiGhe = rs.getString("loaiGhe");
+                            s.soToa = rs.getInt("soToa");
+                            s.loaiToa = rs.getString("loaiToa");
+                            s.trangThai = rs.getString("trangThai");
+                            seatList.add(s);
+                            
+                            soToa = s.soToa;
+                            loaiToa = s.loaiToa;
+                        }
+                    }
                 }
             } catch (SQLException ex) {
                 ex.printStackTrace();
             }
         }
+
+        if (seatList.isEmpty()) {
+            JLabel lblEmpty = new JLabel("Không có cấu hình ghế nào cho toa này.", SwingConstants.CENTER);
+            lblEmpty.setFont(GuiTheme.font("Segoe UI", Font.ITALIC, 14));
+            lblEmpty.setForeground(GuiTheme.SUB_TEXT);
+            pnlSeatGridContainer.add(lblEmpty, BorderLayout.CENTER);
+            pnlSeatGridContainer.revalidate();
+            pnlSeatGridContainer.repaint();
+            return;
+        }
+
+        // Robust sorting
+        seatList.sort((s1, s2) -> {
+            try {
+                return Integer.compare(Integer.parseInt(s1.soGhe), Integer.parseInt(s2.soGhe));
+            } catch (NumberFormatException e) {
+                return s1.soGhe.compareTo(s2.soGhe);
+            }
+        });
+
+        int totalSeats = seatList.size();
+        int occupiedSeats = 0;
+        int brokenSeats = 0;
+        for (SeatInfo seat : seatList) {
+            boolean isBaoTri = "BAO_TRI".equals(seat.trangThai) || "Bảo trì".equalsIgnoreCase(seat.trangThai);
+            if (isBaoTri) {
+                brokenSeats++;
+            } else if (viewTripOccupancy && gheDaDatSet.contains(seat.maGhe)) {
+                occupiedSeats++;
+            }
+        }
+        int remainingSeats = totalSeats - occupiedSeats - brokenSeats;
+
+        // Build Title
+        String loaiToaStr = loaiToa;
+        if (loaiToa != null) {
+            if (loaiToa.equalsIgnoreCase("TOA_VIP") || loaiToa.equalsIgnoreCase("VIP")) {
+                loaiToaStr = "Toa VIP (Giường nằm)";
+            } else if (loaiToa.equalsIgnoreCase("TOA_THUONG") || loaiToa.equalsIgnoreCase("THUONG")) {
+                if (!seatList.isEmpty()) {
+                    String firstSeatLoai = seatList.get(0).loaiGhe;
+                    if ("GHE_MEM".equalsIgnoreCase(firstSeatLoai)) {
+                        loaiToaStr = "Toa Ghế mềm";
+                    } else if ("GHE_CUNG".equalsIgnoreCase(firstSeatLoai)) {
+                        loaiToaStr = "Toa Ghế cứng";
+                    } else {
+                        loaiToaStr = "Toa thường";
+                    }
+                } else {
+                    loaiToaStr = "Toa thường";
+                }
+            }
+        }
+
+        JLabel lblCarriageTitle = new JLabel(String.format("Toa tàu số %d: %s", soToa, loaiToaStr), SwingConstants.CENTER);
+        lblCarriageTitle.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 15));
+        lblCarriageTitle.setForeground(new Color(44, 82, 150));
+        lblCarriageTitle.setBorder(BorderFactory.createEmptyBorder(0, 0, 10, 0));
+        pnlSeatGridContainer.add(lblCarriageTitle, BorderLayout.NORTH);
+
+        // Carriage outline border
+        JPanel pnlCarriage = new JPanel(new BorderLayout());
+        pnlCarriage.setBackground(new Color(245, 247, 250));
+        pnlCarriage.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(180, 200, 220), 1, true),
+            BorderFactory.createEmptyBorder(12, 12, 12, 12)
+        ));
+
+        int cols = (int) Math.ceil((double) totalSeats / 2);
+        JPanel pnlGrid = new JPanel(new GridLayout(2, cols, 8, 8));
+        pnlGrid.setOpaque(false);
+
+        for (SeatInfo seat : seatList) {
+            boolean isBaoTri = "BAO_TRI".equals(seat.trangThai) || "Bảo trì".equalsIgnoreCase(seat.trangThai);
+            Color color;
+            Color hoverColor;
+            String statusDesc;
+
+            if (isBaoTri) {
+                color = new Color(229, 0, 0); // Red
+                hoverColor = new Color(255, 50, 50);
+                statusDesc = "Bảo trì";
+            } else if (viewTripOccupancy) {
+                if (gheDaDatSet.contains(seat.maGhe)) {
+                    color = new Color(192, 192, 192); // Grey
+                    hoverColor = new Color(210, 210, 210);
+                    statusDesc = "Đã mua";
+                } else {
+                    color = new Color(70, 130, 180); // Blue
+                    hoverColor = new Color(90, 150, 200);
+                    statusDesc = "Còn trống";
+                }
+            } else {
+                color = new Color(70, 130, 180); // Blue (Active)
+                hoverColor = new Color(90, 150, 200);
+                statusDesc = "Còn trống";
+            }
+
+            JButton btnSeat = new JButton(seat.soGhe);
+            btnSeat.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 14));
+            btnSeat.setForeground(Color.WHITE);
+            btnSeat.setBackground(color);
+            btnSeat.setFocusPainted(false);
+            btnSeat.setBorderPainted(false);
+            btnSeat.setContentAreaFilled(true);
+            btnSeat.setOpaque(true);
+            btnSeat.setPreferredSize(new Dimension(60, 42));
+            btnSeat.setToolTipText(String.format("Ghế %s | Loại: %s | Trạng thái: %s", seat.soGhe, loaiGheToVietnamese(seat.loaiGhe), statusDesc));
+
+            Color normalColor = color;
+            btnSeat.addMouseListener(new MouseAdapter() {
+                @Override public void mouseEntered(MouseEvent e) { btnSeat.setBackground(hoverColor); }
+                @Override public void mouseExited(MouseEvent e) { btnSeat.setBackground(normalColor); }
+            });
+
+            // Action details
+            if (!viewTripOccupancy) {
+                // Technical setup mode - view only for normal staff
+                btnSeat.addActionListener(evt -> {
+                    JOptionPane.showMessageDialog(this,
+                        String.format("Thông tin ghế:\n- Số ghế: %s (Mã: %s)\n- Loại ghế: %s\n- Trạng thái vật lý: %s\n(Nhân viên không có quyền thay đổi trạng thái kỹ thuật)", 
+                                      seat.soGhe, seat.maGhe, loaiGheToVietnamese(seat.loaiGhe), statusDesc),
+                        "Chi tiết ghế ngồi (Xem chi tiết)",
+                        JOptionPane.INFORMATION_MESSAGE
+                    );
+                });
+            } else {
+                // View voyage mode
+                btnSeat.addActionListener(evt -> {
+                    JOptionPane.showMessageDialog(this,
+                        String.format("Thông tin ghế:\n- Số ghế: %s (Mã: %s)\n- Loại ghế: %s\n- Trạng thái đặt vé: %s", 
+                                      seat.soGhe, seat.maGhe, loaiGheToVietnamese(seat.loaiGhe), statusDesc),
+                        "Chi tiết ghế ngồi",
+                        JOptionPane.INFORMATION_MESSAGE
+                    );
+                });
+            }
+
+            pnlGrid.add(btnSeat);
+        }
+
+        JPanel pnlGridCenter = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 0));
+        pnlGridCenter.setOpaque(false);
+        pnlGridCenter.add(pnlGrid);
+        pnlCarriage.add(pnlGridCenter, BorderLayout.CENTER);
+        pnlSeatGridContainer.add(pnlCarriage, BorderLayout.CENTER);
+
+        // Build Legend row exactly like the image
+        JPanel pnlLegend = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 10));
+        pnlLegend.setOpaque(false);
+
+        JLabel lblRemaining = new JLabel(String.format("Tổng số ghế còn lại: %d/%d", remainingSeats, totalSeats));
+        lblRemaining.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 13));
+        lblRemaining.setForeground(GuiTheme.TEXT);
+        pnlLegend.add(lblRemaining);
+
+        pnlLegend.add(createLegendItem("Đã mua", new Color(192, 192, 192)));
+        pnlLegend.add(createLegendItem("Còn trống", new Color(70, 130, 180)));
+        pnlLegend.add(createLegendItem("Bảo trì", new Color(229, 0, 0)));
+
+        pnlSeatGridContainer.add(pnlLegend, BorderLayout.SOUTH);
+
+        // Sync with original lblDetailSummary
+        if (viewTripOccupancy) {
+            lblDetailSummary.setText(String.format("Đã bán: %d/%d ghế | Còn trống: %d ghế", 
+                occupiedSeats, totalSeats, remainingSeats));
+        } else {
+            lblDetailSummary.setText("Tổng số ghế: " + totalSeats);
+        }
+
+        pnlSeatGridContainer.revalidate();
+        pnlSeatGridContainer.repaint();
+    }
+
+    private JPanel createLegendItem(String labelText, Color color) {
+        JPanel pnl = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
+        pnl.setOpaque(false);
+        
+        JPanel pnlColor = new JPanel() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                g.setColor(color);
+                g.fillRect(0, 0, getWidth(), getHeight());
+            }
+        };
+        pnlColor.setPreferredSize(new Dimension(20, 12));
+        pnlColor.setBackground(color);
+        
+        JLabel lbl = new JLabel(labelText);
+        lbl.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 12));
+        lbl.setForeground(GuiTheme.TEXT);
+        
+        pnl.add(pnlColor);
+        pnl.add(lbl);
+        return pnl;
+    }
+
+    private static class SeatInfo {
+        String maGhe;
+        String soGhe;
+        String loaiGhe;
+        int soToa;
+        String loaiToa;
+        String trangThai;
     }
 
     private static String loaiGheToVietnamese(String loaiGhe) {
@@ -658,23 +964,25 @@ final class TauGUI extends JPanel {
             pnlTrainCards.removeAll();
         }
 
+        java.util.Map<String, String> dynamicStatusMap = new java.util.HashMap<>();
+        try {
+            for (Object[] row : new dao.tauDAO().getTauTrangThaiDong(null)) {
+                dynamicStatusMap.put((String) row[0], (String) row[4]);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
         Connection conn = Connect_DB.getInstance().getConnection();
         if (conn == null) return;
 
         try {
             String sql = "SELECT * FROM Tau WHERE maTau LIKE ? AND tenTau LIKE ?";
             String statusFilter = (String) cboStatus.getSelectedItem();
-            if (statusFilter != null && !statusFilter.isEmpty() && !statusFilter.equals("Tất cả")) {
-                sql += " AND trangThai = ?";
-            }
 
             PreparedStatement stmt = conn.prepareStatement(sql);
             stmt.setString(1, "%" + txtMaTau.getText().trim() + "%");
             stmt.setString(2, "%" + txtTenTau.getText().trim() + "%");
-            if (statusFilter != null && !statusFilter.isEmpty() && !statusFilter.equals("Tất cả")) {
-                String dbStatus = statusFilter.equals("Hoạt động") ? "Đang hoạt động" : "Bảo trì";
-                stmt.setString(3, dbStatus);
-            }
 
             ResultSet rs = stmt.executeQuery();
             int stt = 1;
@@ -686,22 +994,36 @@ final class TauGUI extends JPanel {
 
             boolean hasTrains = false;
             while (rs.next()) {
-                hasTrains = true;
                 String maTau = rs.getString("maTau");
                 String tenTau = rs.getString("tenTau");
                 int soToa = rs.getInt("soToa");
                 int tongSoGhe = rs.getInt("tongSoGhe");
-                String trangThai = rs.getString("trangThai");
+                String trangThaiStatic = rs.getString("trangThai");
                 String ghiChu = hasGhiChu ? rs.getString("ghiChu") : "";
 
+                String trangThaiDynamic = trangThaiStatic;
+                if (trangThaiStatic.equals("Đang hoạt động")) {
+                    trangThaiDynamic = dynamicStatusMap.getOrDefault(maTau, "Sẵn sàng");
+                } else if (trangThaiStatic.equals("Bảo trì")) {
+                    trangThaiDynamic = "Bảo trì";
+                }
+
+                // Filter in Java dynamically
+                if (statusFilter != null && !statusFilter.equals("Tất cả")) {
+                    if (!statusFilter.equalsIgnoreCase(trangThaiDynamic)) {
+                        continue;
+                    }
+                }
+
+                hasTrains = true;
                 // Thêm vào bảng
                 tblModel.addRow(new Object[] {
-                    stt++, maTau, tenTau, soToa, tongSoGhe, trangThai, ghiChu
+                    stt++, maTau, tenTau, soToa, tongSoGhe, trangThaiDynamic, ghiChu
                 });
 
                 // Thêm vào panel card tàu
                 if (pnlTrainCards != null) {
-                    pnlTrainCards.add(new TrainCard(maTau, tenTau, soToa, tongSoGhe, trangThai));
+                    pnlTrainCards.add(new TrainCard(maTau, tenTau, soToa, tongSoGhe, trangThaiDynamic));
                 }
             }
 
@@ -813,8 +1135,16 @@ final class TauGUI extends JPanel {
             lblId.setForeground(new Color(27, 38, 59));
             add(lblId, BorderLayout.CENTER);
 
-            boolean isActive = status.contains("hoạt động") || status.contains("Hoạt động") || status.contains("Đang hoạt động");
-            String statusText = isActive ? "HOẠT ĐỘNG" : "BẢO TRÌ";
+            String statusText;
+            if (status.equalsIgnoreCase("Sẵn sàng")) {
+                statusText = "SẴN SÀNG";
+            } else if (status.equalsIgnoreCase("Đang chạy")) {
+                statusText = "ĐANG CHẠY";
+            } else if (status.equalsIgnoreCase("Bảo trì kỹ thuật")) {
+                statusText = "BẢO TRÌ KT";
+            } else {
+                statusText = "BẢO TRÌ";
+            }
             
             JLabel lblStatus = new JLabel(statusText, SwingConstants.CENTER) {
                 @Override
@@ -831,9 +1161,15 @@ final class TauGUI extends JPanel {
             lblStatus.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 7));
             lblStatus.setBorder(new EmptyBorder(2, 6, 2, 6));
             
-            if (isActive) {
-                lblStatus.setBackground(new Color(218, 230, 255));
-                lblStatus.setForeground(new Color(40, 100, 220));
+            if (status.equalsIgnoreCase("Sẵn sàng")) {
+                lblStatus.setBackground(new Color(222, 247, 236));
+                lblStatus.setForeground(new Color(3, 84, 63));
+            } else if (status.equalsIgnoreCase("Đang chạy")) {
+                lblStatus.setBackground(new Color(219, 234, 254));
+                lblStatus.setForeground(new Color(29, 78, 216));
+            } else if (status.equalsIgnoreCase("Bảo trì kỹ thuật")) {
+                lblStatus.setBackground(new Color(254, 243, 199));
+                lblStatus.setForeground(new Color(180, 83, 9));
             } else {
                 lblStatus.setBackground(new Color(254, 226, 226));
                 lblStatus.setForeground(new Color(220, 38, 38));
@@ -875,40 +1211,52 @@ final class TauGUI extends JPanel {
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
             boolean isSelected = cardId.equals(selectedTrainIdForDetail);
 
-            boolean isActive = status.contains("hoạt động") || status.contains("Hoạt động") || status.contains("Đang hoạt động");
-            
             Color bgCard;
-            if (isSelected) {
-                bgCard = new Color(230, 240, 255);
-            } else if (isHovered) {
-                bgCard = new Color(248, 250, 255);
-            } else {
-                bgCard = isActive ? new Color(243, 248, 255) : new Color(255, 245, 245);
+            Color borderColor;
+            float borderStroke;
+            Color topBarColor;
+            Color iconColor;
+
+            if (status.equalsIgnoreCase("Sẵn sàng")) {
+                bgCard = isSelected ? new Color(230, 248, 235) : (isHovered ? new Color(240, 253, 244) : new Color(245, 255, 248));
+                borderColor = isSelected ? new Color(34, 197, 94) : (isHovered ? new Color(74, 222, 128) : new Color(187, 247, 208));
+                topBarColor = new Color(34, 197, 94);
+                iconColor = new Color(22, 163, 74);
+            } else if (status.equalsIgnoreCase("Đang chạy")) {
+                bgCard = isSelected ? new Color(230, 240, 255) : (isHovered ? new Color(248, 250, 255) : new Color(243, 248, 255));
+                borderColor = isSelected ? new Color(50, 100, 220) : (isHovered ? new Color(120, 160, 240) : new Color(218, 230, 255));
+                topBarColor = new Color(59, 130, 246);
+                iconColor = new Color(37, 99, 235);
+            } else if (status.equalsIgnoreCase("Bảo trì kỹ thuật")) {
+                bgCard = isSelected ? new Color(255, 248, 220) : (isHovered ? new Color(255, 251, 235) : new Color(255, 253, 245));
+                borderColor = isSelected ? new Color(245, 158, 11) : (isHovered ? new Color(251, 191, 36) : new Color(253, 230, 138));
+                topBarColor = new Color(245, 158, 11);
+                iconColor = new Color(217, 119, 6);
+            } else { // Bảo trì (static)
+                bgCard = isSelected ? new Color(255, 235, 235) : (isHovered ? new Color(255, 245, 245) : new Color(255, 250, 250));
+                borderColor = isSelected ? new Color(239, 68, 68) : (isHovered ? new Color(248, 113, 113) : new Color(254, 215, 215));
+                topBarColor = new Color(239, 68, 68);
+                iconColor = new Color(220, 38, 38);
             }
+
+            if (isSelected) {
+                borderStroke = 2.5f;
+            } else if (isHovered) {
+                borderStroke = 1.5f;
+            } else {
+                borderStroke = 1.0f;
+            }
+
             g2.setColor(bgCard);
             g2.fillRoundRect(0, 0, getWidth(), getHeight(), 12, 12);
 
-            Color borderColor;
-            float borderStroke;
-            if (isSelected) {
-                borderColor = new Color(50, 100, 220);
-                borderStroke = 2.5f;
-            } else if (isHovered) {
-                borderColor = new Color(120, 160, 240);
-                borderStroke = 1.5f;
-            } else {
-                borderColor = isActive ? new Color(218, 230, 255) : new Color(254, 215, 215);
-                borderStroke = 1.0f;
-            }
             g2.setColor(borderColor);
             g2.setStroke(new BasicStroke(borderStroke));
             g2.drawRoundRect((int)(borderStroke/2), (int)(borderStroke/2), getWidth() - (int)borderStroke - 1, getHeight() - (int)borderStroke - 1, 12, 12);
 
-            Color topBarColor = isActive ? new Color(50, 120, 220) : new Color(220, 38, 38);
             g2.setColor(topBarColor);
             g2.fillRoundRect(2, 0, getWidth() - 4, 4, 4, 4);
 
-            Color iconColor = isActive ? new Color(40, 100, 220) : new Color(220, 38, 38);
             int iconHeight = Math.min(28, Math.max(24, getHeight() - 56));
             drawTrainIcon(g2, (getWidth() - 22) / 2, 7, 22, iconHeight, iconColor);
 
@@ -1066,10 +1414,16 @@ final class TauGUI extends JPanel {
                 label.setForeground(table.getSelectionForeground());
             } else {
                 panel.setBackground(row % 2 == 0 ? Color.WHITE : new Color(250, 250, 250));
-                if (status.contains("Hoạt động") || status.contains("hoạt động") || status.contains("Đang hoạt động")) {
+                if (status.equalsIgnoreCase("Sẵn sàng") || status.equalsIgnoreCase("Hoạt động") || status.equalsIgnoreCase("Đang hoạt động") || status.equalsIgnoreCase("Còn trống")) {
                     label.setBackground(new Color(222, 247, 236)); // Light green
                     label.setForeground(new Color(3, 84, 63)); // Dark green
-                } else if (status.contains("Bảo trì") || status.contains("bảo trì")) {
+                } else if (status.equalsIgnoreCase("Đang chạy")) {
+                    label.setBackground(new Color(219, 234, 254)); // Light blue
+                    label.setForeground(new Color(29, 78, 216)); // Dark blue
+                } else if (status.equalsIgnoreCase("Bảo trì kỹ thuật")) {
+                    label.setBackground(new Color(254, 243, 199)); // Light amber/orange
+                    label.setForeground(new Color(180, 83, 9)); // Dark orange
+                } else if (status.equalsIgnoreCase("Bảo trì") || status.equalsIgnoreCase("Đang sử dụng")) {
                     label.setBackground(new Color(253, 232, 232)); // Light red
                     label.setForeground(new Color(224, 36, 36)); // Dark red
                 } else {

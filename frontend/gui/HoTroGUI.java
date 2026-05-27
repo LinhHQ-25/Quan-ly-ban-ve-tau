@@ -296,13 +296,18 @@ final class HoTroGUI extends JPanel {
         addBullet(body, "Tìm kiếm vé cần xử lý bằng Mã vé hoặc Số điện thoại khách hàng tại màn hình Đổi/Trả vé.");
         addBullet(body, "Xác minh thông tin hành khách trùng khớp với vé hệ thống trước khi tiếp tục.");
         addSectionTitle(body, "2. Chính sách Trả vé (Hoàn tiền)");
-        addTableRow(body, true, "Thời gian yêu cầu", "Phí khấu trừ", "Điều kiện");
-        addTableRow(body, false, "Trước giờ tàu chạy > 24 giờ", "10% giá vé", "Áp dụng tất cả vé thông thường");
-        addTableRow(body, false, "Trước giờ tàu chạy 4 – 24 giờ", "20% giá vé", "Áp dụng tất cả vé thông thường");
-        addTableRow(body, false, "Trước giờ tàu chạy < 4 giờ", "Không áp dụng", "Hệ thống khóa chức năng trả vé tự động");
+        addTableRow(body, true, "Loại vé & Thời gian yêu cầu", "Phí khấu trừ", "Điều kiện áp dụng");
+        addTableRow(body, false, "Vé cá nhân: Trước chạy tàu ≥ 48 giờ", "10% giá vé", "Hoàn lại 90% tiền vé");
+        addTableRow(body, false, "Vé cá nhân: Trước chạy tàu 12 – 48 giờ", "20% giá vé", "Hoàn lại 80% tiền vé");
+        addTableRow(body, false, "Vé cá nhân: Trước chạy tàu < 12 giờ", "Không áp dụng", "Không hoàn trả vé");
+        addTableRow(body, false, "Vé nhóm: Trước chạy tàu ≥ 72 giờ", "20% giá vé", "Hoàn lại 80% tiền vé");
+        addTableRow(body, false, "Vé nhóm: Trước chạy tàu 24 – 72 giờ", "30% giá vé", "Hoàn lại 70% tiền vé");
+        addTableRow(body, false, "Vé nhóm: Trước chạy tàu < 24 giờ", "Không áp dụng", "Không hoàn trả vé");
         addSectionTitle(body, "3. Chính sách Đổi vé");
-        addBullet(body, "Khách hàng được đổi vé sang chuyến tàu khác miễn phí 1 lần duy nhất trước giờ chạy tàu ít nhất 24 giờ.");
-        addBullet(body, "Nếu vé mới cao giá hơn: thu thêm phần chênh lệch. Nếu thấp hơn: hoàn lại tiền sau khi trừ phí dịch vụ.");
+        addBullet(body, "Chỉ áp dụng đối với vé cá nhân (không áp dụng cho vé mua theo nhóm).");
+        addBullet(body, "Yêu cầu thực hiện đổi vé trước giờ tàu chạy ít nhất 24 giờ.");
+        addBullet(body, "Mức phí đổi vé cố định là 30.000 đ / vé.");
+        addBullet(body, "Hành khách thanh toán thêm chênh lệch nếu giá vé mới cao hơn giá vé cũ.");
         rightCardPanel.add(card, "DOI_TRA");
     }
 

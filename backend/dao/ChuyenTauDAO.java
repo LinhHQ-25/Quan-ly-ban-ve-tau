@@ -121,6 +121,21 @@ public class ChuyenTauDAO {
     }
 
     /**
+     * Hủy chuyến tàu - cập nhật trạng thái chuyến sang 'HUY' thay vì xóa vật lý khỏi cơ sở dữ liệu.
+     */
+    public boolean cancelChuyenTau(String maChuyenTau) {
+        String sql = "UPDATE ChuyenTau SET trangThai = 'HUY' WHERE maChuyenTau = ?";
+        try (Connection con = Connect_DB.getInstance().getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setString(1, maChuyenTau);
+            return ps.executeUpdate() > 0;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    /**
      * Lấy dữ liệu 1 chuyến để load lên form Cập nhật.
      */
     public Object[] getChuyenTauForUpdate(String maChuyenTau) {
@@ -193,6 +208,7 @@ public class ChuyenTauDAO {
      */
     public List<Object[]> searchChuyenTau(String filterGaDi, String filterGaDen,
                                            String filterTau, java.sql.Date ngayDi) {
+        syncVoyageStatuses();
         List<Object[]> result = new ArrayList<>();
         String sql = "SELECT ct.maChuyenTau, gDi.tenGa AS gaDi, gDen.tenGa AS gaDen, "
                    + "dt.thoiGianKhoiHanh, dt.thoiGianDuKien, t.tenTau, ct.trangThai "
@@ -248,6 +264,28 @@ public class ChuyenTauDAO {
         return result;
     }
 
+    /**
+     * Lấy ra thời gian đến dự kiến gần nhất của tàu trước mốc thời gian targetTime
+     */
+    public Timestamp getThoiGianDenGanNhat(String maTau, Timestamp targetTime) {
+        String sql = "SELECT TOP 1 ct.thoiGianDuKien "
+                   + "FROM ChiTietChuyenTau ct "
+                   + "JOIN ChuyenTau c ON ct.maChuyenTau = c.maChuyenTau "
+                   + "WHERE c.maTau = ? AND ct.thoiGianDuKien <= ? AND c.trangThai <> 'HUY' "
+                   + "ORDER BY ct.thoiGianDuKien DESC";
+        try (Connection con = Connect_DB.getInstance().getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setString(1, maTau);
+            ps.setTimestamp(2, targetTime);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getTimestamp("thoiGianDuKien");
+                }
+            }
+        } catch (Exception e) { e.printStackTrace(); }
+        return null;
+    }
+
     // =====================================================================
     // 3 HÀM MỚI — dùng cho DatVeGUI và DatVeGUI1
     // =====================================================================
@@ -258,6 +296,7 @@ public class ChuyenTauDAO {
      */
     public boolean checkChuyenTonTai(String tenGaDi, String tenGaDen,
                                       String ngayDiStr, java.util.Date minTime) {
+        syncVoyageStatuses();
         String sql = "SELECT TOP 1 1 FROM ChuyenTau c "
                    + "JOIN ChiTietChuyenTau dt ON c.maChuyenTau = dt.maChuyenTau "
                    + "JOIN Ga gDi  ON dt.maGaDi  = gDi.maGa "
@@ -289,6 +328,7 @@ public class ChuyenTauDAO {
      */
     public java.util.Date layThoiGianDenSomNhat(String tenGaDi, String tenGaDen,
                                                  String ngayDiStr, java.util.Date minTime) {
+        syncVoyageStatuses();
         String sql = "SELECT TOP 1 dt.thoiGianDuKien FROM ChuyenTau c "
                    + "JOIN ChiTietChuyenTau dt ON c.maChuyenTau = dt.maChuyenTau "
                    + "JOIN Ga gDi  ON dt.maGaDi  = gDi.maGa "
@@ -316,11 +356,88 @@ public class ChuyenTauDAO {
     }
 
     /**
+     * Kiểm tra xem tàu có bận chạy hoặc đang bảo trì 5 tiếng trong khoảng [tsStart, tsEnd] hay không
+     */
+    public boolean isTauBanTrongKhoang(String maTau, Timestamp tsStart, Timestamp tsEnd) {
+        String sql = "SELECT COUNT(*) "
+                   + "FROM ChiTietChuyenTau ct "
+                   + "JOIN ChuyenTau c ON ct.maChuyenTau = c.maChuyenTau "
+                   + "WHERE c.maTau = ? "
+                   + "AND c.trangThai <> 'HUY' "
+                   + "AND ( "
+                   + "    ( ? BETWEEN ct.thoiGianKhoiHanh AND DATEADD(hour, 5, ct.thoiGianDuKien) ) "
+                   + "    OR ( ? BETWEEN ct.thoiGianKhoiHanh AND DATEADD(hour, 5, ct.thoiGianDuKien) ) "
+                   + "    OR ( ct.thoiGianKhoiHanh BETWEEN ? AND ? ) "
+                   + ")";
+        try (Connection con = Connect_DB.getInstance().getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setString(1, maTau);
+            ps.setTimestamp(2, tsStart);
+            ps.setTimestamp(3, tsEnd);
+            ps.setTimestamp(4, tsStart);
+            ps.setTimestamp(5, tsEnd);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1) > 0;
+                }
+            }
+        } catch (Exception e) { e.printStackTrace(); }
+        return false;
+    }
+
+    /**
+     * Lưu hàng loạt chuyến tàu mới — dùng trong Tự động lập lịch định kỳ
+     */
+    public boolean saveMultipleChuyenTau(List<entity.ChuyenTau> listChuyen, List<entity.ChiTietChuyenTau> listChiTiet) {
+        Connection con = null;
+        try {
+            con = Connect_DB.getInstance().getConnection();
+            con.setAutoCommit(false);
+
+            String sql1 = "INSERT INTO ChuyenTau(maChuyenTau, ghiChu, maTau, trangThai) VALUES (?, ?, ?, ?)";
+            String sql2 = "INSERT INTO ChiTietChuyenTau(maChuyenTau, thoiGianKhoiHanh, thoiGianDuKien, maGaDi, maGaDen) VALUES (?, ?, ?, ?, ?)";
+
+            try (PreparedStatement ps1 = con.prepareStatement(sql1);
+                 PreparedStatement ps2 = con.prepareStatement(sql2)) {
+                
+                for (entity.ChuyenTau c : listChuyen) {
+                    ps1.setString(1, c.getMaChuyenTau());
+                    ps1.setString(2, c.getGhiChu());
+                    ps1.setString(3, c.getTau() != null ? c.getTau().getMaTau() : "");
+                    ps1.setString(4, c.getTrangThai() != null ? c.getTrangThai().name() : "CHUAN_BI");
+                    ps1.addBatch();
+                }
+                ps1.executeBatch();
+
+                for (entity.ChiTietChuyenTau ct : listChiTiet) {
+                    ps2.setString(1, ct.getMaChuyenTau());
+                    ps2.setTimestamp(2, Timestamp.valueOf(ct.getThoiGianKhoiHanh()));
+                    ps2.setTimestamp(3, Timestamp.valueOf(ct.getThoiGianDuKien()));
+                    ps2.setString(4, ct.getGaDi() != null ? ct.getGaDi().getMaGa() : "");
+                    ps2.setString(5, ct.getGaDen() != null ? ct.getGaDen().getMaGa() : "");
+                    ps2.addBatch();
+                }
+                ps2.executeBatch();
+            }
+
+            con.commit();
+            return true;
+        } catch (Exception e) {
+            if (con != null) try { con.rollback(); } catch (Exception ignored) {}
+            e.printStackTrace();
+            return false;
+        } finally {
+            if (con != null) try { con.setAutoCommit(true); } catch (Exception ignored) {}
+        }
+    }
+
+    /**
      * Load danh sách chuyến tàu từ DB theo ga đi, ga đến, ngày.
      * Dùng trong DatVeGUI1 thay cho hàm loadChuyenFromDB() nội bộ.
      * Mỗi phần tử: {tenTau, tgDi, tgDen, ngayDi, ngayDen, maChuyen}
      */
     public String[][] loadChuyenFromDB(String tenGaDi, String tenGaDen, String ngayDiStr) {
+        syncVoyageStatuses();
         List<String[]> list = new ArrayList<>();
         String sql = "SELECT ct.maChuyenTau AS maChuyen, t.tenTau, "
                    + "dt.thoiGianKhoiHanh, dt.thoiGianDuKien "
@@ -357,5 +474,61 @@ public class ChuyenTauDAO {
             e.printStackTrace();
         }
         return list.toArray(new String[0][]);
+    }
+
+    /**
+     * Tự động đồng bộ hóa trạng thái các chuyến đi theo thời gian thực (Mô hình 2)
+     */
+    public void syncVoyageStatuses() {
+        String sqlDepart = "UPDATE ct "
+                         + "SET ct.trangThai = 'DANG_CHAY' "
+                         + "FROM ChuyenTau ct "
+                         + "JOIN ChiTietChuyenTau dt ON ct.maChuyenTau = dt.maChuyenTau "
+                         + "JOIN Tau t ON ct.maTau = t.maTau "
+                         + "WHERE ct.trangThai = 'CHUAN_BI' "
+                         + "  AND dt.thoiGianKhoiHanh <= GETDATE() "
+                         + "  AND t.trangThai = N'Đang hoạt động'";
+                         
+        String sqlArrive = "UPDATE ct "
+                         + "SET ct.trangThai = 'DA_DEN' "
+                         + "FROM ChuyenTau ct "
+                         + "JOIN ChiTietChuyenTau dt ON ct.maChuyenTau = dt.maChuyenTau "
+                         + "WHERE ct.trangThai = 'DANG_CHAY' "
+                         + "  AND dt.thoiGianDuKien <= GETDATE()";
+        
+        try (Connection con = Connect_DB.getInstance().getConnection()) {
+            if (con != null) {
+                try (PreparedStatement psDepart = con.prepareStatement(sqlDepart)) {
+                    psDepart.executeUpdate();
+                }
+                try (PreparedStatement psArrive = con.prepareStatement(sqlArrive)) {
+                    psArrive.executeUpdate();
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    // ── DASHBOARD: top 5 chuyến tàu tỷ lệ lấp đầy ──
+    public List<Object[]> getTop5ChuyenLapDay() throws SQLException {
+        List<Object[]> list = new ArrayList<>();
+        String sql = "SELECT TOP 5 ct.maChuyenTau, t.tongSoGhe, " +
+                "ISNULL((SELECT COUNT(*) FROM Ve v WHERE v.maChuyenTau = ct.maChuyenTau " +
+                "        AND v.trangThaiVe = N'Đã thanh toán'), 0) as veDaBan " +
+                "FROM ChuyenTau ct JOIN Tau t ON ct.maTau = t.maTau " +
+                "JOIN ChiTietChuyenTau cct ON ct.maChuyenTau = cct.maChuyenTau " +
+                "ORDER BY veDaBan DESC, cct.thoiGianKhoiHanh ASC";
+        try (Connection con = Connect_DB.getInstance().getConnection();
+             PreparedStatement ps = con.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next())
+                list.add(new Object[]{
+                        rs.getString("maChuyenTau"),
+                        rs.getInt("tongSoGhe"),
+                        rs.getInt("veDaBan")
+                });
+        }
+        return list;
     }
 }

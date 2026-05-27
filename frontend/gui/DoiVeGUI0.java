@@ -153,6 +153,41 @@ public class DoiVeGUI0 extends JPanel {
         return result.toArray(new String[0][]);
     }
 
+    // --- DB QUERIES ---
+    private String[][] loadChuyenFromDB(String tenGaDi, String tenGaDen, String ngayDiStr) {
+        new dao.ChuyenTauDAO().syncVoyageStatuses();
+        List<String[]> list = new ArrayList<>();
+        String sql = "SELECT ct.maChuyenTau AS maChuyen, t.tenTau, dt.thoiGianKhoiHanh, dt.thoiGianDuKien " +
+                "FROM ChuyenTau ct " +
+                "JOIN ChiTietChuyenTau dt ON ct.maChuyenTau = dt.maChuyenTau " +
+                "JOIN Tau t ON ct.maTau = t.maTau " +
+                "JOIN Ga gDi ON dt.maGaDi = gDi.maGa " +
+                "JOIN Ga gDen ON dt.maGaDen = gDen.maGa " +
+                "WHERE gDi.tenGa LIKE ? AND gDen.tenGa LIKE ? " +
+                "AND CONVERT(VARCHAR, dt.thoiGianKhoiHanh, 103) = ? " +
+                "ORDER BY dt.thoiGianKhoiHanh ASC";
+
+        try (Connection con = Connect_DB.getInstance().getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setNString(1, "%" + tenGaDi + "%");
+            ps.setNString(2, "%" + tenGaDen + "%");
+            ps.setString(3, ngayDiStr);
+            ResultSet rs = ps.executeQuery();
+            DateTimeFormatter dateTimeFmt = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+            DateTimeFormatter dateFmt = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+
+            while (rs.next()) {
+                LocalDateTime tgDi = rs.getTimestamp("thoiGianKhoiHanh").toLocalDateTime();
+                LocalDateTime tgDen = rs.getTimestamp("thoiGianDuKien").toLocalDateTime();
+                list.add(new String[]{
+                        rs.getString("tenTau"), tgDi.format(dateTimeFmt), tgDen.format(dateTimeFmt),
+                        tgDi.format(dateFmt), tgDen.format(dateFmt), rs.getString("maChuyen")
+                });
+            }
+        } catch (Exception e) { e.printStackTrace(); }
+        return list.toArray(new String[0][]);
+    }
+
     // ── Lọc chuyến về: giữ chuyến khởi hành sau tgDenChuyenDi+30ph ──────────
     private String[][] filterChuyenVe(String[][] data, LocalDateTime tgDenChuyenDi) {
         if (data == null || data.length == 0 || tgDenChuyenDi == null) return data;
@@ -795,7 +830,7 @@ public class DoiVeGUI0 extends JPanel {
         int maxSeats = isVip ? 18 : 28;
         int cols     = maxSeats / 2;
 
-        Icon icon = loadAndScaleIcon(isVip ? "/Images/logoToaVIP.png" : "/Images/logoToaThuong.png", 56, 36);
+        Icon icon = loadAndScaleIcon(isVip ? "/Images/logoToaVip.png" : "/Images/logoToaThuong.png", 56, 36);
         if (icon != null) lblLogo.setIcon(icon);
         else { lblLogo.setText(isVip ? "[VIP]" : "[Thường]"); lblLogo.setBorder(new LineBorder(Color.GRAY)); }
         toaLogos.add(lblLogo);
