@@ -151,13 +151,49 @@ public class HoaDonDAO implements DAO<HoaDon, String> {
                 "       CONVERT(varchar, h.ngayLapHD, 108) AS gioBan, " +
                 "       k.hoTenKH, " +
                 "       (SELECT TOP 1 g.loaiGhe FROM Ve v JOIN Ghe g ON v.maGhe = g.maGhe WHERE v.maHoaDon = h.maHoaDon AND v.trangThaiVe = N'Đã thanh toán') AS loaiGhe, " +
-                "       (SELECT COUNT(*) FROM Ve v WHERE v.maHoaDon = h.maHoaDon AND v.trangThaiVe = N'Đã thanh toán') AS soGhe, " +
+                "       (SELECT COUNT(*) FROM Ve v WHERE v.maHoaDon = h.maHoaDon AND v.trangThaiVe IN (N'Đã thanh toán', N'Đã đổi')) AS soGhe, " +
                 "       h.tongTien AS tongTien, " +
                 "       ISNULL(h.phuongThucThanhToan, '') AS phuongThuc " +
                 "FROM HoaDon h " +
                 "JOIN KhachHang k ON h.maKH = k.maKH " +
                 "WHERE CAST(h.ngayLapHD AS DATE) = ? AND h.maNV = ? " +
-                " AND EXISTS (SELECT 1 FROM Ve v WHERE v.maHoaDon = h.maHoaDon AND v.trangThaiVe = N'Đã thanh toán')" +
+             " AND NOT EXISTS (SELECT 1 FROM DonDoiTraVe d WHERE d.maDon = h.maHoaDon AND d.loaiDon = 'DON_DOI')" +
+             " AND EXISTS (SELECT 1 FROM Ve v WHERE v.maHoaDon = h.maHoaDon AND v.trangThaiVe IN (N'Đã thanh toán', N'Đã đổi'))" +
+                " ORDER BY h.ngayLapHD DESC";
+        List<Object[]> rows = new ArrayList<>();
+        try (Connection con = Connect_DB.getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setDate(1, java.sql.Date.valueOf(ngay));
+            ps.setString(2, maNV);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    rows.add(new Object[]{
+                            rs.getString("maHoaDon"),
+                            rs.getString("gioBan"),
+                            rs.getString("hoTenKH"),
+                            rs.getString("loaiGhe"),
+                            rs.getInt("soGhe"),
+                            rs.getDouble("tongTien"),
+                            rs.getString("phuongThuc")
+                    });
+                }
+            }
+        }
+        return rows;
+    }public static List<Object[]> getDanhSachHoaDonDoiHomNay(String maNV) throws SQLException {
+        java.time.LocalDate ngay = java.time.LocalDate.now();
+        String sql = "SELECT h.maHoaDon, " +
+                "       CONVERT(varchar, h.ngayLapHD, 108) AS gioBan, " +
+                "       k.hoTenKH, " +
+                "       N'Đổi vé' AS loaiGhe, " +
+                "       1 AS soGhe, " +
+                "       d.tienBu AS tongTien, " +  // ← lấy từ tienBu
+                "       ISNULL(h.phuongThucThanhToan, '') AS phuongThuc " +
+                "FROM HoaDon h " +
+                "JOIN KhachHang k ON h.maKH = k.maKH " +
+                "JOIN DonDoiTraVe d ON d.maDon = h.maHoaDon " +
+                "WHERE CAST(h.ngayLapHD AS DATE) = ? AND h.maNV = ? " +
+                " AND d.loaiDon = 'DON_DOI'" +
                 " ORDER BY h.ngayLapHD DESC";
         List<Object[]> rows = new ArrayList<>();
         try (Connection con = Connect_DB.getConnection();
@@ -180,7 +216,22 @@ public class HoaDonDAO implements DAO<HoaDon, String> {
         }
         return rows;
     }
-
+    public static long getTienHoanTheoHoaDon(String maHD) throws SQLException {
+        String sql = "SELECT ISNULL(SUM(v.giaVe), 0) - " +
+                     "       (SELECT TOP 1 h2.tongTien FROM HoaDon h2 WHERE h2.maHoaDon = ?) " +
+                     "AS tienHoan " +
+                     "FROM Ve v " +
+                     "WHERE v.maHoaDon = ? AND v.trangThaiVe IN (N'Đã hủy', 'DA_HUY')";
+        try (Connection con = Connect_DB.getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setString(1, maHD);
+            ps.setString(2, maHD);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return rs.getLong("tienHoan");
+            }
+        }
+        return 0;
+    }
     // ── MỚI: load HĐ hủy (vé trả) của nhân viên trong ngày hôm nay, không lọc ca ──
     public static List<Object[]> getDanhSachHoaDonHuyHomNay(String maNV) throws SQLException {
         java.time.LocalDate ngay = java.time.LocalDate.now();
@@ -189,8 +240,10 @@ public class HoaDonDAO implements DAO<HoaDon, String> {
                 "       k.hoTenKH, " +
                 "       (SELECT TOP 1 g.loaiGhe FROM Ve v JOIN Ghe g ON v.maGhe = g.maGhe WHERE v.maHoaDon = h.maHoaDon AND v.trangThaiVe IN (N'Đã hủy', 'DA_HUY')) AS loaiGhe, " +
                 "       (SELECT COUNT(*) FROM Ve v WHERE v.maHoaDon = h.maHoaDon AND v.trangThaiVe IN (N'Đã hủy', 'DA_HUY')) AS soGhe, " +
-                "       h.tongTien AS tongTien, " +
-                "       ISNULL(h.phuongThucThanhToan, '') AS phuongThuc " +
+                "       h.tongTien AS phiPhat, " +          // index [5] = phí phạt
+                "       ISNULL(h.phuongThucThanhToan, '') AS phuongThuc, " +
+                "       ISNULL((SELECT SUM(v2.giaVe) FROM Ve v2 WHERE v2.maHoaDon = h.maHoaDon " +
+                "               AND v2.trangThaiVe IN (N'Đã hủy', 'DA_HUY')), 0) - h.tongTien AS tienHoan " + // index [7] = tiền hoàn
                 "FROM HoaDon h " +
                 "JOIN KhachHang k ON h.maKH = k.maKH " +
                 "WHERE CAST(h.ngayLapHD AS DATE) = ? AND h.maNV = ? " +
@@ -204,13 +257,14 @@ public class HoaDonDAO implements DAO<HoaDon, String> {
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     rows.add(new Object[]{
-                            rs.getString("maHoaDon"),
-                            rs.getString("gioBan"),
-                            rs.getString("hoTenKH"),
-                            rs.getString("loaiGhe"),
-                            rs.getInt("soGhe"),
-                            rs.getDouble("tongTien"),
-                            rs.getString("phuongThuc")
+                            rs.getString("maHoaDon"),   // [0]
+                            rs.getString("gioBan"),     // [1]
+                            rs.getString("hoTenKH"),    // [2]
+                            rs.getString("loaiGhe"),    // [3]
+                            rs.getInt("soGhe"),         // [4]
+                            rs.getDouble("phiPhat"),    // [5]
+                            rs.getString("phuongThuc"), // [6]
+                            rs.getDouble("tienHoan")    // [7] ← MỚI
                     });
                 }
             }

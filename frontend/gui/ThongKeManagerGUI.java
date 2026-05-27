@@ -269,19 +269,26 @@ public class ThongKeManagerGUI extends JPanel {
         card.add(lbLbl); card.add(Box.createVerticalStrut(2)); card.add(lbVal);
 
         if (clickable) {
-            card.addMouseListener(new MouseAdapter() {
-                @Override public void mouseClicked(MouseEvent e) {
-                    if (idx==1) {
-                        currentFilter = "ban".equals(currentFilter) ? null : "ban";
-                        renderTable("ban".equals(currentFilter) ? hdBanList : hdBanList);
-                    } else {
-                        if ("huy".equals(currentFilter)) { currentFilter=null; renderTable(hdBanList); }
-                        else { currentFilter="huy"; renderTable(hdHuyList); }
-                    }
-                    if (cardVeBan!=null) cardVeBan.repaint();
-                    if (cardVeHuy!=null) cardVeHuy.repaint();
-                }
-            });
+        	card.addMouseListener(new MouseAdapter() {
+        	    @Override public void mouseClicked(MouseEvent e) {
+        	        if (idx == 1) {
+        	            currentFilter = "ban".equals(currentFilter) ? null : "ban";
+        	        } else {
+        	            currentFilter = "huy".equals(currentFilter) ? null : "huy";
+        	        }
+        	        if (currentFilter == null) {
+        	            renderTable(hdBanList);
+        	        } else {
+        	            final String f = currentFilter;
+        	            List<Object[]> filtered = hdBanList.stream()
+        	                .filter(r -> f.equals(r[8]))
+        	                .collect(java.util.stream.Collectors.toList());
+        	            renderTable(filtered);
+        	        }
+        	        if (cardVeBan != null) cardVeBan.repaint();
+        	        if (cardVeHuy != null) cardVeHuy.repaint();
+        	    }
+        	});
         }
         return card;
     }
@@ -303,7 +310,7 @@ public class ThongKeManagerGUI extends JPanel {
 
     private JPanel buildTransactionTable() {
         tblModel = new DefaultTableModel(
-            new Object[]{"Mã HĐ","Ngày giờ bán","Khách hàng","Hình thức TT","Số vé","Tổng tiền"},0) {
+        	    new Object[]{"Mã HĐ","Ngày giờ bán","Khách hàng","Hình thức TT","Số vé","Tổng tiền","Doanh thu"}, 0) {
             @Override public boolean isCellEditable(int r,int c){return false;}
         };
         JTable tbl = new JTable(tblModel);
@@ -315,11 +322,20 @@ public class ThongKeManagerGUI extends JPanel {
         tbl.getTableHeader().setReorderingAllowed(false);
         tbl.getTableHeader().setResizingAllowed(false);
 
-        DefaultTableCellRenderer zebra = new DefaultTableCellRenderer(){
+        DefaultTableCellRenderer zebra = new DefaultTableCellRenderer() {
             @Override public Component getTableCellRendererComponent(
-                    JTable t,Object v,boolean s,boolean f,int row,int col){
-                Component c=super.getTableCellRendererComponent(t,v,s,f,row,col);
-                if(!s) c.setBackground(row%2==0?Color.WHITE:new Color(250,250,250));
+                    JTable t, Object v, boolean s, boolean f, int row, int col) {
+                Component c = super.getTableCellRendererComponent(t, v, s, f, row, col);
+                if (!s) {
+                    c.setBackground(row % 2 == 0 ? Color.WHITE : new Color(250, 250, 250));
+                    String tongTien = tblModel.getValueAt(row, 5) != null
+                                    ? tblModel.getValueAt(row, 5).toString() : "";
+                    if (col == 5 && tongTien.startsWith("-")) {
+                        c.setForeground(new Color(210, 50, 50));
+                    } else {
+                        c.setForeground(Color.BLACK);
+                    }
+                }
                 setHorizontalAlignment(SwingConstants.CENTER);
                 return c;
             }
@@ -329,27 +345,26 @@ public class ThongKeManagerGUI extends JPanel {
         ((DefaultTableCellRenderer)tbl.getTableHeader().getDefaultRenderer())
                 .setHorizontalAlignment(SwingConstants.CENTER);
 
-        int[] colW={120,130,130,110,55,110};
+        int[] colW = {120, 130, 130, 110, 55, 110, 110};
         for(int i=0;i<colW.length;i++) tbl.getColumnModel().getColumn(i).setPreferredWidth(colW[i]);
         tbl.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent e) {
+            @Override public void mouseClicked(MouseEvent e) {
                 int row = tbl.getSelectedRow();
                 if (row < 0) return;
                 String maHD = (String) tblModel.getValueAt(row, 0);
                 if (maHD == null) return;
-                boolean isHuy = "huy".equals(currentFilter);
+                // Đọc isHuy từ hdBanList, không phụ thuộc currentFilter
+                boolean isHuy = hdBanList.stream()
+                    .filter(r -> maHD.equals(r[0]))
+                    .findFirst()
+                    .map(r -> "huy".equals(r[8]))
+                    .orElse(false);
                 new Thread(() -> {
                     try {
                         Object[] hdInfo       = HoaDonDAO.getThongTinHoaDon(maHD);
                         List<Object[]> veList = HoaDonDAO.getDanhSachVeTheoHoaDon(maHD);
                         SwingUtilities.invokeLater(() -> buildAndShowDialog(maHD, hdInfo, veList, isHuy));
-                    } catch (Exception ex) {
-                        ex.printStackTrace();
-                        SwingUtilities.invokeLater(() ->
-                                JOptionPane.showMessageDialog(ThongKeManagerGUI.this,
-                                        "Chi tiết lỗi:\n" + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE));
-                    }
+                    } catch (Exception ex) { ex.printStackTrace(); }
                 }).start();
             }
         });
@@ -358,12 +373,31 @@ public class ThongKeManagerGUI extends JPanel {
         return wrapCard(sp,"Danh sách giao dịch");
     }
 
-    private void renderTable(List<Object[]> list){
+    private void renderTable(List<Object[]> list) {
         tblModel.setRowCount(0);
-        for(Object[] row:list){
-            String tien=row[5] instanceof Double ? fmtMoney(((Double)row[5]).longValue()) : String.valueOf(row[5]);
-            String pttt="huy".equals(currentFilter) ? "Hoàn tiền" : normPTTT(row[6]!=null?row[6].toString():"");
-            tblModel.addRow(new Object[]{row[0],row[1],row[2],pttt,row[4],tien});
+        for (Object[] row : list) {
+            boolean isHuy = "huy".equals(row[8]);
+
+            String tongTienStr;
+            String doanhThuStr;
+
+            if (isHuy) {
+                double tienHoan = row[7] instanceof Double ? (Double) row[7] : 0;
+                double phiPhat  = row[5] instanceof Double ? (Double) row[5] : 0;
+                tongTienStr = "-" + fmtMoney((long) tienHoan);
+                doanhThuStr = fmtMoney((long) phiPhat); // phí phạt giữ lại
+            } else {
+                double soTien = row[5] instanceof Double ? (Double) row[5] : 0;
+                tongTienStr = fmtMoney((long) soTien);
+                doanhThuStr = tongTienStr;
+            }
+
+            String pttt = row[6] != null ? normPTTT(row[6].toString()) : "";
+            if (isHuy) pttt = "Hoàn tiền";
+
+            tblModel.addRow(new Object[]{
+                row[0], row[1], row[2], pttt, row[4], tongTienStr, doanhThuStr
+            });
         }
     }
     // =========================================================================
@@ -474,7 +508,28 @@ public class ThongKeManagerGUI extends JPanel {
                     if (lblKpi[3] != null) lblKpi[3].setText(fmtMoney(tmF));
                     if (lblKpi[4] != null) lblKpi[4].setText(fmtMoney(ckF));
 
-                    hdBanList = banList; hdHuyList = huyList;
+                    // Build tatCa chứa TẤT CẢ: ban + huy, phân biệt bằng row[8]
+                    List<Object[]> tatCa = new ArrayList<>();
+                    for (Object[] row : banList) {
+                        Object[] r = new Object[9];
+                        System.arraycopy(row, 0, r, 0, 7);
+                        r[7] = 0.0;
+                        r[8] = "ban";
+                        tatCa.add(r);
+                    }
+                    for (Object[] row : huyList) {
+                        Object[] r = new Object[9];
+                        System.arraycopy(row, 0, r, 0, 8); // copy 8 phần tử (gồm tienHoan ở [7])
+                        r[8] = "huy";
+                        tatCa.add(r);
+                    }
+                    tatCa.sort((a, b) -> {
+                        String ta = a[1] != null ? a[1].toString() : "";
+                        String tb = b[1] != null ? b[1].toString() : "";
+                        return tb.compareTo(ta);
+                    });
+
+                    hdBanList = tatCa;
                     currentFilter = null;
                     if (cardVeBan != null) cardVeBan.repaint();
                     if (cardVeHuy != null) cardVeHuy.repaint();
@@ -488,8 +543,7 @@ public class ThongKeManagerGUI extends JPanel {
                         long dt = ((Number) row[3]).longValue();
                         tongDoanhThuNV += dt;
                         staffModel.addRow(new Object[]{
-                            row[0], row[1], row[2] + " vé",
-                            fmtMoney(dt)
+                            row[0], row[1], row[2] + " vé", fmtMoney(dt)
                         });
                     }
                     staffModel.addRow(new Object[]{"", "TỔNG CỘNG", vbF + " vé", fmtMoney(tongDoanhThuNV)});

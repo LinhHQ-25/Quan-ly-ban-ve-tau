@@ -62,7 +62,7 @@ public final class ThongKeGUI extends JPanel {
         JPanel pnlTop = new JPanel();
         pnlTop.setOpaque(false);
         pnlTop.setLayout(new BoxLayout(pnlTop, BoxLayout.Y_AXIS));
-        pnlTop.setBorder(new EmptyBorder(0, GuiTheme.PAGE_PAD_LEFT, 0, GuiTheme.PAGE_PAD_LEFT));
+        pnlTop.setBorder(new EmptyBorder(0, 0, 0, GuiTheme.PAGE_PAD_LEFT));
         pnlTop.add(Box.createVerticalStrut(12));
         pnlTop.add(buildSummaryBar());
         pnlTop.add(Box.createVerticalStrut(12));
@@ -70,7 +70,7 @@ public final class ThongKeGUI extends JPanel {
         // Panel giữa: bảng + biểu đồ — fill hết phần còn lại
         JPanel pnlCenter = new JPanel(new BorderLayout());
         pnlCenter.setOpaque(false);
-        pnlCenter.setBorder(new EmptyBorder(0, GuiTheme.PAGE_PAD_LEFT, GuiTheme.PAGE_PAD_BOTTOM, GuiTheme.PAGE_PAD_LEFT));
+        pnlCenter.setBorder(new EmptyBorder(0, 0, GuiTheme.PAGE_PAD_BOTTOM, GuiTheme.PAGE_PAD_LEFT));
         pnlCenter.add(buildTableWithChart(), BorderLayout.CENTER);
 
 
@@ -96,56 +96,106 @@ public final class ThongKeGUI extends JPanel {
             try {
                 int   vh  = VeDAO.getSoVeHuyHomNay(maNV);
                 int[] ghe = VeDAO.getSoGheTheoLoaiHomNay(maNV);
-                List<Object[]> hdList    = HoaDonDAO.getDanhSachHoaDonHomNay(maNV);
-                List<Object[]> hdHuyTemp = HoaDonDAO.getDanhSachHoaDonHuyHomNay(maNV);
+                List<Object[]> hdList    = HoaDonDAO.getDanhSachHoaDonHomNay(maNV);    // chỉ mua mới
+                List<Object[]> hdDoiList = HoaDonDAO.getDanhSachHoaDonDoiHomNay(maNV); // đổi vé riêng
+                List<Object[]> hdHuyTemp = HoaDonDAO.getDanhSachHoaDonHuyHomNay(maNV); // hủy vé
 
                 long ln = 0, tm = 0, ck = 0;
                 int  vb = 0;
+
+                // Chỉ tính doanh thu + số vé từ HĐ mua mới
                 for (Object[] row : hdList) {
                     long t = ((Double) row[5]).longValue();
                     ln += t;
                     vb += (int) row[4];
                     String pttt = row[6] != null ? row[6].toString() : "";
-                    if (isCK(pttt)) ck += t;
-                    else tm += t;
+                    if (isCK(pttt)) ck += t; else tm += t;
                 }
-                // Cộng phí phạt trả vé vào doanh thu và lợi nhuận
+                // Cộng phí phạt trả vé vào doanh thu (không cộng số vé)
                 for (Object[] row : hdHuyTemp) {
+                    String maHD = row[0].toString();
+                    double phiPhat = ((Double) row[5]);
+                    
+                    // Tìm tongTien gốc của hóa đơn gốc (trước khi hủy)
+                    // Công thức: doanh thu thay đổi = phiPhat - tongTienGoc
+                    // Vì tongTienGoc đã KHÔNG được cộng (hdHuyTemp không nằm trong hdList)
+                    // nên chỉ cộng đúng phiPhat thôi
+                    ln += phiPhat;
+                    
+                    String pttt = row[6] != null ? row[6].toString() : "";
+                    if (isCK(pttt)) ck += phiPhat; else tm += phiPhat;
+                }
+                for (Object[] row : hdDoiList) {
                     long t = ((Double) row[5]).longValue();
                     ln += t;
                     String pttt = row[6] != null ? row[6].toString() : "";
-                    if (isCK(pttt)) ck += t;
-                    else tm += t;
+                    if (isCK(pttt)) ck += t; else tm += t;
                 }
+                // Gộp hdDoiList vào hdList để hiển thị trên bảng
+                List<Object[]> hdTatCa = new ArrayList<>(hdList);
+                hdTatCa.addAll(hdDoiList);
                 final long loiNhuanFinal = ln;
                 final long doanhThuFinal = ln + tienMoCa;
                 final long tmFinal = tm, ckFinal = ck;
                 final int  veBanFinal    = vb;
-
+                final List<Object[]> hdDoiListFinal = hdDoiList;
+                final List<Object[]> hdHuyTempFinal = hdHuyTemp;
                 SwingUtilities.invokeLater(() -> {
-                    this.loiNhuan         = loiNhuanFinal;
-                    this.doanhThu         = doanhThuFinal;
-                    this.veBan            = veBanFinal;
-                    this.veHuy            = vh;
-                    this.hdBanList        = hdList;
-                    this.hdHuyList        = hdHuyTemp;
-                    this.doanhThuTienMat  = tmFinal;
-                    this.doanhThuCK       = ckFinal;
-                    this.currentFilter    = null;
+                
+                	    this.loiNhuan        = loiNhuanFinal;
+                	    this.doanhThu        = doanhThuFinal;
+                	    this.veBan           = veBanFinal;
+                	    this.veHuy           = vh;
+                	    this.doanhThuTienMat = tmFinal;
+                	    this.doanhThuCK      = ckFinal;
+                	    this.currentFilter   = null;
 
-                    lblStatValues[0].setText(String.format("%,.0f đ", (double) (tienMoCa + tmFinal)));
-                    lblStatValues[1].setText(String.format("%,.0f đ", (double) loiNhuanFinal));
-                    lblStatValues[2].setText(veBanFinal + " vé");
-                    lblStatValues[3].setText(vh + " vé");
-                    if (lblStatValues[4] != null) lblStatValues[4].setText(String.format("%,.0f đ", (double) tmFinal).replace(",", "."));
-                    if (lblStatValues[5] != null) lblStatValues[5].setText(String.format("%,.0f đ", (double) ckFinal).replace(",", "."));
+                	    // Build hdBanList chứa TẤT CẢ: ban + doi + huy
+                	    List<Object[]> tatCa = new ArrayList<>();
 
-                    chartPanel.setData(ghe[0], ghe[1], ghe[2]);
-                    hienThiBang(hdBanList);
+                	    for (Object[] row : hdList) {          // vé bán thường
+                	        Object[] r = new Object[9];
+                	        System.arraycopy(row, 0, r, 0, 7);
+                	        r[7] = 0.0;
+                	        r[8] = "ban";
+                	        tatCa.add(r);
+                	    }
+                	    for (Object[] row : hdDoiListFinal) {  // vé đổi
+                	        Object[] r = new Object[9];
+                	        System.arraycopy(row, 0, r, 0, 7);
+                	        r[7] = 0.0;
+                	        r[8] = "ban";                      // đổi vé vẫn là "ban", không phải hủy
+                	        tatCa.add(r);
+                	    }
+                	    for (Object[] row : hdHuyTempFinal) {  // vé hủy — raw data từ DAO mới có 8 phần tử
+                	        Object[] r = new Object[9];
+                	        System.arraycopy(row, 0, r, 0, 8); // copy 8 (gồm cả tienHoan ở [7])
+                	        r[8] = "huy";
+                	        tatCa.add(r);
+                	    }
+                	    tatCa.sort((a, b) -> {
+                	        String timeA = a[1] != null ? a[1].toString() : "";
+                	        String timeB = b[1] != null ? b[1].toString() : "";
+                	        return timeB.compareTo(timeA);
+                	    });
+                	    this.hdBanList = tatCa;
+              
 
-                    if (cardVeBan != null) cardVeBan.repaint();
-                    if (cardVeHuy != null) cardVeHuy.repaint();
-                });
+                	    // Cập nhật labels
+                	    lblStatValues[0].setText(String.format("%,.0f đ", (double)(tienMoCa + tmFinal)));
+                	    lblStatValues[1].setText(String.format("%,.0f đ", (double)loiNhuanFinal));
+                	    lblStatValues[2].setText(veBanFinal + " vé");
+                	    lblStatValues[3].setText(vh + " vé");
+                	    if (lblStatValues[4] != null) lblStatValues[4].setText(String.format("%,.0f đ", (double)tmFinal).replace(",", "."));
+                	    if (lblStatValues[5] != null) lblStatValues[5].setText(String.format("%,.0f đ", (double)ckFinal).replace(",", "."));
+
+                	    chartPanel.setData(ghe[0], ghe[1], ghe[2]);
+                	    hienThiBang(hdBanList); // hiện hết
+
+                	    if (cardVeBan != null) cardVeBan.repaint();
+                	    if (cardVeHuy != null) cardVeHuy.repaint();
+                	});
+
             } catch (SQLException e) { e.printStackTrace(); }
         }).start();
     }
@@ -155,15 +205,30 @@ public final class ThongKeGUI extends JPanel {
         tblModel.setRowCount(0);
         sorter.setRowFilter(null);
         for (Object[] row : list) {
-            Object tongTien = row[5] instanceof Double
-                    ? String.format("%,.0f đ", (Double) row[5]).replace(",", ".")
-                    : row[5];
-            // Chuẩn hóa tên hình thức thanh toán
+            boolean isHuy = "huy".equals(row[8]);
+
+            String tongTienStr;
+            String doanhThuStr;
+
+            if (isHuy) {
+                double tienHoan = row[7] instanceof Double ? (Double) row[7] : 0;
+                double phiPhat  = row[5] instanceof Double ? (Double) row[5] : 0;
+                tongTienStr  = "-" + String.format("%,.0f đ", tienHoan).replace(",", ".");
+                // Doanh thu từ vé hủy = phí phạt (tiền giữ lại)
+                doanhThuStr  = String.format("%,.0f đ", phiPhat).replace(",", ".");
+            } else {
+                double soTien = row[5] instanceof Double ? (Double) row[5] : 0;
+                tongTienStr  = String.format("%,.0f đ", soTien).replace(",", ".");
+                doanhThuStr  = tongTienStr; // vé bán: doanh thu = tổng tiền
+            }
+
             String pttt = row[6] != null ? row[6].toString() : "";
-            if ("TIEN_MAT".equalsIgnoreCase(pttt)) pttt = "Tiền mặt";
-            else if ("CHUYEN_KHOAN".equalsIgnoreCase(pttt) || pttt.toLowerCase().contains("vietqr")) pttt = "Chuyển khoản";
-            else if (pttt.toLowerCase().contains("hoàn tiền")) pttt = "Hoàn tiền";
-            tblModel.addRow(new Object[]{row[0], row[1], row[2], pttt, row[4], tongTien});
+            if ("TIEN_MAT".equalsIgnoreCase(pttt))          pttt = "Tiền mặt";
+            else if ("CHUYEN_KHOAN".equalsIgnoreCase(pttt))  pttt = "Chuyển khoản";
+
+            tblModel.addRow(new Object[]{
+                row[0], row[1], row[2], pttt, row[4], tongTienStr, doanhThuStr
+            });
         }
     }
     // ──────────────
@@ -237,24 +302,28 @@ public final class ThongKeGUI extends JPanel {
         card.add(lbValue);
 
         if (clickable) {
-            card.addMouseListener(new MouseAdapter() {
-                @Override public void mouseClicked(MouseEvent e) {
-                    if (idx == 2) {
-                        currentFilter = "ban".equals(currentFilter) ? null : "ban";
-                        hienThiBang(hdBanList);
-                    } else {
-                        if ("huy".equals(currentFilter)) {
-                            currentFilter = null;
-                            hienThiBang(hdBanList);
-                        } else {
-                            currentFilter = "huy";
-                            hienThiBang(hdHuyList);
-                        }
-                    }
-                    if (cardVeBan != null) cardVeBan.repaint();
-                    if (cardVeHuy != null) cardVeHuy.repaint();
-                }
-            });
+        	card.addMouseListener(new MouseAdapter() {
+        	    @Override public void mouseClicked(MouseEvent e) {
+        	        if (idx == 2) {
+        	            currentFilter = "ban".equals(currentFilter) ? null : "ban";
+        	        } else {
+        	            currentFilter = "huy".equals(currentFilter) ? null : "huy";
+        	        }
+
+        	        if (currentFilter == null) {
+        	            hienThiBang(hdBanList);
+        	        } else {
+        	            final String f = currentFilter;
+        	            List<Object[]> filtered = hdBanList.stream()
+        	                .filter(r -> f.equals(r[8]))
+        	                .collect(java.util.stream.Collectors.toList());
+        	            hienThiBang(filtered);
+        	        }
+
+        	        if (cardVeBan != null) cardVeBan.repaint();
+        	        if (cardVeHuy != null) cardVeHuy.repaint();
+        	    }
+        	});
         }
         return card;
     }
@@ -269,10 +338,11 @@ public final class ThongKeGUI extends JPanel {
     }
 
     private JPanel buildTablePanel() {
-        tblModel = new DefaultTableModel(
-                new Object[]{"Mã HĐ", "Giờ bán", "Khách hàng", "Hình thức TT", "Số vé", "Tổng tiền"}, 0) {
-            @Override public boolean isCellEditable(int r, int c) { return false; }
-        };
+    	// Đổi header bảng:
+    	tblModel = new DefaultTableModel(
+    	    new Object[]{"Mã HĐ", "Giờ bán", "Khách hàng", "Hình thức TT", "Số vé", "Tổng tiền", "Doanh thu"}, 0) {
+    	    @Override public boolean isCellEditable(int r, int c) { return false; }
+    	};
         tblData = new JTable(tblModel);
         sorter  = new TableRowSorter<>(tblModel);
         tblData.setRowSorter(sorter);
@@ -286,12 +356,23 @@ public final class ThongKeGUI extends JPanel {
         tblData.setShowVerticalLines(false);
         tblData.setSelectionBackground(new Color(207, 222, 243));
         tblData.setSelectionForeground(Color.BLACK);
-
+        tblData.getColumnModel().getColumn(6).setPreferredWidth(110); // Doanh thu
         DefaultTableCellRenderer zebraRenderer = new DefaultTableCellRenderer() {
             @Override public Component getTableCellRendererComponent(
                     JTable t, Object v, boolean s, boolean f, int row, int col) {
                 Component c = super.getTableCellRendererComponent(t, v, s, f, row, col);
-                if (!s) c.setBackground(row % 2 == 0 ? Color.WHITE : new Color(250, 250, 250));
+                int modelRow = t.convertRowIndexToModel(row);
+                String tongTien = tblModel.getValueAt(modelRow, 5) != null
+                                ? tblModel.getValueAt(modelRow, 5).toString() : "";
+                if (!s) {
+                    c.setBackground(row % 2 == 0 ? Color.WHITE : new Color(250, 250, 250));
+                    // Chỉ tô đỏ cột Tổng tiền (col 5), cột Doanh thu (col 6) luôn đen
+                    if (col == 5 && tongTien.startsWith("-")) {
+                        c.setForeground(new Color(210, 50, 50));
+                    } else {
+                        c.setForeground(Color.BLACK);
+                    }
+                }
                 setHorizontalAlignment(SwingConstants.CENTER);
                 return c;
             }
@@ -317,12 +398,21 @@ public final class ThongKeGUI extends JPanel {
         // Click vào hàng → mở PDF hóa đơn
 // Click vào hàng → hiện dialog chi tiết hóa đơn
         tblData.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent e) {
+            @Override public void mouseClicked(MouseEvent e) {
                 int row = tblData.getSelectedRow();
                 if (row < 0) return;
                 int modelRow = tblData.convertRowIndexToModel(row);
-                showHoaDonDetail(modelRow);
+                
+                // Tìm row tương ứng trong hdBanList đang hiển thị
+                // isHuy đọc từ data thực, không phụ thuộc currentFilter
+                String maHD = (String) tblModel.getValueAt(modelRow, 0);
+                boolean isHuy = hdBanList.stream()
+                    .filter(r -> maHD.equals(r[0]))
+                    .findFirst()
+                    .map(r -> "huy".equals(r[8]))
+                    .orElse(false);
+                
+                showHoaDonDetail(modelRow, isHuy);
             }
         });
 
@@ -348,25 +438,20 @@ public final class ThongKeGUI extends JPanel {
                     "Lỗi", JOptionPane.ERROR_MESSAGE);
         }
     }
-    private void showHoaDonDetail(int modelRow) {
+    private void showHoaDonDetail(int modelRow, boolean isHuy) {
         String maHD = (String) tblModel.getValueAt(modelRow, 0);
         if (maHD == null) return;
-        boolean isHuy = "huy".equals(currentFilter);
 
         new Thread(() -> {
             try {
-                Object[] hdInfo     = HoaDonDAO.getThongTinHoaDon(maHD);
+                Object[] hdInfo = HoaDonDAO.getThongTinHoaDon(maHD);
                 List<Object[]> veList = HoaDonDAO.getDanhSachVeTheoHoaDon(maHD);
                 SwingUtilities.invokeLater(() -> buildAndShowDialog(maHD, hdInfo, veList, isHuy));
             } catch (SQLException ex) {
                 ex.printStackTrace();
-                SwingUtilities.invokeLater(() ->
-                        JOptionPane.showMessageDialog(this,
-                                "Chi tiết lỗi:\n" + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE));
             }
         }).start();
     }
-
     private void buildAndShowDialog(String maHD, Object[] d, List<Object[]> veList, boolean isHuy) {
         JDialog dlg = new JDialog((Frame) SwingUtilities.getWindowAncestor(this), "Chi tiết hóa đơn", true);
         dlg.setSize(660, 560);

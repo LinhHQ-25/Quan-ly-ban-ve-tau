@@ -313,4 +313,14 @@ public class VeDAO {
             return true;
         }
     }
+    public boolean capNhatTrangThaiTrongTransaction(Connection con,
+            String maVe, String trangThai, String maHoaDonMoi) throws Exception {
+        String sql = "UPDATE Ve SET trangThaiVe = ?, maHoaDon = ? WHERE maVe = ?";
+        try (PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setString(1, trangThai);
+            ps.setString(2, maHoaDonMoi);
+            ps.setString(3, maVe);
+            return ps.executeUpdate() > 0;
+        }
+    }
 }
