@@ -37,7 +37,7 @@ public class ChiTietVeDialog extends JDialog {
                      "dt.thoiGianKhoiHanh, t.tenTau, " +
                      "gDi.tenGa AS gaDi, gDen.tenGa AS gaDen, " +
                      "g.maGhe, g.loaiGhe, toa.maToaTau, " +
-                     "hd.ngayLapHD, hd.tongTien, hd.phuongThucThanhToan, v.maChuyenTau " +
+                     "hd.maHoaDon, hd.ngayLapHD, hd.tongTien, hd.phuongThucThanhToan, v.maChuyenTau " +
                      "FROM Ve v " +
                      "JOIN HoaDon hd ON v.maHoaDon = hd.maHoaDon " +
                      "LEFT JOIN KhachHang kh ON hd.maKH = kh.maKH " +
@@ -84,6 +84,7 @@ public class ChiTietVeDialog extends JDialog {
         String tenToa = rs.getString("maToaTau");
         String viTri = tenToa + " - Ghế " + maGhe + " (" + normalizeLoaiGhe(loaiGhe) + ")";
         
+        final String maHD = rs.getString("maHoaDon");
         Timestamp ngayLapHD = rs.getTimestamp("ngayLapHD");
         String strNgayLap = (ngayLapHD != null) ? SDF_L.format(ngayLapHD) : "";
         String hinhThucThanhToan = rs.getString("phuongThucThanhToan");
@@ -211,30 +212,73 @@ public class ChiTietVeDialog extends JDialog {
         btnDong.addActionListener(e -> dispose());
         btnInVe.addActionListener(e -> inVeLai());
         
-        String loaiVe = rs.getString("loaiVe");
-        String chieuVe = "MOT_CHIEU".equals(loaiVe) ? "Chiều đi" : "Chiều về"; 
-        String maChuyenTau = rs.getString("maChuyenTau");
-        String maToaTau = rs.getString("maToaTau");
-        
         btnThanhToan.addActionListener(e -> {
             dispose();
             
             DefaultTableModel modelForThanhToan = new DefaultTableModel(
-                new Object[]{"STT", "Mã vé", "Loại vé (Chiều)", "Chiều", "Mã Ghế", "Tên KH", "CCCD", "SĐT", "Loại KH", "Mã Toa", "Mã Tàu", "Tên Tàu", "Mã Chuyến Tàu"}, 0
+                new Object[]{"STT", "Mã vé", "Loại vé (Chiều)", "Chiều", "Mã Ghế", "Tên KH", "CCCD", "SĐT", "Loại KH", "Mã Toa", "Mã Tàu", "Tên Tàu", "Mã Chuyến Tàu", "Mã Ga Đến"}, 0
             );
-            modelForThanhToan.addRow(new Object[]{
-                1, maVe, loaiVe, chieuVe, maGhe, hoTenKH, "", soDT, "Người lớn", maToaTau, "", tenTau, maChuyenTau
-            });
             
-            long diff = new java.util.Date().getTime() - ngayLapHD.getTime();
-            int secondsLeft = (int) (30 * 60 - diff / 1000);
-            if (secondsLeft < 0) secondsLeft = 0;
+            String sqlAll = "SELECT v.maVe, v.loaiVe, v.maGhe, kh.hoTenKH, kh.cccd, kh.sdt, " +
+                            "toa.maToaTau, t.tenTau, v.maChuyenTau, dt.maGaDen, hd.ngayLapHD " +
+                            "FROM Ve v " +
+                            "JOIN HoaDon hd ON v.maHoaDon = hd.maHoaDon " +
+                            "LEFT JOIN KhachHang kh ON COALESCE(v.maKH, hd.maKH) = kh.maKH " +
+                            "JOIN Ghe g ON v.maGhe = g.maGhe " +
+                            "JOIN ToaTau toa ON g.maToaTau = toa.maToaTau " +
+                            "JOIN Tau t ON toa.maTau = t.maTau " +
+                            "JOIN ChiTietChuyenTau dt ON v.maChuyenTau = dt.maChuyenTau " +
+                            "WHERE v.maHoaDon = ?";
             
-            DatVeGUI3 panel3 = new DatVeGUI3(modelForThanhToan, secondsLeft, (sec) -> {
-                mainFrame.showCard("tra-cuu-ve");
-            });
-            
-            mainFrame.showTemporaryCard(panel3, "thanh-toan-lai");
+            try (Connection con = Connect_DB.getInstance().getConnection();
+                 PreparedStatement ps = con.prepareStatement(sqlAll)) {
+                ps.setString(1, maHD);
+                ResultSet rsAll = ps.executeQuery();
+                
+                int stt = 1;
+                Timestamp curNgayLapHD = null;
+                while (rsAll.next()) {
+                    if (curNgayLapHD == null) {
+                        curNgayLapHD = rsAll.getTimestamp("ngayLapHD");
+                    }
+                    
+                    String curMaVe = rsAll.getString("maVe");
+                    String loaiVeRaw = rsAll.getString("loaiVe");
+                    String chieu = "MOT_CHIEU".equals(loaiVeRaw) ? "Chiều đi" : "Chiều về";
+                    String curMaGhe = rsAll.getString("maGhe");
+                    String curHoTenKH = rsAll.getString("hoTenKH") != null ? rsAll.getString("hoTenKH") : "N/A";
+                    String curCccd = rsAll.getString("cccd") != null ? rsAll.getString("cccd") : "";
+                    String curSdt = rsAll.getString("sdt") != null ? rsAll.getString("sdt") : "";
+                    String maToa = rsAll.getString("maToaTau");
+                    String curTenTau = rsAll.getString("tenTau");
+                    String maChuyen = rsAll.getString("maChuyenTau");
+                    String maGaDen = rsAll.getString("maGaDen");
+                    
+                    modelForThanhToan.addRow(new Object[]{
+                        stt++, curMaVe, loaiVeRaw, chieu, curMaGhe, curHoTenKH, curCccd, curSdt, "Người lớn", maToa, "", curTenTau, maChuyen, maGaDen
+                    });
+                }
+                
+                if (stt == 1 || curNgayLapHD == null) {
+                    JOptionPane.showMessageDialog(mainFrame, "Không tìm thấy danh sách vé thuộc hóa đơn này!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+                
+                long diff = new java.util.Date().getTime() - curNgayLapHD.getTime();
+                int secondsLeft = (int) (30 * 60 - diff / 1000);
+                if (secondsLeft < 0) secondsLeft = 0;
+                
+                DatVeGUI3 panel3 = new DatVeGUI3(modelForThanhToan, secondsLeft, (sec) -> {
+                    mainFrame.showCard("tra-cuu-ve");
+                });
+                panel3.setMaHD(maHD);
+                
+                mainFrame.showTemporaryCard(panel3, "thanh-toan-lai");
+                
+            } catch (Exception ex) {
+                ex.printStackTrace();
+                JOptionPane.showMessageDialog(mainFrame, "Lỗi khi nạp dữ liệu thanh toán: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+            }
         });
         
         pnlFooter.add(btnInVe);

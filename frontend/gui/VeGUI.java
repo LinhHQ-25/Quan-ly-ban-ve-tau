@@ -431,6 +431,8 @@ final class VeGUI extends JPanel {
                 sql += " AND CAST(hd.ngayLapHD AS DATE) = ?";
             }
 
+            sql += " ORDER BY hd.ngayLapHD DESC";
+
             PreparedStatement stmt = conn.prepareStatement(sql);
             stmt.setString(1, "%" + txtMaVe.getText().trim() + "%");
             stmt.setString(2, "%" + txtHoTen.getText().trim() + "%");

@@ -355,11 +355,12 @@ final class KhachHangGUI extends JPanel {
 
         pnlOuter.add(pnlHeader, BorderLayout.NORTH);
 
-        String[] cols = {"STT", "Mã khách", "Họ và tên", "Năm sinh", "CCCD", "Số ĐT", "Email", "Đối tượng"};
+        String[] cols = {"STT", "Mã khách", "Họ và tên", "Năm sinh", "CCCD", "Số ĐT", "Email", "Đối tượng", "has_unpaid"};
         tblModel = new DefaultTableModel(cols, 0) {
             @Override public boolean isCellEditable(int r, int c) { return false; }
         };
         tblData = new JTable(tblModel);
+        tblData.getColumnModel().removeColumn(tblData.getColumnModel().getColumn(8));
         tblData.setRowHeight(36);
         tblData.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 13));
         tblData.getTableHeader().setFont(GuiTheme.font("Segoe UI", Font.BOLD, 13));
@@ -388,8 +389,23 @@ final class KhachHangGUI extends JPanel {
             @Override public Component getTableCellRendererComponent(JTable t, Object v, boolean s, boolean f, int row, int col) {
                 Component c = super.getTableCellRendererComponent(t, v, s, f, row, col);
                 if (!s) {
-                    c.setBackground(row % 2 == 0 ? Color.WHITE : new Color(250, 250, 250));
-                    c.setForeground(GuiTheme.TEXT);
+                    int modelRow = t.convertRowIndexToModel(row);
+                    Object hasUnpaidVal = t.getModel().getValueAt(modelRow, 8);
+                    boolean hasUnpaid = hasUnpaidVal != null && "true".equals(hasUnpaidVal.toString());
+                    
+                    if (hasUnpaid) {
+                        c.setBackground(new Color(254, 243, 199)); // Nền vàng ấm nhạt
+                        c.setForeground(new Color(180, 83, 9)); // Chữ nâu đậm
+                        if (col == 2) {
+                            c.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 13)); // Tên in đậm
+                        } else {
+                            c.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 13));
+                        }
+                    } else {
+                        c.setBackground(row % 2 == 0 ? Color.WHITE : new Color(250, 250, 250));
+                        c.setForeground(GuiTheme.TEXT);
+                        c.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 13));
+                    }
                 }
                 setHorizontalAlignment(SwingConstants.CENTER);
                 return c;
@@ -418,7 +434,34 @@ final class KhachHangGUI extends JPanel {
             }
         });
 
+        // Note chú thích trạng thái chưa thanh toán đặt dưới cùng bảng
+        JPanel pnlLegend = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
+        pnlLegend.setOpaque(false);
+        pnlLegend.setBorder(new EmptyBorder(4, 5, 2, 5));
+        
+        JPanel colorIndicator = new JPanel() {
+            @Override protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(new Color(254, 243, 199)); // Nền vàng ấm nhạt
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 4, 4);
+                g2.setColor(new Color(180, 83, 9)); // Viền
+                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 4, 4);
+                g2.dispose();
+            }
+        };
+        colorIndicator.setPreferredSize(new Dimension(14, 14));
+        colorIndicator.setOpaque(false);
+        
+        JLabel lblLegendText = new JLabel("Khách hàng chưa thanh toán");
+        lblLegendText.setFont(GuiTheme.font("Segoe UI", Font.ITALIC, 13));
+        lblLegendText.setForeground(new Color(180, 83, 9));
+        
+        pnlLegend.add(colorIndicator);
+        pnlLegend.add(lblLegendText);
+
         pnlOuter.add(spnScroll, BorderLayout.CENTER);
+        pnlOuter.add(pnlLegend, BorderLayout.SOUTH);
         return pnlOuter;
     }
 
@@ -462,7 +505,12 @@ final class KhachHangGUI extends JPanel {
         if (conn == null) return;
 
         try {
-            String sql = "SELECT * FROM KhachHang WHERE maKH LIKE ? AND hoTenKH LIKE ? AND sdt LIKE ? AND cccd LIKE ? AND email LIKE ?";
+            String sql = "SELECT kh.*, " +
+                         "       (SELECT COUNT(*) FROM HoaDon hd WHERE hd.maKH = kh.maKH AND hd.phuongThucThanhToan = 'LUU_TAM') AS has_unpaid, " +
+                         "       (SELECT MAX(hd.ngayLapHD) FROM HoaDon hd WHERE hd.maKH = kh.maKH) AS max_ngay " +
+                         "FROM KhachHang kh " +
+                         "WHERE kh.maKH LIKE ? AND kh.hoTenKH LIKE ? AND kh.sdt LIKE ? AND kh.cccd LIKE ? AND kh.email LIKE ? " +
+                         "ORDER BY max_ngay DESC, kh.maKH DESC";
             PreparedStatement stmt = conn.prepareStatement(sql);
             stmt.setString(1, "%" + txtSearchMaKH.getText().trim() + "%");
             stmt.setString(2, "%" + txtSearchHoTen.getText().trim() + "%");
@@ -503,10 +551,11 @@ final class KhachHangGUI extends JPanel {
                     }
                 }
 
+                int hasUnpaid = rs.getInt("has_unpaid");
                 tblModel.addRow(new Object[] {
                     stt++, rs.getString("maKH"), rs.getString("hoTenKH"),
                     namSinhStr, rs.getString("cccd"), rs.getString("sdt"),
-                    rs.getString("email"), doiTuong
+                    rs.getString("email"), doiTuong, hasUnpaid > 0 ? "true" : "false"
                 });
             }
             if (lblResults != null) {
