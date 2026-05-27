@@ -333,7 +333,7 @@ final class KhachHangGUI extends JPanel {
         JPanel pnlTitleRow = new JPanel(new BorderLayout());
         pnlTitleRow.setOpaque(false);
 
-        JLabel lblTitle = new JLabel("Danh sách khách hàng (Nhấn đúp vào khách hàng để xem lịch sử hóa đơn)");
+        JLabel lblTitle = new JLabel("Danh sách khách hàng");
         lblTitle.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 15));
         lblTitle.setForeground(Color.WHITE);
         lblTitle.setOpaque(true);

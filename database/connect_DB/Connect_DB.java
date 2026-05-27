@@ -15,7 +15,7 @@ public class Connect_DB {
     // Thông tin kết nối
     private static final String URL = "jdbc:sqlserver://localhost:1433;databaseName=QuanLyBanVeTau;encrypt=false;trustServerCertificate=true;";
     private static final String USER = "sa";
-    private static final String PASSWORD = "sapassword";
+    private static final String PASSWORD = "123456789";
 
     // Constructor private để implement Singleton
     private Connect_DB() {
@@ -97,8 +97,29 @@ public class Connect_DB {
                     // statuses cleaned silently
                 }
             }
+
+            // Tự động đồng bộ và sửa các toa có ghế mềm, ghế cứng là TOA_THUONG, và heSoLoaiToa tương ứng
+            try (Statement stmt = conn.createStatement()) {
+                // Toa có Ghế cứng -> TOA_THUONG (heSoLoaiToa = 1.0)
+                stmt.executeUpdate(
+                    "UPDATE ToaTau SET loaiToa = 'TOA_THUONG', heSoLoaiToa = 1.0 " +
+                    "WHERE maToaTau IN (SELECT DISTINCT maToaTau FROM Ghe WHERE loaiGhe = 'GHE_CUNG');"
+                );
+                
+                // Toa có Ghế mềm -> TOA_THUONG (heSoLoaiToa = 1.2)
+                stmt.executeUpdate(
+                    "UPDATE ToaTau SET loaiToa = 'TOA_THUONG', heSoLoaiToa = 1.2 " +
+                    "WHERE maToaTau IN (SELECT DISTINCT maToaTau FROM Ghe WHERE loaiGhe = 'GHE_MEM');"
+                );
+                
+                // Toa có Giường nằm -> TOA_VIP (heSoLoaiToa = 1.5)
+                stmt.executeUpdate(
+                    "UPDATE ToaTau SET loaiToa = 'TOA_VIP', heSoLoaiToa = 1.5 " +
+                    "WHERE maToaTau IN (SELECT DISTINCT maToaTau FROM Ghe WHERE loaiGhe = 'GIUONG_NAM');"
+                );
+            }
         } catch (SQLException e) {
-            System.err.println("[Database Migration] Lỗi khi tự động kiểm tra và cập nhật cấu trúc bảng Ghe:");
+            System.err.println("[Database Migration] Lỗi khi tự động kiểm tra và cập nhật cấu trúc bảng Ghe hoặc đồng bộ loại toa:");
             e.printStackTrace();
         }
     }

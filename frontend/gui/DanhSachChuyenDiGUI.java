@@ -413,13 +413,14 @@ final class DanhSachChuyenDiGUI extends JPanel {
 
     private void loadDataToTable() {
         if (tblModel == null) return;
+        new dao.ChuyenTauDAO().syncVoyageStatuses();
         tblModel.setRowCount(0);
         Connection conn = Connect_DB.getInstance().getConnection();
         if (conn == null) return;
 
         try {
             String sql = "SELECT ct.maChuyenTau, gDi.tenGa AS gaDi, gDen.tenGa AS gaDen, " +
-                         "dt.thoiGianKhoiHanh, dt.thoiGianDuKien, t.tenTau " +
+                         "dt.thoiGianKhoiHanh, dt.thoiGianDuKien, t.tenTau, ct.trangThai " +
                          "FROM ChuyenTau ct " +
                          "JOIN ChiTietChuyenTau dt ON ct.maChuyenTau = dt.maChuyenTau " +
                          "JOIN Ga gDi ON dt.maGaDi = gDi.maGa " +
@@ -436,7 +437,7 @@ final class DanhSachChuyenDiGUI extends JPanel {
             } else if (activeCard.equals("SC")) {
                 sql += " AND dt.thoiGianKhoiHanh > GETDATE() AND dt.thoiGianKhoiHanh <= DATEADD(hour, 2, GETDATE())";
             } else if (activeCard.equals("TR")) {
-                sql += " AND ct.trangThai = N'Bị trễ'";
+                sql += " AND ct.trangThai = 'CHUAN_BI' AND dt.thoiGianKhoiHanh < GETDATE()";
             }
 
             PreparedStatement stmt = conn.prepareStatement(sql);
@@ -471,8 +472,9 @@ final class DanhSachChuyenDiGUI extends JPanel {
                                      (denDuKien != null ? sdfTime.format(denDuKien) : "");
 
                 boolean isDelayed = false;
-                if (khoiHanh != null && denDuKien != null) {
-                    if (khoiHanh.after(denDuKien)) {
+                String dbStatus = rs.getString("trangThai");
+                if (khoiHanh != null && "CHUAN_BI".equals(dbStatus)) {
+                    if (new java.util.Date().after(khoiHanh)) {
                         isDelayed = true;
                     }
                 }
@@ -513,8 +515,10 @@ final class DanhSachChuyenDiGUI extends JPanel {
                 if (rs.next()) cardSapChay.setCount(String.valueOf(rs.getInt(1)));
             }
             
-            // Bị trễ (thoiGianKhoiHanh > thoiGianDuKien)
-            String sql3 = "SELECT COUNT(*) FROM ChiTietChuyenTau WHERE thoiGianKhoiHanh > thoiGianDuKien";
+            // Bị trễ (thoiGianKhoiHanh < GETDATE() và trangThai = 'CHUAN_BI')
+            String sql3 = "SELECT COUNT(*) FROM ChiTietChuyenTau dt " +
+                          "JOIN ChuyenTau ct ON dt.maChuyenTau = ct.maChuyenTau " +
+                          "WHERE ct.trangThai = 'CHUAN_BI' AND dt.thoiGianKhoiHanh < GETDATE()";
             try (PreparedStatement pst = conn.prepareStatement(sql3); ResultSet rs = pst.executeQuery()) {
                 if (rs.next()) cardTre.setCount(String.valueOf(rs.getInt(1)));
             }

@@ -121,6 +121,21 @@ public class ChuyenTauDAO {
     }
 
     /**
+     * Hủy chuyến tàu - cập nhật trạng thái chuyến sang 'HUY' thay vì xóa vật lý khỏi cơ sở dữ liệu.
+     */
+    public boolean cancelChuyenTau(String maChuyenTau) {
+        String sql = "UPDATE ChuyenTau SET trangThai = 'HUY' WHERE maChuyenTau = ?";
+        try (Connection con = Connect_DB.getInstance().getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setString(1, maChuyenTau);
+            return ps.executeUpdate() > 0;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    /**
      * Lấy dữ liệu 1 chuyến để load lên form Cập nhật.
      */
     public Object[] getChuyenTauForUpdate(String maChuyenTau) {
@@ -193,6 +208,7 @@ public class ChuyenTauDAO {
      */
     public List<Object[]> searchChuyenTau(String filterGaDi, String filterGaDen,
                                            String filterTau, java.sql.Date ngayDi) {
+        syncVoyageStatuses();
         List<Object[]> result = new ArrayList<>();
         String sql = "SELECT ct.maChuyenTau, gDi.tenGa AS gaDi, gDen.tenGa AS gaDen, "
                    + "dt.thoiGianKhoiHanh, dt.thoiGianDuKien, t.tenTau, ct.trangThai "
@@ -280,6 +296,7 @@ public class ChuyenTauDAO {
      */
     public boolean checkChuyenTonTai(String tenGaDi, String tenGaDen,
                                       String ngayDiStr, java.util.Date minTime) {
+        syncVoyageStatuses();
         String sql = "SELECT TOP 1 1 FROM ChuyenTau c "
                    + "JOIN ChiTietChuyenTau dt ON c.maChuyenTau = dt.maChuyenTau "
                    + "JOIN Ga gDi  ON dt.maGaDi  = gDi.maGa "
@@ -311,6 +328,7 @@ public class ChuyenTauDAO {
      */
     public java.util.Date layThoiGianDenSomNhat(String tenGaDi, String tenGaDen,
                                                  String ngayDiStr, java.util.Date minTime) {
+        syncVoyageStatuses();
         String sql = "SELECT TOP 1 dt.thoiGianDuKien FROM ChuyenTau c "
                    + "JOIN ChiTietChuyenTau dt ON c.maChuyenTau = dt.maChuyenTau "
                    + "JOIN Ga gDi  ON dt.maGaDi  = gDi.maGa "
@@ -419,6 +437,7 @@ public class ChuyenTauDAO {
      * Mỗi phần tử: {tenTau, tgDi, tgDen, ngayDi, ngayDen, maChuyen}
      */
     public String[][] loadChuyenFromDB(String tenGaDi, String tenGaDen, String ngayDiStr) {
+        syncVoyageStatuses();
         List<String[]> list = new ArrayList<>();
         String sql = "SELECT ct.maChuyenTau AS maChuyen, t.tenTau, "
                    + "dt.thoiGianKhoiHanh, dt.thoiGianDuKien "
@@ -455,6 +474,40 @@ public class ChuyenTauDAO {
             e.printStackTrace();
         }
         return list.toArray(new String[0][]);
+    }
+
+    /**
+     * Tự động đồng bộ hóa trạng thái các chuyến đi theo thời gian thực (Mô hình 2)
+     */
+    public void syncVoyageStatuses() {
+        String sqlDepart = "UPDATE ct "
+                         + "SET ct.trangThai = 'DANG_CHAY' "
+                         + "FROM ChuyenTau ct "
+                         + "JOIN ChiTietChuyenTau dt ON ct.maChuyenTau = dt.maChuyenTau "
+                         + "JOIN Tau t ON ct.maTau = t.maTau "
+                         + "WHERE ct.trangThai = 'CHUAN_BI' "
+                         + "  AND dt.thoiGianKhoiHanh <= GETDATE() "
+                         + "  AND t.trangThai = N'Đang hoạt động'";
+                         
+        String sqlArrive = "UPDATE ct "
+                         + "SET ct.trangThai = 'DA_DEN' "
+                         + "FROM ChuyenTau ct "
+                         + "JOIN ChiTietChuyenTau dt ON ct.maChuyenTau = dt.maChuyenTau "
+                         + "WHERE ct.trangThai = 'DANG_CHAY' "
+                         + "  AND dt.thoiGianDuKien <= GETDATE()";
+        
+        try (Connection con = Connect_DB.getInstance().getConnection()) {
+            if (con != null) {
+                try (PreparedStatement psDepart = con.prepareStatement(sqlDepart)) {
+                    psDepart.executeUpdate();
+                }
+                try (PreparedStatement psArrive = con.prepareStatement(sqlArrive)) {
+                    psArrive.executeUpdate();
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     // ── DASHBOARD: top 5 chuyến tàu tỷ lệ lấp đầy ──

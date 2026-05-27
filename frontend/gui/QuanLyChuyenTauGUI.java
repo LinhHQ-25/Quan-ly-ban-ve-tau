@@ -321,7 +321,7 @@ final class QuanLyChuyenTauGUI extends JPanel {
         scroll.getViewport().setOpaque(false);
         scroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
         scroll.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_NEVER);
-        scroll.setPreferredSize(new Dimension(0, 115));
+        scroll.setPreferredSize(new Dimension(0, 142));
         scroll.getHorizontalScrollBar().setUnitIncrement(15);
         
         pnlOuter.add(scroll, BorderLayout.CENTER);
@@ -637,10 +637,10 @@ maChuyenTau, maTau, maGaDi, maGaDen, tsDi, tsDen);
         JButton btnUpdate = buildNavyButton("Cập nhật chuyến đi", GuiTheme.NAVY, GuiTheme.NAVY_HOVER);
         btnUpdate.setPreferredSize(new Dimension(160, 32));
         
-        JButton btnDelete = buildNavyButton("Xóa chuyến đi", new Color(220, 53, 69), new Color(200, 35, 51));
+        JButton btnDelete = buildNavyButton("Hủy chuyến đi", new Color(220, 53, 69), new Color(200, 35, 51));
         btnDelete.setPreferredSize(new Dimension(140, 32));
         
-        btnDelete.addActionListener(e -> deleteSelectedTrip());
+        btnDelete.addActionListener(e -> cancelSelectedTrip());
         btnUpdate.addActionListener(e -> updateSelectedTrip());
         
         pnlTableActions.add(btnAutoSchedule);
@@ -723,11 +723,11 @@ maChuyenTau, maTau, maGaDi, maGaDen, tsDi, tsDen);
         return pnlOuter;
     }
 
-    private void deleteSelectedTrip() {
+    private void cancelSelectedTrip() {
         int row = tblData.getSelectedRow();
         if (row < 0) {
             JOptionPane.showMessageDialog(this,
-                    "Vui lòng chọn một chuyến đi trên bảng để xóa!",
+                    "Vui lòng chọn một chuyến đi trên bảng để hủy!",
                     "Thông báo", JOptionPane.WARNING_MESSAGE);
             return;
         }
@@ -737,22 +737,22 @@ maChuyenTau, maTau, maGaDi, maGaDen, tsDi, tsDen);
         String tenTau      = (String) tblModel.getValueAt(modelRow, 6);
 
         int confirm = JOptionPane.showConfirmDialog(this,
-                "Bạn có chắc chắn muốn xóa chuyến đi của tàu " + tenTau
-                + "?\nHành động này không thể hoàn tác.",
-                "Xác nhận xóa", JOptionPane.YES_NO_OPTION);
+                "Bạn có chắc chắn muốn hủy chuyến đi của tàu " + tenTau
+                + "?",
+                "Xác nhận hủy chuyến", JOptionPane.YES_NO_OPTION);
         if (confirm != JOptionPane.YES_OPTION) return;
 
-        boolean ok = new dao.ChuyenTauDAO().deleteChuyenTau(maChuyenTau);
+        boolean ok = new dao.ChuyenTauDAO().cancelChuyenTau(maChuyenTau);
         if (ok) {
             JOptionPane.showMessageDialog(this,
-                    "Xóa chuyến đi thành công!", "Thành công",
+                    "Hủy chuyến đi thành công!", "Thành công",
                     JOptionPane.INFORMATION_MESSAGE);
             loadDataToTable();
             loadIdleTrains();
         } else {
             JOptionPane.showMessageDialog(this,
-                    "Không thể xóa chuyến đi này vì đã có vé hoặc hóa đơn liên kết!",
-                    "Lỗi Xóa", JOptionPane.ERROR_MESSAGE);
+                    "Không thể hủy chuyến đi này!",
+                    "Lỗi Hủy chuyến", JOptionPane.ERROR_MESSAGE);
         }
     }
 
@@ -1018,9 +1018,11 @@ maChuyenTau, maTau, maGaDi, maGaDen, tsDi, tsDen);
 
     private final class TrainCard extends JPanel {
         private boolean isHovered = false;
+        private final String tinhTrang;
 
         TrainCard(String id, String name, int toa, int ghe, String tinhTrang) {
-            setPreferredSize(new Dimension(130, 95));
+            this.tinhTrang = tinhTrang;
+            setPreferredSize(new Dimension(140, 120));
             setBackground(Color.WHITE);
             setLayout(new BorderLayout());
             setBorder(null);
@@ -1028,18 +1030,18 @@ maChuyenTau, maTau, maGaDi, maGaDen, tsDi, tsDen);
             JPanel pnlInfo = new JPanel();
             pnlInfo.setLayout(new BoxLayout(pnlInfo, BoxLayout.Y_AXIS));
             pnlInfo.setOpaque(false);
-            pnlInfo.setBorder(new EmptyBorder(6, 10, 2, 10));
+            pnlInfo.setBorder(new EmptyBorder(12, 12, 2, 12));
 
             JLabel lblId = new JLabel(id);
-            lblId.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 12));
+            lblId.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 13));
             lblId.setForeground(GuiTheme.NAVY);
 
             JLabel lblName = new JLabel(name);
-            lblName.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 11));
+            lblName.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 12));
             lblName.setForeground(GuiTheme.TEXT);
 
             JLabel lblDetails = new JLabel(toa + " Toa | " + ghe + " Ghế");
-            lblDetails.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 10));
+            lblDetails.setFont(GuiTheme.font("Segoe UI", Font.PLAIN, 11));
             lblDetails.setForeground(GuiTheme.SUB_TEXT);
 
             pnlInfo.add(lblId);
@@ -1049,35 +1051,82 @@ maChuyenTau, maTau, maGaDi, maGaDen, tsDi, tsDen);
             pnlInfo.add(lblDetails);
 
             boolean isReady = tinhTrang.equals("Sẵn sàng");
-            String btnText = isReady ? "Điều động" : (tinhTrang.contains("Bảo trì") ? "Bảo trì" : tinhTrang);
-            Color btnColor = isReady ? GuiTheme.NAVY 
-                                     : (tinhTrang.equals("Đang chạy") || tinhTrang.equals("Bận chạy") ? new Color(220, 53, 69) : new Color(240, 173, 78));
-            Color btnColorHover = isReady ? GuiTheme.NAVY_HOVER : btnColor;
-
-            JButton btnAction = new JButton(btnText) {
-                @Override protected void paintComponent(Graphics g) {
-                    Graphics2D g2 = (Graphics2D) g.create();
-                    g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                    g2.setColor(getModel().isRollover() ? btnColorHover : btnColor);
-                    g2.fillRoundRect(0,0,getWidth(),getHeight(),8,8);
-                    g2.dispose();
-                    super.paintComponent(g);
-                }
-            };
-            btnAction.setForeground(Color.WHITE);
-            btnAction.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 9));
-            btnAction.setPreferredSize(new Dimension(0, 22));
-            btnAction.setContentAreaFilled(false); btnAction.setBorderPainted(false); btnAction.setFocusPainted(false);
             
+            JPanel pnlBottom = new JPanel(new BorderLayout());
+            pnlBottom.setOpaque(false);
+            pnlBottom.setBorder(new EmptyBorder(0, 12, 10, 12));
+
             if (isReady) {
+                JButton btnAction = new JButton("Điều động") {
+                    @Override protected void paintComponent(Graphics g) {
+                        Graphics2D g2 = (Graphics2D) g.create();
+                        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                        g2.setColor(getModel().isRollover() ? new Color(22, 163, 74) : new Color(34, 197, 94));
+                        g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
+                        g2.dispose();
+                        super.paintComponent(g);
+                    }
+                };
+                btnAction.setForeground(Color.WHITE);
+                btnAction.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 10));
+                btnAction.setPreferredSize(new Dimension(0, 26));
+                btnAction.setContentAreaFilled(false);
+                btnAction.setBorderPainted(false);
+                btnAction.setFocusPainted(false);
                 btnAction.setCursor(new Cursor(Cursor.HAND_CURSOR));
                 btnAction.addActionListener(e -> showDieuDongDialog(id, name));
+                pnlBottom.add(btnAction, BorderLayout.CENTER);
             } else {
-                btnAction.setEnabled(false);
+                // Beautiful status pill badge
+                String badgeText = tinhTrang;
+                Color bgPill, borderPill, textPill;
+                
+                if (tinhTrang.equals("Đang chạy") || tinhTrang.equals("Bận chạy")) {
+                    badgeText = "Đang chạy";
+                    bgPill = new Color(239, 246, 255); // Light Blue
+                    borderPill = new Color(191, 219, 254);
+                    textPill = new Color(29, 78, 216);
+                } else if (tinhTrang.equals("Bảo trì")) {
+                    bgPill = new Color(254, 242, 242); // Light Red
+                    borderPill = new Color(254, 202, 202);
+                    textPill = new Color(185, 28, 28);
+                } else if (tinhTrang.equals("Bảo trì kỹ thuật")) {
+                    badgeText = "Bảo trì kt";
+                    bgPill = new Color(255, 247, 237); // Light Orange
+                    borderPill = new Color(254, 215, 170);
+                    textPill = new Color(194, 65, 12);
+                } else {
+                    bgPill = new Color(241, 245, 249); // Light Gray
+                    borderPill = new Color(226, 232, 240);
+                    textPill = new Color(71, 85, 105);
+                }
+                
+                final String finalBadgeText = badgeText;
+                JPanel pnlBadge = new JPanel(new BorderLayout()) {
+                    @Override protected void paintComponent(Graphics g) {
+                        Graphics2D g2 = (Graphics2D) g.create();
+                        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                        g2.setColor(bgPill);
+                        g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
+                        g2.setColor(borderPill);
+                        g2.setStroke(new BasicStroke(1.0f));
+                        g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 8, 8);
+                        g2.dispose();
+                    }
+                };
+                pnlBadge.setOpaque(false);
+                pnlBadge.setPreferredSize(new Dimension(0, 26));
+                
+                JLabel lblBadgeText = new JLabel(finalBadgeText, SwingConstants.CENTER);
+                lblBadgeText.setFont(GuiTheme.font("Segoe UI", Font.BOLD, 10));
+                lblBadgeText.setForeground(textPill);
+                pnlBadge.add(lblBadgeText, BorderLayout.CENTER);
+                
+                pnlBottom.add(pnlBadge, BorderLayout.CENTER);
             }
 
             add(pnlInfo, BorderLayout.CENTER);
-            add(btnAction, BorderLayout.SOUTH);
+            add(pnlBottom, BorderLayout.SOUTH);
 
             addMouseListener(new MouseAdapter() {
                 @Override
@@ -1092,7 +1141,6 @@ maChuyenTau, maTau, maGaDi, maGaDen, tsDi, tsDen);
                     repaint();
                 }
             });
-            setCursor(new Cursor(Cursor.HAND_CURSOR));
         }
 
         @Override protected void paintComponent(Graphics g) {
@@ -1102,6 +1150,28 @@ maChuyenTau, maTau, maGaDi, maGaDen, tsDi, tsDen);
             Color bgCard = isHovered ? new Color(248, 250, 255) : Color.WHITE;
             g2.setColor(bgCard);
             g2.fillRoundRect(0, 0, getWidth(), getHeight(), 12, 12);
+            
+            // Draw top status line (4px thick)
+            Color statusColor;
+            switch (tinhTrang) {
+                case "Đang chạy":
+                case "Bận chạy":
+                    statusColor = new Color(59, 130, 246); // Blue
+                    break;
+                case "Bảo trì kỹ thuật":
+                    statusColor = new Color(249, 115, 22); // Orange
+                    break;
+                case "Bảo trì":
+                    statusColor = new Color(239, 68, 68); // Red
+                    break;
+                case "Sẵn sàng":
+                default:
+                    statusColor = new Color(34, 197, 94); // Green
+                    break;
+            }
+            g2.setColor(statusColor);
+            g2.fillRoundRect(0, 0, getWidth(), 6, 12, 12); // Round top bar
+            g2.fillRect(0, 3, getWidth(), 3); // square the bottom part of top bar
             
             Color borderColor = isHovered ? new Color(120, 160, 240) : new Color(230, 233, 238);
             float borderStroke = isHovered ? 1.5f : 1.0f;

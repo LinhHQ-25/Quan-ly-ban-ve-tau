@@ -156,6 +156,7 @@ public class DoiVeGUI0 extends JPanel {
 
     // --- DB QUERIES ---
     private String[][] loadChuyenFromDB(String tenGaDi, String tenGaDen, String ngayDiStr) {
+        new dao.ChuyenTauDAO().syncVoyageStatuses();
         List<String[]> list = new ArrayList<>();
         String sql = "SELECT ct.maChuyenTau AS maChuyen, t.tenTau, dt.thoiGianKhoiHanh, dt.thoiGianDuKien " +
                 "FROM ChuyenTau ct " +
@@ -824,7 +825,7 @@ public class DoiVeGUI0 extends JPanel {
         lblLogo.setHorizontalAlignment(SwingConstants.CENTER);
 
         boolean isVip = loaiToa.equals("VIP");
-        Icon icon = loadAndScaleIcon(isVip ? "/Images/logoToaVIP.png" : "/Images/logoToaThuong.png", 56, 36);
+        Icon icon = loadAndScaleIcon(isVip ? "/Images/logoToaVip.png" : "/Images/logoToaThuong.png", 56, 36);
         if (icon != null) lblLogo.setIcon(icon);
         else { lblLogo.setText(isVip ? "[VIP]" : "[Thường]"); lblLogo.setBorder(new LineBorder(Color.GRAY)); }
         toaLogos.add(lblLogo);
